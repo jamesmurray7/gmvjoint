@@ -128,7 +128,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
   
   # Longitudinal and survival data objects ----
   dmats <- createDataMatrices(data, formulas)
-  sv <- surv.mod.old(surv$ph, surv$survdata, formulas, inits.surv$l0.init)
+  sv <- surv.mod(surv$ph, surv$survdata, formulas, inits.surv$l0.init)
   
   X <- dmats$X; Y <- dmats$Y; Z <- dmats$Z # Longitudinal data matrices
   m <- lapply(Y, function(y) sapply(y, length))
