@@ -1,0 +1,17 @@
+useDynLib(GMVJM, .registration=TRUE)
+importFrom(Rcpp, evalCpp)
+importFrom("methods", "el")
+importFrom("stats", "Gamma", "as.formula", "binomial", "coef", "cov",
+           "gaussian", "model.matrix", "optim", "plogis", "poisson",
+           "rbinom", "rexp", "rgamma", "rnorm", "rpois", "runif",
+           "setNames")
+importFrom('pracma', 'grad', 'hessian')
+import(glmmTMB)
+import(survival)
+
+S3method(print, joint)
+S3method(summary, joint)
+S3method(print, summary.joint)
+S3method(logLik, joint)
+
+exportPattern("^[[:alpha:]]+")

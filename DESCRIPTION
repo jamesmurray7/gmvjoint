@@ -1,0 +1,24 @@
+Package: GMVJM
+Type: Package
+Title: Fit generalised multivariate joint models using an approximate EM algorithm 
+Version: 0.5
+Date: 2022-11-21
+Author: James Murray
+Maintainer: James Murray <j.murray7@ncl.ac.uk>
+Description: Fit multivariate joint models, where the longitudinal responses can be of differing type, using an approximate EM algorithm 
+License: GPL-3
+Depends:
+  R (>= 3.6.0),
+  glmmTMB,
+  survival
+Imports: 
+  Rcpp (>= 1.0.6),
+  Matrix,
+  MASS,
+  methods,
+  pracma,
+  stats,
+  statmod
+LinkingTo: Rcpp, RcppArmadillo
+Encoding: UTF-8
+RoxygenNote: 7.2.2

@@ -1,0 +1,9 @@
+*.RData
+*.Rhistory
+DS_Store
+.Rproj.user
+_archive/
+src/*.o
+src/*.so
+src/*.dll
+.Rapp.history
