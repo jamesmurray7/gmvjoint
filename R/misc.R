@@ -6,7 +6,7 @@ vech <- function(x) x[lower.tri(x, T)]
 #' @keywords internal
 #' @importFrom glmmTMB splitForm
 parseFormula <- function(formula){ 
-  split <- glmmTMB:::splitForm(formula, allowFixedOnly = F)
+  split <- glmmTMB::splitForm(formula, allowFixedOnly = F)
   fixed <- split$fixedFormula
   random <- el(split$reTrmFormulas)
   

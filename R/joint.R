@@ -40,7 +40,7 @@
 #' where \eqn{h} is a known, monotonic link function. An association is induced between the \eqn{K} response and the hazard \eqn{\lambda_i(t)}
 #' by 
 #' 
-#' \deqn{\lambda_i(t)=\lambda_0(t)\exp{S_i^T\zeta + \sum_{k=1}^K\gamma_kW_k{t}b_{ik}}} 
+#' \deqn{\lambda_i(t)=\lambda_0(t)\exp\{S_i^T\zeta + \sum_{k=1}^K\gamma_kW_k(t)b_{ik}\}} 
 #' 
 #' where \eqn{\gamma_k} is the association parameter and \eqn{W_k(t)} is the vector function of time imposed on the \eqn{K}th random
 #' effects structure (i.e. intercept and slope; spline and so on). 
@@ -63,7 +63,7 @@
 #'   For families where dispersion is estimated, this is \strong{always} specified by an "intercept-only" formula only. This might change in
 #'   future.
 #'   
-#' @section Standard Error estimation: 
+#' @section Standard error estimation: 
 #'   We follow the approximation of the observed empirical information matrix detailed by Mclachlan and Krishnan (2008), and later used
 #'   in \code{joineRML} (Hickey et al., 2018). These are only calculated if \code{post.process=TRUE}. Generally, these SEs are well-behaved, but
 #'   their reliability will depend on multiple factors: Sample size; number of events; collinearity of REs of responses; number of observed
@@ -90,7 +90,32 @@
 #' @export
 #'
 #' @examples
+#' 
+#' # 1) Fit on simulated trivariate data, (2x gaussian, 1x poisson) -------
+#' beta <- do.call(rbind, replicate(3, c(2, -0.1, 0.1, -0.2), simplify = FALSE))
+#' gamma <- c(0.3, -0.3, 0.3)
+#' D <- diag(c(0.25, 0.09, 0.25, 0.05, 0.25, 0.09))
+#' data <- simData(ntms = 15, beta = beta, D = D, family = list('gaussian', 'poisson', 'gaussian'), zeta = c(0, -0.2),
+#'                 sigma = c(0.16, 0, 0.2), gamma = c(-0.5, 0.5, -0.2))$data
+#'
+#' # Specify formulae and target families
+#' long.formulas <- list(
+#'   Y.1 ~ time + cont + bin + (1 + time|id),  # Gaussian
+#'   Y.2 ~ time + cont + bin + (1 + time|id),  # Poisson
+#'   Y.3 ~ time + cont + bin + (1 + time|id)   # Gaussian
+#' )
+#' surv.formula <- Surv(survtime, status) ~ bin
+#' family <- list('gaussian', 'poisson', 'gaussian')
+#' 
+#' fit <- joint(long.formulas, surv.formula, data, family)
+#' 
+#' \dontrun{
+#' 2) Fit on PBC data -----------------------------------------------------
+#' data(PBC)
+#' 
 #' 1+1
+#' 
+#' }
 joint <- function(long.formulas, surv.formula, data, family, post.process = T, control = list()){
   
   start.time <- proc.time()[3]
@@ -216,7 +241,6 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
   ModelInfo$surv.formulas <- surv.formula
   ModelInfo$control <- if(!is.null(control)) control else NULL
   ModelInfo$inds <- list(beta = beta.inds, b = b.inds)
-  ModelInfo$betaquad <- as.character(beta.quad)
   out$ModelInfo <- ModelInfo
   
   # Post processing ----

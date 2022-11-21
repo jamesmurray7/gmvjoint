@@ -4,7 +4,9 @@ importFrom("methods", "el")
 importFrom("stats", "Gamma", "as.formula", "binomial", "coef", "cov",
            "gaussian", "model.matrix", "optim", "plogis", "poisson",
            "rbinom", "rexp", "rgamma", "rnorm", "rpois", "runif",
-           "setNames")
+           "setNames", "pnorm", "qnorm")
+importFrom("utils", "head")
+importFrom("statmod", "gauss.quad.prob")
 importFrom('pracma', 'grad', 'hessian')
 import(glmmTMB)
 import(survival)
