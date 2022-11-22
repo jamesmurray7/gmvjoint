@@ -65,6 +65,8 @@ double ll_genpois(const arma::vec& eta, const double phi, arma::vec& Y){
 
 // Survival log-density.
 // log f(T_i, \Delta_i|\b; \Omega).
+//' @keywords internal
+// [[Rcpp::export]]
 double logfti(const arma::vec& b, const arma::rowvec& S, const arma::mat& SS, const arma::rowvec& Fi, const arma::mat& Fu,
               const double l0i, const arma::rowvec& haz, const int Delta, const arma::vec& gamma_rep, const arma::vec& zeta){
   double temp = 0.0;
@@ -75,7 +77,7 @@ double logfti(const arma::vec& b, const arma::rowvec& S, const arma::mat& SS, co
   );
 }
 
-// Defining a joint density 
+// The joint density
 //' @keywords internal
 // [[Rcpp::export]]
 double joint_density(const arma::vec& b, const List Y, const List X, const List Z,                  // Longitudinal + Random effects.

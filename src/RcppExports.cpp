@@ -37,6 +37,26 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// logfti
+double logfti(const arma::vec& b, const arma::rowvec& S, const arma::mat& SS, const arma::rowvec& Fi, const arma::mat& Fu, const double l0i, const arma::rowvec& haz, const int Delta, const arma::vec& gamma_rep, const arma::vec& zeta);
+RcppExport SEXP _GMVJM_logfti(SEXP bSEXP, SEXP SSEXP, SEXP SSSEXP, SEXP FiSEXP, SEXP FuSEXP, SEXP l0iSEXP, SEXP hazSEXP, SEXP DeltaSEXP, SEXP gamma_repSEXP, SEXP zetaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type b(bSEXP);
+    Rcpp::traits::input_parameter< const arma::rowvec& >::type S(SSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type SS(SSSEXP);
+    Rcpp::traits::input_parameter< const arma::rowvec& >::type Fi(FiSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type Fu(FuSEXP);
+    Rcpp::traits::input_parameter< const double >::type l0i(l0iSEXP);
+    Rcpp::traits::input_parameter< const arma::rowvec& >::type haz(hazSEXP);
+    Rcpp::traits::input_parameter< const int >::type Delta(DeltaSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type gamma_rep(gamma_repSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type zeta(zetaSEXP);
+    rcpp_result_gen = Rcpp::wrap(logfti(b, S, SS, Fi, Fu, l0i, haz, Delta, gamma_rep, zeta));
+    return rcpp_result_gen;
+END_RCPP
+}
 // joint_density
 double joint_density(const arma::vec& b, const List Y, const List X, const List Z, const arma::vec& beta, const arma::mat& D, const List sigma, const List family, const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, const double l0i, const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, const arma::vec& gamma_rep, const arma::vec& zeta, const List beta_inds, const List b_inds, const int K);
 RcppExport SEXP _GMVJM_joint_density(SEXP bSEXP, SEXP YSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP betaSEXP, SEXP DSEXP, SEXP sigmaSEXP, SEXP familySEXP, SEXP DeltaSEXP, SEXP SSEXP, SEXP FiSEXP, SEXP l0iSEXP, SEXP SSSEXP, SEXP FuSEXP, SEXP hazSEXP, SEXP gamma_repSEXP, SEXP zetaSEXP, SEXP beta_indsSEXP, SEXP b_indsSEXP, SEXP KSEXP) {

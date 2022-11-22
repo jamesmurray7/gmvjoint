@@ -95,7 +95,8 @@
 #' beta <- do.call(rbind, replicate(3, c(2, -0.1, 0.1, -0.2), simplify = FALSE))
 #' gamma <- c(0.3, -0.3, 0.3)
 #' D <- diag(c(0.25, 0.09, 0.25, 0.05, 0.25, 0.09))
-#' data <- simData(ntms = 15, beta = beta, D = D, family = list('gaussian', 'poisson', 'gaussian'), zeta = c(0, -0.2),
+#' data <- simData(ntms = 15, beta = beta, D = D, 
+#'                 family = list('gaussian', 'poisson', 'gaussian'), zeta = c(0, -0.2),
 #'                 sigma = c(0.16, 0, 0.2), gamma = c(-0.5, 0.5, -0.2))$data
 #'
 #' # Specify formulae and target families
@@ -241,6 +242,9 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
   ModelInfo$surv.formulas <- surv.formula
   ModelInfo$control <- if(!is.null(control)) control else NULL
   ModelInfo$inds <- list(beta = beta.inds, b = b.inds)
+  ModelInfo$nobs <- colSums(do.call(rbind, m))
+  ModelInfo$n <- n
+  ModelInfo$nev <- sum(sv$nev)
   out$ModelInfo <- ModelInfo
   
   # Post processing ----
@@ -278,7 +282,8 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
     out$RE <- do.call(rbind, b)
     postprocess.time <- round(proc.time()[3]-pp.start.time, 2)
     # Calculate log-likelihood. Done separately as EMtime + postprocess.time is for EM + SEs.
-    out$logLik <- joint.log.lik(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.inds, b.inds, K, q, family)
+    out$logLik <- joint.log.lik(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.inds, b.inds, 
+                                K, q, family, Sigma)
   }
   comp.time <- round(proc.time()[3] - start.time, 3)
   out$elapsed.time <- c(`EM time` = unname(round(EMend - EMstart, 3)),
@@ -290,10 +295,37 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
   return(out)
 }
 
-
-#' @keywords internal
+##' @method print joint
+##' @keywords internal
+##' @export
 print.joint <- function(x){
-  cat('\nN\nY\nI\n')
+  if(!inherits(x, 'joint')) stop('x must be a "joint" object!')
+  
+  M <- x$ModelInfo
+  K <- length(M$ResponseInfo) # Number of responses
+  
+  # Data information
+  cat(sprintf("Number of subjects: %d\n", M$n))
+  cat(sprintf("Number of events: %d (%.2f%%)\n", M$nev, 100 * M$nev/M$n))
+  
+  # Longitudinal information: 
+  cat("\n===================\nModel specification\n===================\n")
+  if(K == 1){
+    cat("Univariate longitudinal process specification:\n")
+    cat(sprintf("%s: %s\n", M$ResponseInfo[k], deparse(M$long.formulas[[1]])))
+  }else{
+    cat("Multivariate longitudinal process specifications: \n")
+    for(k in 1:K){
+      cat(sprintf("%s: %s\n", M$ResponseInfo[k], deparse(M$long.formulas[[k]])))
+    }
+  }
+  
+  cat("\nSurvival sub-model specification: \n")
+  cat(deparse(M$surv.formulas))
+  
+  cat("\n\nAssociation parameter estimates: \n")
+  print(setNames(x$coeffs$gamma,
+        M$ResponseInfo))
+  cat("\n")
+  invisible(1+1)
 }
-
-

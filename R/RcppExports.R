@@ -12,6 +12,11 @@ ll_genpois <- function(eta, phi, Y) {
 }
 
 #' @keywords internal
+logfti <- function(b, S, SS, Fi, Fu, l0i, haz, Delta, gamma_rep, zeta) {
+    .Call(`_GMVJM_logfti`, b, S, SS, Fi, Fu, l0i, haz, Delta, gamma_rep, zeta)
+}
+
+#' @keywords internal
 joint_density <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K) {
     .Call(`_GMVJM_joint_density`, b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K)
 }

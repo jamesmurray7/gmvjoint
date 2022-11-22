@@ -2,7 +2,7 @@
 % Please edit documentation in R/loglik.R
 \name{joint.log.lik}
 \alias{joint.log.lik}
-\title{Calculate joint log-likelihood, degrees of freedom, AIC and BIC of joint model fit.}
+\title{Calculate log-likelihood and degrees of freedom from a multivariate joint model}
 \usage{
 joint.log.lik(
   coeffs,
@@ -17,14 +17,17 @@ joint.log.lik(
   b.inds,
   K,
   q,
-  family
+  family,
+  Sigma
 )
 }
 \description{
-Calculate joint log-likelihood, degrees of freedom, AIC and BIC of joint model fit.
+Calculate log-likelihood and degrees of freedom from a multivariate joint model
 }
-\references{
-Henderson R, Diggle P, Dobson A. Joint modelling of longitudinal measurements and event time data.
-\emph{Biostatistics} 2000; \strong{1(4)}; 465-480.
+\seealso{
+\code{\link{logLik.joint}}
+}
+\author{
+James Murray (\email{j.murray7@ncl.ac.uk})
 }
 \keyword{internal}
