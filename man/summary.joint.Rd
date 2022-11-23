@@ -4,10 +4,10 @@
 \alias{summary.joint}
 \title{Summary of an \code{joint} object.}
 \usage{
-\method{summary}{joint}(fit)
+\method{summary}{joint}(x)
 }
 \arguments{
-\item{fit}{a joint model fit by the \code{joint} function.}
+\item{x}{a joint model fit by the \code{joint} function.}
 }
 \value{
 Object of class \code{summary.joint}.
@@ -21,4 +21,4 @@ Generate summary of a fitted multivariate joint model.
 \author{
 James Murray \email{j.murray7@ncl.ac.uk}
 }
-\keyword{methods}
+\keyword{internal}

@@ -97,7 +97,7 @@
 #' D <- diag(c(0.25, 0.09, 0.25, 0.05, 0.25, 0.09))
 #' data <- simData(ntms = 15, beta = beta, D = D, 
 #'                 family = list('gaussian', 'poisson', 'gaussian'), zeta = c(0, -0.2),
-#'                 sigma = c(0.16, 0, 0.2), gamma = c(-0.5, 0.5, -0.2))$data
+#'                 sigma = c(0.16, 0, 0.2), gamma = c(-0.5, 0.5, -0.5))$data
 #'
 #' # Specify formulae and target families
 #' long.formulas <- list(
@@ -228,10 +228,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
   coeffs <- Omega
   coeffs$beta <- setNames(c(Omega$beta), names(inits.long$beta.init))
   out <- list(coeffs = coeffs,
-              RE = do.call(rbind, b),
-              iter = iter)
-  out$hazard <- cbind(ft = sv$ft, haz = l0, nev = sv$nev)
-  out$family <- family
+              hazard = cbind(ft = sv$ft, haz = l0, nev = sv$nev))
   
   ModelInfo <- list()
   ModelInfo$ResponseInfo <- sapply(1:K, function(k){
@@ -288,7 +285,11 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
   comp.time <- round(proc.time()[3] - start.time, 3)
   out$elapsed.time <- c(`EM time` = unname(round(EMend - EMstart, 3)),
                         `Post processing` = if(post.process) unname(postprocess.time) else NULL,
-                        `Total Computation time` = unname(comp.time))
+                        `Total Computation time` = unname(comp.time),
+                        `iterations` = iter)
+  
+  # Put ranefs here!
+  # to do
   
   if(return.inits) out$inits = inits.long
   class(out) <- 'joint'
