@@ -1,91 +1,111 @@
 #' Fit a joint model to time-to-event and multivariate longitudinal data
 #'
-#' @param long.formulas A list of formula objects specifying the \eqn{K} responses. Each must be usable by \code{\link[glmmTMB]{glmmTMB}}. A 
-#'     restriction is that unique identifiers must be named `id`, and increment in intervals of at exactly one.
-#' @param surv.formula A formula specifying the time-to-event sub-model. Must be usable by \code{\link[survival]{coxph}}. A 
-#'  restriction is the survival time must be called `surv.time` and censoring status `status`.
+#' @param long.formulas A list of formula objects specifying the \eqn{K} responses. Each must be 
+#'        usable by \code{\link[glmmTMB]{glmmTMB}}. A restriction is that unique identifiers must 
+#'        be named `id`, and increment in intervals of at exactly one.
+#' @param surv.formula A formula specifying the time-to-event sub-model. Must be usable by 
+#'   \code{\link[survival]{coxph}}. A restriction is the survival time must be called 
+#'   `surv.time` and censoring status `status`.
 #' @param data A \code{data.frame} containing all covariates and responses.
 #' @param family A list of families corresponding in order to \code{long.formula}.
-#' @param post.process Logical, should post processing be done to obtain standard errors and log-likelihood? Defaults to \code{TRUE}.
+#' @param post.process Logical, should post processing be done to obtain standard errors and 
+#'   log-likelihood? Defaults to \code{TRUE}.
 #' @param control A list of control values: \describe{
 #' 
-#'   \item{\code{verbose}}{Logical: If \code{TRUE}, at each iteration parameter information will be printed to console. Default is \code{verbose=FALSE}.}
-#'   \item{\code{conv}}{Character: Either \code{"absolute"} or \code{"relative"} to invoke absolute or relative difference as the convergence criterion.
-#'                 default is \code{conv="relative"}.}
-#'   \item{\code{tol}}{Numeric: Tolerance value used to assess convergence. Default is \code{tol=1e-2}.}
-#'   \item{\code{correlated}}{Logical: Should covariance parameters \strong{between} responses be estimated and used in determination of 
-#'      model convergence? Default is \code{correlated=TRUE}. A choice of \code{correlated=FALSE} is equivalent to imposing the belief that 
-#'      deviations in longitudinal trajectories are not correlated across responses.}
-#'   \item{\code{gh.nodes}}{Integer: Number of weights and abscissae to use in gauss-hermite quadrature. Defaults to \code{gh.nodes=3}, which is usually
-#'   sufficient.}
-#'   \item{\code{gh.nodes}}{Numeric: Standard deviation for gauss-hermite approximation of normal distribution. Defaults to \code{gh.sigma=1}.
-#'   This should rarely (if ever) need altering.}
-#'   \item{\code{hessian}}{Character: Determines if the variance-covariance matrix for \eqn{\hat{b}_i}, \eqn{\hat{\Sigma}_i} should be 
-#'   calculated as part of the \code{optim} step in minimising the negative log-likelihood, or calculated post-hoc using forward differencing.
+#'   \item{\code{verbose}}{Logical: If \code{TRUE}, at each iteration parameter information will 
+#'   be printed to console. Default is \code{verbose=FALSE}.}
+#'   \item{\code{conv}}{Character: Either \code{"absolute"} or \code{"relative"} to invoke 
+#'   absolute or relative difference as the convergence criterion. Default is 
+#'   \code{conv="relative"}.}
+#'   \item{\code{tol}}{Numeric: Tolerance value used to assess convergence. 
+#'   Default is \code{tol=1e-2}.}
+#'   \item{\code{correlated}}{Logical: Should covariance parameters \strong{between} responses 
+#'   be estimated and used in determination of model convergence? Default is 
+#'   \code{correlated=TRUE}. A choice of \code{correlated=FALSE} is equivalent to imposing the 
+#'   belief that deviations in longitudinal trajectories are not correlated across responses, but
+#'    can \strong{greatly decrease} computation time.}
+#'   \item{\code{gh.nodes}}{Integer: Number of weights and abscissae to use in gauss-hermite 
+#'   quadrature. Defaults to \code{gh.nodes=3}, which is usually sufficient.}
+#'   \item{\code{gh.sigma}}{Numeric: Standard deviation for gauss-hermite approximation of normal
+#'   distribution. Defaults to \code{gh.sigma=1}. This should rarely (if ever) need altering.}
+#'   \item{\code{hessian}}{Character: Determines if the variance-covariance matrix for 
+#'   \eqn{\hat{b}_i}, \eqn{\hat{\Sigma}_i} should be calculated as part of the \code{optim} step
+#'   in minimising the negative log-likelihood, or calculated post-hoc using forward differencing.
 #'   Default is \code{hessian="auto"} for the former, with \code{hessian="manual"} the option for the latter.}
-#'   \item{\code{return.inits}}{Logical: Should lists containing the initial conditions for the longitudinal and survival sub-models be returned?
-#'   Defaults to \code{return.inits=FALSE}.}
+#'   \item{\code{return.inits}}{Logical: Should lists containing the initial conditions for the 
+#'   longitudinal and survival sub-models be returned? Defaults to \code{return.inits=FALSE}.}
 #' 
 #' }
 #' 
 #' @returns An object with class \code{joint}. See \code{\link{joint.object}} for information. 
 #' 
-#' @details Function \code{joint} fits a joint model to time-to-event data and multivariate longitudinal data. The longitudinal data
-#' can be specified by numerous models encompassing a fairly wide range of data. This joint model fit is achieved by the use of
-#' and approximate EM algorithm first proposed in Bernhardt et al. (2015), and later used in the 'classic' multivariate joint model in 
-#' Murray and Philipson (2022). Each longitudinal response is modelled by 
+#' @details Function \code{joint} fits a joint model to time-to-event data and multivariate 
+#' longitudinal data. The longitudinal data can be specified by numerous models encompassing
+#' a fairly wide range of data. This joint model fit is achieved by the use of an approximate
+#' EM algorithm first proposed in Bernhardt et al. (2015), and later used in the 'classic' 
+#' multivariate joint model in Murray and Philipson (2022). Each longitudinal response is 
+#' modelled by 
 #' 
 #' \deqn{h(E[Y_{ik}|b_{ik};\Omega]) = X_{ik}\beta_k + Z_{ik}b_{ik}} 
 #' 
-#' where \eqn{h} is a known, monotonic link function. An association is induced between the \eqn{K} response and the hazard \eqn{\lambda_i(t)}
-#' by 
+#' where \eqn{h} is a known, monotonic link function. An association is induced between the 
+#' \eqn{K}th response and the hazard \eqn{\lambda_i(t)} by: 
 #' 
 #' \deqn{\lambda_i(t)=\lambda_0(t)\exp\{S_i^T\zeta + \sum_{k=1}^K\gamma_kW_k(t)b_{ik}\}} 
 #' 
-#' where \eqn{\gamma_k} is the association parameter and \eqn{W_k(t)} is the vector function of time imposed on the \eqn{K}th random
-#' effects structure (i.e. intercept and slope; spline and so on). 
+#' where \eqn{\gamma_k} is the association parameter and \eqn{W_k(t)} is the vector function of 
+#' time imposed on the \eqn{K}th random effects structure (i.e. intercept-and-slope; spline).
 #' 
 #' @section Family specification:
-#'   Currently, five families are available for implementation, spanning continuous, binary and count data types: \describe{
+#'   Currently, five families are available for implementation, spanning continuous, binary and 
+#'   count data types: \describe{
 #'   
-#'     \item{\code{'gaussian'}}{Normally distributed. The identity link is used. A term \eqn{\sigma_k} will be estimated, denoting 
-#'     the variance of this response}
+#'     \item{\code{'gaussian'}}{Normally distributed. The identity link is used. A term 
+#'     \eqn{\sigma_k} will be estimated, denoting the \emph{variance} of this response}
 #'     \item{\code{'binomial'}}{For binary data types, a logit link is used.}
-#'     \item{\code{'poisson'}}{For count data types where dispersion is either non-consequential or ignored. A log link is used.}
-#'     \item{\code{'genpois'}}{For count data types where dispersion is at least of some secondary interest. A log link is used. A term
-#'     \eqn{\sigma_k} is estimated, denoting the dispersion, \eqn{\varphi} of the response. This follows interpretation of Zamani & Ismail 
-#'     (2012): \eqn{\varphi>0}: Over-dispersion; \eqn{\varphi<0}: Under-dispersion.}
-#'     \item{\code{'Gamma'}}{For continuous data where a Gamma distribution might be sensible. The log link is used. A term \eqn{\sigma_k}
-#'     will be estimated, denoting the shape of the distribution.}
+#'     \item{\code{'poisson'}}{For count data types where dispersion is either non-consequential 
+#'     or ignored. A log link is used.}
+#'     \item{\code{'genpois'}}{For count data types where dispersion is at least of some
+#'     secondary interest. A log link is used. A term \eqn{\sigma_k} is estimated, denoting
+#'     the dispersion, \eqn{\varphi} of the response. This follows interpretation of Zamani & 
+#'     Ismail (2012): \eqn{\varphi>0}: Over-dispersion; \eqn{\varphi<0}: Under-dispersion.}
+#'     \item{\code{'Gamma'}}{For continuous data where a Gamma distribution might be sensible.
+#'     The log link is used. A term \eqn{\sigma_k} is be estimated, denoting the shape of the
+#'     distribution.}
 #'   
 #'   } 
 #'   
-#'   For families where dispersion is estimated, this is \strong{always} specified by an "intercept-only" formula only. This might change in
-#'   future.
+#'   For families where dispersion is estimated, this is \strong{always} specified by an 
+#'   "intercept-only" formula only. This might change in future.
 #'   
 #' @section Standard error estimation: 
-#'   We follow the approximation of the observed empirical information matrix detailed by Mclachlan and Krishnan (2008), and later used
-#'   in \code{joineRML} (Hickey et al., 2018). These are only calculated if \code{post.process=TRUE}. Generally, these SEs are well-behaved, but
-#'   their reliability will depend on multiple factors: Sample size; number of events; collinearity of REs of responses; number of observed
-#'   times, and so on.
+#'   We follow the approximation of the observed empirical information matrix detailed by 
+#'   Mclachlan and Krishnan (2008), and later used in \code{joineRML} (Hickey et al., 2018).
+#'   These are only calculated if \code{post.process=TRUE}. Generally, these SEs are well-behaved,
+#'   but their reliability will depend on multiple factors: Sample size; number of events; 
+#'   collinearity of REs of responses; number of observed times, and so on.
 #' 
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #'
 #' @references 
 #' 
-#' Bernhardt PW, Zhang D and Wang HJ. A fast EM Algorithm for Fitting Joint Models of a Binary Response to 
-#' Multiple Longitudinal Covariates Subject to Detection Limits. \emph{Computational Statistics and Data Analysis} 2015;
-#' \strong{85}; 37--53
+#' Bernhardt PW, Zhang D and Wang HJ. A fast EM Algorithm for Fitting Joint Models of a Binary 
+#' Response to Multiple Longitudinal Covariates Subject to Detection Limits. 
+#' \emph{Computational Statistics and Data Analysis} 2015; \strong{85}; 37--53
 #' 
-#' Hickey GL, Philipson P, Jorgensen A, Kolamunnage-Dona R. \code{joineRML}: a joint model and software package for 
-#' time-to-event and multivariate longitudinal outcomes. \emph{BMC Med. Res. Methodol.} 2018;
-#' \strong{50}
+#' Hickey GL, Philipson P, Jorgensen A, Kolamunnage-Dona R. \code{joineRML}: a joint model and
+#' software package for time-to-event and multivariate longitudinal outcomes.
+#' \emph{BMC Med. Res. Methodol.} 2018; \strong{50}
 #'  
-#' McLachlan GJ, Krishnan T. \emph{The EM Algorithm and Extensions.} Second
-#' Edition. Wiley-Interscience; 2008.
+#' McLachlan GJ, Krishnan T. \emph{The EM Algorithm and Extensions.} Second Edition. 
+#' Wiley-Interscience; 2008.
 #' 
-#' Murray, J and Philipson P. A fast approximate EM algorithm for joint models of survival and multivariate longitudinal data.
-#' \emph{Computational Statistics and Data Analysis} 2022; \strong{170}; 107438
+#' Murray, J and Philipson P. A fast approximate EM algorithm for joint models of survival and
+#' multivariate longitudinal data.\emph{Computational Statistics and Data Analysis} 2022; 
+#' \strong{170}; 107438
+#' 
+#' Zamani H and Ismail N. Functional Form for the Generalized Poisson Regression Model, 
+#' \emph{Communications in Statistics - Theory and Methods} 2012; \strong{41(20)}; 3666-3675.
 #' 
 #' @export
 #'
@@ -113,9 +133,33 @@
 #' \dontrun{
 #' 2) Fit on PBC data -----------------------------------------------------
 #' data(PBC)
+#' PBC$serBilir <- log(PBC$serBilir)
+#'
+#' # Subset data and remove NAs
+#' PBC <- subset(PBC, select = c('id', 'survtime', 'status', 'drug', 'time',
+#'                               'serBilir', 'albumin', 'spiders', 'platelets'))
+#' PBC <- na.omit(PBC) 
 #' 
-#' 1+1
+#' # Specify GLMM sub-models, including interaction and natural spline terms
+#' long.formulas <- list(
+#'   serBilir ~ drug * (splines::ns(time, df = 3)) + (1 + splines::ns(time, df = 3)|id),
+#'   albumin ~ drug * time + (1 + time|id),
+#'   platelets ~ drug * time + (1 + time|id),
+#'   spiders ~ drug * time + (1|id)
+#' )
+#' surv.formula <- Surv(survtime, status) ~ drug
 #' 
+#' # Fit both with/out correlated REs ----
+#' fit.indep <- joint(long.formulas, surv.formula, PBC, 
+#'                    family = list("gaussian", "gaussian", "poisson", "binomial"),
+#'                    control = list(verbose = T, correlated = F))
+#' 
+#' fit.corr <-  joint(long.formulas, surv.formula, PBC, 
+#'                    family = list("gaussian", "gaussian", "poisson", "binomial"),
+#'                    control = list(verbose = T, correlated = T))
+#' # Any tangible difference?                    
+#' summary(fit.indep)
+#' summary(fit.corr)
 #' }
 joint <- function(long.formulas, surv.formula, data, family, post.process = T, control = list()){
   

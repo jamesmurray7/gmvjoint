@@ -115,8 +115,8 @@ double joint_density(const arma::vec& b, const List Y, const List X, const List 
   int q = b.size();
  
   double ll_Ti = logfti(b, S, SS, Fi, Fu, l0i, haz, Delta, gamma_rep, zeta);
- 
-  return -1.0 * (ll + as_scalar(-(double)q/2.0 * log2pi - 0.5 * log(det(D)) - 0.5 * b.t() * D.i() * b + ll_Ti));
+
+  return -1.0 * (ll + as_scalar(-(double)q/2.0 * log2pi - 0.5 * log(det(D)) - 0.5 * b.t() * D.i() * b + ll_Ti));;
 }
 
 // Derivatives ------------------------------------------------------------

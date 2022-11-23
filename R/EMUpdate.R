@@ -19,6 +19,7 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
           method = 'BFGS', hessian = .hess)
   }, b = b, Y = Y, X = X, Z = Z, Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS,
   Fu = Fu, l0u = l0u, SIMPLIFY = F)
+  
   b.hat <- lapply(b.update, el, 1)
   if(.hess){
     Sigma <- lapply(b.update, function(x) solve(x$hessian))
