@@ -50,9 +50,8 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
     Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K)
   }, X = X, Y = Y, Z = Z, b = bsplit, SIMPLIFY = F)
   Hb <- mapply(function(X, Y, Z, b){
-    Hbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K) 
+    Hbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K)
   }, X = X, Y = Y, Z = Z, b = bsplit, SIMPLIFY = F)
-  
   
   # Dispersion ('\sigma') =====================
   funlist <- unlist(family)

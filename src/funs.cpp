@@ -386,7 +386,7 @@ double Egammazeta(vec& gammazeta, vec& b, List Sigma,
   }
   double rhs = 0.0;
   for(int l = 0; l < w.size(); l++){
-    rhs += w[l] * as_scalar(haz.t() * exp(SS * z + Fu * (b % gammas) + v[l] * pow(tau, 0.5)));
+    rhs += w[l] * as_scalar(haz.t() * exp(SS * z + Fu * (b % gammas) + v[l] * pow(tau, .5)));  //pow(tau, 0.5)));
   }
   return as_scalar(Delta * (S * z + Fi * (b % gammas)) - rhs);
 }
