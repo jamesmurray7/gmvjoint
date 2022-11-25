@@ -9,8 +9,8 @@
 #'
 #' @returns A list containing 
 #' 
-#' * `survdata`: Reduced version of `data`, with only one row per subject, with covariates specified by 
-#'     `surv.formula` along with survival time and failure status. 
+#' * `survdata`: Reduced version of `data`, with only one row per subject, with covariates 
+#'  specified by `surv.formula` along with survival time and failure status. 
 #' * `ph`: model fit from `coxph`. 
 #' * `n`: Number of unique subjects. 
 #' * `Delta`: List of failure indicators for each subject (1=failed). 
@@ -39,8 +39,8 @@ parseCoxph <- function(surv.formula, data){
 }
 
 
-# surv.mod takes the fitted object and survival data from above function along with l0.init
-# (from inits.R) and the (random effect) formulas, which help inform construction of F_x objects.
+#' Create survival data objects based on random effects formula(e), a ph fit,
+#' the survival data and an initial estimation of \eqn{\lambda_0}.
 #' @keywords internal
 surv.mod <- function(ph, survdata, formulas, l0.init){
   uids <- unique(survdata$id); n <- length(uids); K <- length(formulas)

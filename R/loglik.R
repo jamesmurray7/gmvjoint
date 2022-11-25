@@ -103,8 +103,8 @@ joint.log.lik <- function(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.
 #' 
 #' @references 
 #'  
-#' Henderson R, Diggle P, Dobson A. Joint modelling of longitudinal measurements and event time data.
-#' \emph{Biostatistics} 2000; \strong{1(4)}; 465-480.
+#' Henderson R, Diggle P, Dobson A. Joint modelling of longitudinal measurements and event time
+#' data. \emph{Biostatistics} 2000; \strong{1(4)}; 465-480.
 #' 
 #' Wulfsohn MS, Tsiatis AA. A joint model for survival and longitudinal data measured with error.
 #' \emph{Biometrics} 1997; \strong{53(1)}; 330-339.

@@ -1,13 +1,14 @@
 #' Primary billiary cirrhosis data
 #' 
-#' Primary billiary cirrhosis (PBC) data. PBC is a chronic liver disease which affects the bile ducts of the liver, 
-#' complications of which can ultimately lead to death. The longitudinal profile of numerous biomarkers were observed for 
-#' 312 patients at the Mayo Clinic between 1974 and 1984  with patients assigned to either the active (D-penicillamine, n=154 (50.6%))
-#' or placebo treatment arm (Murtaugh 1994). The data is publicly available in numerous places, including \code{joineRML}. 
-#' The presence of many longitudinal biomarkers of clinical interest as well as an event-time has lead to the PBC data
-#' becoming a widely used in literature. 
+#' Primary billiary cirrhosis (PBC) data. PBC is a chronic liver disease which affects the bile 
+#' ducts of the liver, complications of which can ultimately lead to death. The longitudinal 
+#' profile of numerous biomarkers were observed for 312 patients at the Mayo Clinic between 1974
+#' and 1984  with patients assigned to either the active (D-penicillamine, n=154 (50.6%)) or 
+#' placebo treatment arm (Murtaugh 1994). The data is publicly available in numerous places, 
+#' including \code{joineRML}. The presence of many longitudinal biomarkers of clinical interest
+#' as well as an event-time has lead to the PBC data becoming a widely used in literature. 
 #' 
-#' Nine longitudinal biomarkers exist with varying degrees of completeness in the data, explored in \strong{details}. 
+#' Nine longitudinal biomarkers exist with varying degrees of completeness in the data.
 #' 
 #' @usage data('PBC')
 #' 
@@ -16,14 +17,19 @@
 #' 
 #'  \item{\code{id}}{Subject identifier}
 #'  \item{\code{survtime}}{Survival time in years}
-#'  \item{\code{drug}}{Binary indicator covariate: was the patient assigned active (\code{drug=1}) or placebo?}
-#'  \item{\code{sex}}{Binary indicator covariate: Takes value 1 if the subject is female, and zero if male.}
+#'  \item{\code{drug}}{Binary indicator covariate: was the patient assigned active 
+#'  (\code{drug=1}) or placebo?}
+#'  \item{\code{sex}}{Binary indicator covariate: Takes value 1 if the subject is female, and zero
+#'  if male.}
 #'  \item{\code{time}}{Time of visit (0=baseline).}
-#'  \item{\code{ascites}}{Binary \emph{response} variable. Takes value 1 if accumulation of fluid in abdomen ("ascites") present.}
-#'  \item{\code{hepatomegaly}}{Binary \emph{response} variable. Takes value 1 if enlarged liver ("hepatomegaly") present.}
-#'  \item{\code{spiders}}{Binary \emph{response} variable. Takes value 1 if malformed blood vessels in skin 
+#'  \item{\code{ascites}}{Binary \emph{response} variable. Takes value 1 if accumulation of fluid 
+#'  in abdomen ("ascites") present.}
+#'  \item{\code{hepatomegaly}}{Binary \emph{response} variable. Takes value 1 if enlarged liver 
 #'  ("hepatomegaly") present.}
-#'  \item{\code{edema}}{Factor variable describing edema therapy. See \code{\link[joineRML]{pbc2}} or \code{\link[survival]{pbcseq}}.}
+#'  \item{\code{spiders}}{Binary \emph{response} variable. Takes value 1 if malformed blood 
+#'  vessels in skin ("hepatomegaly") present.}
+#'  \item{\code{edema}}{Factor variable describing edema therapy. See \code{\link[joineRML]{pbc2}}
+#'  or \code{\link[survival]{pbcseq}}.}
 #'  \item{\code{serBilir}}{Serum bilirubin (measured in mg/dl).}
 #'  \item{\code{serChol}}{Serum cholesterol (measured in mg/dl).}
 #'  \item{\code{album}}{Serum albumin (measured in mg/dl).}
@@ -31,7 +37,8 @@
 #'  \item{\code{SGOT}}{Aspartate aminotransferase (measured in U/liter).}
 #'  \item{\code{platelets}}{Platelet count per cubic ml/1000.}
 #'  \item{\code{histologic}}{Histologic stage of disease, see \code{\link[survival]{pbcseq}}.}
-#'  \item{\code{status}}{Survival status, \code{status=1} if the subject experienced mortality and \code{=0} if censored.}
+#'  \item{\code{status}}{Survival status, \code{status=1} if the subject experienced mortality 
+#'  and \code{=0} if censored.}
 #'  \item{\code{age}}{Standardised age at baseline visit.}
 #' 
 #' } 
@@ -43,8 +50,8 @@
 #' @references 
 #' 
 #' Murtaugh PA, Dickson ER, Van Dam GM, Malinchoc M, Grambsch PM, Langworthy AL, Gips CH. Primary 
-#' biliary cirrhosis: Prediction of short-term survival based on repeated patient visits. \emph{Hepatology} 1994;
-#' \strong{20(1)}; 126-134. 
+#' biliary cirrhosis: Prediction of short-term survival based on repeated patient visits. 
+#' \emph{Hepatology} 1994; \strong{20(1)}; 126-134. 
 #' 
 #' 
 "PBC"

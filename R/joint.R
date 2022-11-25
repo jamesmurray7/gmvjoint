@@ -31,7 +31,8 @@
 #'   \item{\code{hessian}}{Character: Determines if the variance-covariance matrix for 
 #'   \eqn{\hat{b}_i}, \eqn{\hat{\Sigma}_i} should be calculated as part of the \code{optim} step
 #'   in minimising the negative log-likelihood, or calculated post-hoc using forward differencing.
-#'   Default is \code{hessian="auto"} for the former, with \code{hessian="manual"} the option for the latter.}
+#'   Default is \code{hessian="auto"} for the former, with \code{hessian="manual"} the 
+#'   option for the latter.}
 #'   \item{\code{return.inits}}{Logical: Should lists containing the initial conditions for the 
 #'   longitudinal and survival sub-models be returned? Defaults to \code{return.inits=FALSE}.}
 #' 

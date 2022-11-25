@@ -1,9 +1,10 @@
 #' Simulate realisations from a generalised poisson distribution
-#' @param mu A numeric vector of rates i.e. \eqn{\exp{\eta}}, with \eqn{\eta} the linear predictor.
-#' @param phi A numeric specifying the dispersion \eqn{\varphi}. If \eqn{\varphi<0} the response will be under-
-#' dispersed and overdispered if \eqn{\varphi>0}.
+#' @param mu A numeric vector of rates \eqn{\exp{\eta}}, with \eqn{\eta} the linear predictor.
+#' @param phi A numeric specifying the dispersion \eqn{\varphi}. If \eqn{\varphi<0} the response 
+#' will be under-dispersed and overdispered if \eqn{\varphi>0}.
 #' 
-#' @details Follows the "GP-1" implementation of the generalised poissson distribution outlined in Zamani & Ismail (2012). 
+#' @details Follows the "GP-1" implementation of the generalised poissson distribution outlined 
+#' in Zamani & Ismail (2012). 
 #' 
 #' @references 
 #' 
@@ -30,43 +31,63 @@ rgenpois <- function(mu, phi){
 
 #' Simulate data from a multivariate joint model
 #' 
-#' @description Simulate multivariate longitudinal and survival data from a joint model specification, with
-#'   potential mixture of response families. Implementation is similar to existing packages (e.g. \code{joineR}, \code{joineRML}).
+#' @description Simulate multivariate longitudinal and survival data from a joint model 
+#' specification, with potential mixture of response families. Implementation is similar 
+#' to existing packages (e.g. \code{joineR}, \code{joineRML}).
 #'   
 #' @param n the number of subjects
 #' @param ntms the number of time points
-#' @param fup the maximum follow-up time, such that t = [0, ..., fup] with length \code{ntms}.
+#' @param fup the maximum follow-up time, such that t = [0, ..., fup] with length \code{ntms}. 
+#' In instances where subject \eqn{i} \emph{doesn't} fail before \code{fup}, their censoring
+#' time is set as \code{fup + 0.1}.
 #' @param family a \eqn{K}-list of families, see \strong{details}.
-#' @param sigma a \eqn{K}-vector of dispersion parameters corresponding to the order of \code{family}; see \strong{details}.
-#' @param beta a \eqn{K \times 4} matrix specifying fixed effects for each \eqn{K} parameter, in the order (Intercept), time, continuous, binary.
-#' @param D a positive-definite matrix specifying the variance-covariance matrix for the random effects. If not supplied an identity matrix is assumed.
-#' @param gamma a \eqn{K}-vector specifying the association parameters for each longitudinal outcome.
-#' @param zeta a vector of length 2 specifying the coefficients for the baseline covariates in the survival sub-model, in the order of continuous and binary.
+#' @param sigma a \eqn{K}-vector of dispersion parameters corresponding to the order of 
+#' \code{family}; see \strong{details}.
+#' @param beta a \eqn{K \times 4} matrix specifying fixed effects for each \eqn{K} parameter, 
+#' in the order (Intercept), time, continuous, binary.
+#' @param D a positive-definite matrix specifying the variance-covariance matrix for the random
+#' effects. If not supplied an identity matrix is assumed.
+#' @param gamma a \eqn{K}-vector specifying the association parameters for each longitudinal 
+#' outcome.
+#' @param zeta a vector of length 2 specifying the coefficients for the baseline covariates in 
+#' the survival sub-model, in the order of continuous and binary.
 #' @param theta parameters to control the failure rate, see \strong{baseline hazard}.
 #' @param cens.rate parameter for \code{rexp} to generate censoring times for each subject.
-#' @param random.formula allows user to specify if an intercept-and-slope (\code{~ time}) or intercept-only (\code{~1}) random effects structure should be used.
-#'   defaults to the former.
+#' @param random.formula allows user to specify if an intercept-and-slope (\code{~ time}) or 
+#' intercept-only (\code{~1}) random effects structure should be used. defaults to the former.
+#' @param return.ranefs a logical determining whether the \emph{true} random effects should be 
+#' returned. This is largely for internal/simulation use. Default \code{return.ranefs = FALSE}.
 #'   
-#' @returns A list of two \code{data.frame}s: One with the full longitudinal data, and another with only survival data.
+#' @returns A list of two \code{data.frame}s: One with the full longitudinal data, and another 
+#' with only survival data. If \code{return.ranefs=TRUE}, a matrix of the true \eqn{b} values is
+#' also returned.
 #'
-#' @details \code{simData} simulates data from a multivariate joint model with a mixture of families for each \eqn{K=1,\dots,3} response.
-#'   Currently, the argument \code{random.formula} specifies the association structure for \strong{all} responses. The specification of \code{family}
-#'   changes requisite dispersion parameter, if applicable. The \code{family} list can (currently) contain:
+#' @details \code{simData} simulates data from a multivariate joint model with a mixture of 
+#' families for each \eqn{K=1,\dots,3} response. Currently, the argument \code{random.formula}
+#' specifies the association structure for \strong{all} responses. The specification of 
+#' \code{family} changes requisite dispersion parameter, if applicable. The \code{family} list can
+#' (currently) contain: 
 #'   
 #'   \describe{
 #'  
-#'   \item{\code{"gaussian"}}{Simulated with identity link, corresponding item in \code{sigma} will be the \strong{variance}.}
-#'   \item{\code{"poisson"}}{Simulated with log link, corresponding dispersion in \code{sigma} can be anything, as it doesn't impact simulation.}
-#'   \item{\code{"binomial"}}{Simulated with logit link, corresponding dispersion in \code{sigma} can be anything, as it doesn't impact simulation.}
-#'   \item{\code{"genpois"}}{Simulated with a log link, corresponding item in \code{sigma} will be the \strong{dispersion}. Values < 0
-#'   correspond to under-dispersion, and values > 0 over-dispersion. See \code{\link{rgenpois}} for more information.}
-#'   \item{\code{"Gamma"}}{Simulated with a log link, corresponding item in \code{sigma} will be the \strong{shape}.}
+#'   \item{\code{"gaussian"}}{Simulated with identity link, corresponding item in \code{sigma}
+#'   will be the \strong{variance}.}
+#'   \item{\code{"poisson"}}{Simulated with log link, corresponding dispersion in \code{sigma} 
+#'   can be anything, as it doesn't impact simulation.}
+#'   \item{\code{"binomial"}}{Simulated with logit link, corresponding dispersion in \code{sigma} 
+#'   can be anything, as it doesn't impact simulation.}
+#'   \item{\code{"genpois"}}{Simulated with a log link, corresponding item in \code{sigma} will be
+#'   the \strong{dispersion}. Values < 0 correspond to under-dispersion, and values > 0 over-
+#'   dispersion. See \code{\link{rgenpois}} for more information.}
+#'   \item{\code{"Gamma"}}{Simulated with a log link, corresponding item in \code{sigma} will be
+#'   the \strong{shape}.}
 #'   
 #'   }
 #'   
 #' @section Baseline hazard: 
 #'  
-#'   When simulating the survival time, the baseline hazard is a Gompertz distribution controlled by \code{theta=c(x,y)}:
+#'   When simulating the survival time, the baseline hazard is a Gompertz distribution controlled 
+#'   by \code{theta=c(x,y)}:
 #'   
 #'   \deqn{\lambda_0(t) = \exp{x + yt}}
 #'   
@@ -108,9 +129,10 @@ simData <- function(n = 250, ntms = 10, fup = 5,
                     family = list('gaussian', 'gaussian'), 
                     sigma = c(0.16, 0.16),
                     beta = rbind(c(1, 0.10, 0.33, -0.50), c(1, 0.10, 0.33, -0.50)), D = NULL,
-                    gamma = c(0.5, -0.5), zeta = c(0.05, -0.30),
+                    gamma = c(0.5, -0.5), zeta = c(0.05, -0.30),d
                     theta = c(-4, 0.2), cens.rate = exp(-3.5),
-                    random.formula = NULL){
+                    random.formula = NULL,
+                    return.ranefs = FALSE){
   
   # Checks --------------
   # Check family is valid option
@@ -243,6 +265,8 @@ simData <- function(n = 250, ntms = 10, fup = 5,
   out.data <- out.data[out.data$time < out.data$survtime, ]
   message(round(100 * sum(surv.data$status)/n), '% failure rate')
   
-  list(data =  out.data, 
-       surv.data =  out.data[!duplicated(out.data[,'id']), c('id', 'survtime', 'status', 'cont', 'bin')])
+  out <- list(data =  out.data, 
+              surv.data =  out.data[!duplicated(out.data[,'id']), c('id', 'survtime', 'status', 'cont', 'bin')])
+  if(return.ranefs) out$ranefs <- b
+  out
 }
