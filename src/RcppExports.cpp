@@ -87,6 +87,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// Score_eta_poiss_quad
+arma::vec Score_eta_poiss_quad(const arma::vec& eta, const arma::vec& Y, const arma::vec& tau2, const arma::vec& w, const arma::vec& v);
+RcppExport SEXP _GMVJM_Score_eta_poiss_quad(SEXP etaSEXP, SEXP YSEXP, SEXP tau2SEXP, SEXP wSEXP, SEXP vSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type eta(etaSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type tau2(tau2SEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type v(vSEXP);
+    rcpp_result_gen = Rcpp::wrap(Score_eta_poiss_quad(eta, Y, tau2, w, v));
+    return rcpp_result_gen;
+END_RCPP
+}
 // joint_density_ddb
 arma::vec joint_density_ddb(const arma::vec& b, const List Y, const List X, const List Z, const arma::vec& beta, const arma::mat& D, const List sigma, const List family, const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, const double l0i, const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, const arma::vec& gamma_rep, const arma::vec& zeta, const List beta_inds, const List b_inds, const int K);
 RcppExport SEXP _GMVJM_joint_density_ddb(SEXP bSEXP, SEXP YSEXP, SEXP XSEXP, SEXP ZSEXP, SEXP betaSEXP, SEXP DSEXP, SEXP sigmaSEXP, SEXP familySEXP, SEXP DeltaSEXP, SEXP SSEXP, SEXP FiSEXP, SEXP l0iSEXP, SEXP SSSEXP, SEXP FuSEXP, SEXP hazSEXP, SEXP gamma_repSEXP, SEXP zetaSEXP, SEXP beta_indsSEXP, SEXP b_indsSEXP, SEXP KSEXP) {
@@ -133,6 +148,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const List& >::type beta_inds(beta_indsSEXP);
     Rcpp::traits::input_parameter< const int >::type K(KSEXP);
     rcpp_result_gen = Rcpp::wrap(Sbeta(beta, X, Y, Z, b, sigma, family, beta_inds, K));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Hess_eta_poiss_quad
+arma::mat Hess_eta_poiss_quad(const arma::vec& eta, const arma::vec& Y, const arma::mat& design, const arma::vec& tau2, const arma::vec& w, const arma::vec v);
+RcppExport SEXP _GMVJM_Hess_eta_poiss_quad(SEXP etaSEXP, SEXP YSEXP, SEXP designSEXP, SEXP tau2SEXP, SEXP wSEXP, SEXP vSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type eta(etaSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type design(designSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type tau2(tau2SEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type v(vSEXP);
+    rcpp_result_gen = Rcpp::wrap(Hess_eta_poiss_quad(eta, Y, design, tau2, w, v));
     return rcpp_result_gen;
 END_RCPP
 }

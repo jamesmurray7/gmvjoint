@@ -22,6 +22,11 @@ joint_density <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i,
 }
 
 #' @keywords internal
+Score_eta_poiss_quad <- function(eta, Y, tau2, w, v) {
+    .Call(`_GMVJM_Score_eta_poiss_quad`, eta, Y, tau2, w, v)
+}
+
+#' @keywords internal
 joint_density_ddb <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K) {
     .Call(`_GMVJM_joint_density_ddb`, b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K)
 }
@@ -29,6 +34,11 @@ joint_density_ddb <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, 
 #' @keywords internal
 Sbeta <- function(beta, X, Y, Z, b, sigma, family, beta_inds, K) {
     .Call(`_GMVJM_Sbeta`, beta, X, Y, Z, b, sigma, family, beta_inds, K)
+}
+
+#' @keywords internal
+Hess_eta_poiss_quad <- function(eta, Y, design, tau2, w, v) {
+    .Call(`_GMVJM_Hess_eta_poiss_quad`, eta, Y, design, tau2, w, v)
 }
 
 #' @keywords internal

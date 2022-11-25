@@ -53,6 +53,17 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
     Hbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K)
   }, X = X, Y = Y, Z = Z, b = bsplit, SIMPLIFY = F)
   
+  tau2 <- mapply(function(Z, S) diag(tcrossprod(Z[[1]] %*% S, Z[[1]]))/2, Z = Z, S = Sigma)
+  eta <- mapply(function(X, Z, b) X[[1]] %*% beta + Z[[1]] %*% b, X = X, Z = Z, b = b.hat)
+  
+  # Sbq <- rowSums(mapply(function(X, Y, eta, tau2) crossprod(X[[1]], 
+  #                                                    Score_eta_poiss_quad(eta, Y[[1]], tau2, w, v)),
+  #                X = X, Y = Y, eta = eta, tau2 = tau2))
+  # 
+  # Hbq <- mapply(function(eta, Y, X, tau2){
+  #   Hess_eta_poiss_quad(eta, Y[[1]], X[[1]], tau2, w, v)
+  # }, eta = eta, Y = Y, X = X, tau2 = tau2, SIMPLIFY = F)
+  
   # Dispersion ('\sigma') =====================
   funlist <- unlist(family)
   disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma'))

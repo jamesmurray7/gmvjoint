@@ -128,12 +128,36 @@ arma::vec Score_eta_gauss(const arma::vec& eta, const arma::vec& Y, const double
   return V.i() * (Y - eta);
 }
 
+// NB: Gaussian is __same__ with quadrature.
+
 vec Score_eta_binom(const vec& eta, const vec& Y){
   return Y - exp(eta) / (exp(eta) + 1.0);
 }
 
+// Binomial d/d{eta} taken with quadrature.
+vec Score_eta_binom_quad(const vec& eta, const vec& Y,
+                         const vec& tau2, const vec& w, const vec& v){
+  int mi = Y.size(), gh = w.size();
+  mat exp_part = mat(mi, gh);
+  for(int l = 0; l < gh; l++){
+    exp_part.col(l) = w[l] * exp(eta + tau2 * v[l]) / (exp(eta + tau2 * v[l]) + 1.)
+  }
+  return Y - sum(exp_part, 1);
+}
+
 vec Score_eta_poiss(const vec& eta, const vec& Y){
   return Y - exp(eta);
+}
+
+// Poisson d/d{eta} taken with quadrature
+vec Score_eta_poiss_quad(const vec& eta, const vec& Y, const vec& tau2,
+				                 const vec& w, const vec& v){
+  int mi = Y.size(), gh = w.size();
+  mat exp_part = mat(mi, gh);
+  for(int l = 0; l < gh; l++){
+    exp_part.col(l) = w[l] * exp(eta + tau2 * v[l]);
+  }
+  return Y - sum(exp_part, 1);
 }
 
 vec Score_eta_genpois(const vec& eta, const vec& Y, const double phi, const mat& design){
@@ -146,6 +170,27 @@ vec Score_eta_genpois(const vec& eta, const vec& Y, const double phi, const mat&
   return grad;
 }
 
+// GP1 d/d{eta} taken with quadrature
+vec Score_eta_genpois_quad(const vec& eta, const vec& Y, const double phi, const mat& design,
+                           const vec& tau2, const vec& w, const vec& v){
+  int q = design.n_cols, gh = w.size(), mi = Y.size();
+  vec mu = exp(eta), grad = vec(q);
+  vec exp_part1 = vec(mi), exp_part2 = vec(mi);
+  // Work out parts we need to via quadrature.
+  for(int l = 0; l < gh; l++){
+    vec mu = exp(eta + tau2 * v[l]);
+    exp_part1 += w[l] * mu / (phi * Y + mu);
+    exp_part2 += w[l] * mu;
+  }
+  for(int qq = 0; qq < q; qq++){ // Work out column-by-column in {design}.
+    vec x = design.col(qq);
+    grad[qq] = sum(x + (Y - 1.) % (x % exp_part1) - x % exp_part2 / (phi + 1.));
+  }
+  return grad;
+}
+
+
+
 vec Score_eta_Gamma(const vec& eta, const vec& Y, const double shape, const mat& design){
   int q = design.n_cols;
   vec mu = exp(eta), grad = vec(q);
@@ -156,7 +201,7 @@ vec Score_eta_Gamma(const vec& eta, const vec& Y, const double shape, const mat&
   return grad;
 }
 
-// Obtain kth derivative of log-lieklihood wrt design matrix {X, Z}
+// Obtain kth derivative of log-likelihood wrt design matrix {X, Z}
 // (Exploiting the structure of d/dbeta == d/db besides the design measure.)
 vec get_long_score(const vec& eta, const vec& Y, const std::string family, const double sigma,
                    const mat& design){
@@ -168,6 +213,23 @@ vec get_long_score(const vec& eta, const vec& Y, const std::string family, const
     Score += design.t() * Score_eta_gauss(eta, Y, sigma);
   }else if(family == "binomial"){
     Score += design.t() * Score_eta_binom(eta, Y);
+  }else if(family == "genpois"){
+    Score += Score_eta_genpois(eta, Y, sigma, design);
+  }else if(family == "Gamma"){
+    Score += Score_eta_Gamma(eta, Y, sigma, design);
+  }
+  return Score;
+}
+
+// For quadrature (Can't think of a neat way to do one function 25/11/22).
+vec get_long_score_quad(const vec& eta, const vec& Y, const std::string family, const double sigma,
+                        const mat& design, const vec& tau2, const vec& w, const vec& v){
+  int p = design.n_cols;
+  vec Score = vec(p);
+  if(family == "poisson"){
+    Score += design.t() * Score_eta_poiss_quad(eta, Y, tau, w, v);
+  }else if(family == "binomial"){
+    Score += design.t() * Score_eta_binom_quad(eta, Y, tau, w, v);
   }else if(family == "genpois"){
     Score += Score_eta_genpois(eta, Y, sigma, design);
   }else if(family == "Gamma"){
@@ -204,10 +266,13 @@ arma::vec joint_density_ddb(const arma::vec& b, const List Y, const List X, cons
 }
 
 // Second derivative of joint density is found by BFGS method in maximisation step.
+
+//' Create vector of scores on fixed effects.
 //' @keywords internal
 // [[Rcpp::export]]
 arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& b, 
-                const List& sigma, const List& family, const List& beta_inds, const int K){
+                const List& sigma, const List& family, const List& beta_inds, const int K,
+                const bool quad, const arma::vec& tau2, const arma::vec& w, const arma::vec& v){
   int p = beta.size();
   vec Score = vec(p);
   
@@ -216,14 +281,19 @@ arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     mat Xk = X[k];
     mat Zk = Z[k];
     std::string f = family[k];
-    double sigmak = sigma[k];
     uvec beta_k_inds = beta_inds[k];
-    vec beta_k = beta.elem(beta_k_inds); // Ensure indexing from zero!!
+    vec beta_k = beta.elem(beta_k_inds); 
     vec b_k = b[k];
     vec eta = Xk * beta_k + Zk * b_k;
-    Score.elem(beta_k_inds) += get_long_score(eta, Yk, f, sigmak, Xk);
+    double sigmak = sigma[k];
+    if(f == 'gaussian' | !quad){ // gaussian is the same, so do it here.
+      Score.elem(beta_k_inds) += get_long_score(eta, Yk, f, sigmak, Xk);
+    }else{
+      vec tauk = tau2[k]; // This should be tau^2/2.
+      Score.elem(beta_k_inds) += get_long_score_quad(eta, Yk, f, sigmak, Xk,
+                                                     tauk, w, v);
+    }
   }
-  
   return Score;
 }
 
@@ -235,6 +305,8 @@ mat Hess_eta_gauss(const vec& eta, const vec& Y, const double sigma, const mat& 
   return design.t() * -V.i() * design;
 }
 
+// Hess_eta_gauss is the __same__ with quadrature!  
+
 mat Hess_eta_poiss(const vec& eta, const vec& Y, const mat& design){
   int mi = design.n_rows, q = design.n_cols;
   vec lambda = exp(eta);
@@ -245,6 +317,23 @@ mat Hess_eta_poiss(const vec& eta, const vec& Y, const mat& design){
     H += (-1. * lambda[j]) * xj * xjT;
   }
   return H;
+}
+
+// Poisson d2/d{eta}2 taken with quadrature
+arma::mat Hess_eta_poiss_quad(const arma::vec& eta, const arma::vec& Y, const arma::mat& design,
+                              const arma::vec& tau2, const arma::vec& w, const arma::vec v){
+  int mi = design.n_rows, q = design.n_cols, gh = w.size();
+  mat H = zeros<mat>(q, q);
+  vec exp_part = vec(mi);
+  for(int l = 0; l< gh; l++){
+    exp_part += exp(eta + tau2 * v[l]) * w[l];
+  }
+  for(int j = 0; j < mi; j ++){
+    rowvec xjT = design.row(j);
+    vec xj = xjT.t();
+    H += exp_part.at(j) * xj * xjT;
+  }
+  return -H;
 }
 
 mat Hess_eta_binom(const vec& eta, const vec& Y, const mat& design){
@@ -260,8 +349,25 @@ mat Hess_eta_binom(const vec& eta, const vec& Y, const mat& design){
   return H;
 }
 
-//' @keywords internal
-// [[Rcpp::export]]
+// Binomial d2/d{eta}^2 taken with quadrature
+mat Hess_eta_binom_quad(const arma::vec& eta, const arma::vec& Y, const arma::mat& design,
+                        const arma::vec& tau2, const arma::vec& w, const arma::vec v){
+  int mi = design.n_rows, q = design.n_cols, gh = w.size();
+  mat H = zeros<mat>(q, q);
+  vec exp_part = vec(mi);
+  for(int l = 0; l < gh; l++){
+    exp_part += w[l] * exp(eta + tau2 * v[l])/(exp(eta + tau2 * v[l]) + 1.)
+  }
+  for(int j = 0; j < mi; j ++){
+    rowvec xjT = design.row(j);
+    vec xj = xjT.t();
+    H += exp_part.at(j) * xj * xjT;
+  }
+  return -H;
+}
+
+
+
 arma::mat Hess_eta_genpois(const arma::vec& eta, const arma::vec& Y, const double phi, const arma::mat& design){
   int mi = design.n_rows, q = design.n_cols;
   vec mu = exp(eta);
@@ -386,7 +492,7 @@ double Egammazeta(vec& gammazeta, vec& b, List Sigma,
   }
   double rhs = 0.0;
   for(int l = 0; l < w.size(); l++){
-    rhs += w[l] * as_scalar(haz.t() * exp(SS * z + Fu * (b % gammas) + v[l] * pow(tau, .5)));  //pow(tau, 0.5)));
+    rhs += w[l] * as_scalar(haz.t() * exp(SS * z + Fu * (b % gammas) + v[l] * 0.5 * tau));
   }
   return as_scalar(Delta * (S * z + Fi * (b % gammas)) - rhs);
 }
@@ -451,7 +557,7 @@ arma::mat lambdaUpdate(List survtimes, arma::mat& ft, arma::vec& gamma, arma::ve
       }
       double mu = as_scalar(exp(S_i * zeta + Fst * rhs));
       for(int l = 0; l < gh; l++){
-        store(j, i) += as_scalar(w[l] * mu * exp(v[l] * sqrt(tau)));
+        store(j, i) += as_scalar(w[l] * mu * exp(v[l] * 0.5 * tau));
       }
     }
   }
