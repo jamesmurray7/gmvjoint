@@ -16,8 +16,8 @@ returns a reduced set.}
 \value{
 A list containing 
 
-* `survdata`: Reduced version of `data`, with only one row per subject, with covariates specified by 
-    `surv.formula` along with survival time and failure status. 
+* `survdata`: Reduced version of `data`, with only one row per subject, with covariates 
+ specified by `surv.formula` along with survival time and failure status. 
 * `ph`: model fit from `coxph`. 
 * `n`: Number of unique subjects. 
 * `Delta`: List of failure indicators for each subject (1=failed).

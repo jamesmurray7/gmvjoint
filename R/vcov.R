@@ -1,7 +1,8 @@
+#' Calculate the observed empirical information matrix \eqn{\tilde{I}}.
 #' @keywords internal
-vcov <- function(Omega, dmats, surv, sv,
-                 Sigma, SigmaSplit, b, bsplit, 
-                 l0u, w, v, n, family, K, q, beta.inds, b.inds){
+obs.emp.I <- function(Omega, dmats, surv, sv,
+                      Sigma, SigmaSplit, b, bsplit, 
+                      l0u, w, v, n, family, K, q, beta.inds, b.inds){
   #' Unpack Omega ----
   D <- Omega$D
   beta <- c(Omega$beta)
@@ -110,5 +111,34 @@ vcov <- function(Omega, dmats, surv, sv,
   I <- Reduce('+', lapply(1:n, function(i) tcrossprod(S[, i]))) - tcrossprod(SS)/n
   
   I
+}
+
+#' Extract the variance-covariance matrix from a \code{joint} fit.
+#' 
+#' @details Uses the observed-empirical \strong{approximation} of information matrix 
+#' (Mclachlan & Krishnan, 2008). The estimates for the baseline hazard are not estimated. 
+#' 
+#' @param x a joint model fit by the \code{joint} function.
+#' @param corr should the correlation matrix be returned instead of the variance-covariance?
+#'
+#' @seealso \code{\link{obs.emp.I}}
+#' @author James Murray \email{j.murray7@@ncl.ac.uk}
+#' @references 
+#' 
+#' McLachlan GJ, Krishnan T. \emph{The EM Algorithm and Extensions.} Second Edition. 
+#' Wiley-Interscience; 2008.
+#' 
+#' @keywords internal
+#' @method vcov joint
+#' 
+#' @export
+vcov.joint <- function(x, corr = F){
+  if(!inherits(x, 'joint')) stop("Only usable with objects of class 'joint'.")
+  
+  v <- x$vcov
+  if(corr) 
+    return(cov2cor(v))
+  else
+    return(v)
 }
 

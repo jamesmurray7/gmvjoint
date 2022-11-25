@@ -310,31 +310,31 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
     SigmaSplit <- lapply(Sigma, function(x) lapply(b.inds, function(y) as.matrix(x[y,y])))
     bsplit <- lapply(b, function(x) lapply(b.inds, function(y) x[y])) # Needed for updates to beta.
     # The Information matrix
-    I <- structure(vcov(coeffs, dmats, surv, sv, 
-                        Sigma, SigmaSplit, b, bsplit, 
-                        l0u, w, v, n, family, K, q, beta.inds, b.inds),
+    I <- structure(obs.emp.I(coeffs, dmats, surv, sv, 
+                             Sigma, SigmaSplit, b, bsplit, 
+                             l0u, w, v, n, family, K, q, beta.inds, b.inds),
                    dimnames = list(names(params), names(params)))
 
     I.inv <- tryCatch(solve(I), error = function(e) e)
     if(inherits(I.inv, 'error')) I.inv <- structure(MASS::ginv(I),
                                                     dimnames = dimnames(I))
     out$SE <- sqrt(diag(I.inv))
-    out$vcov <- I
+    out$vcov <- I.inv
     
-    out$RE <- do.call(rbind, b)
     postprocess.time <- round(proc.time()[3]-pp.start.time, 2)
     # Calculate log-likelihood. Done separately as EMtime + postprocess.time is for EM + SEs.
     out$logLik <- joint.log.lik(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.inds, b.inds, 
                                 K, q, family, Sigma)
+    # Collate RE and their variance
+    REs <- do.call(rbind, b)
+    attr(REs, 'Var') <- do.call(rbind, lapply(Sigma, diag))
+    out$REs <- REs
   }
   comp.time <- round(proc.time()[3] - start.time, 3)
   out$elapsed.time <- c(`EM time` = unname(round(EMend - EMstart, 3)),
                         `Post processing` = if(post.process) unname(postprocess.time) else NULL,
                         `Total Computation time` = unname(comp.time),
                         `iterations` = iter)
-  
-  # Put ranefs here!
-  # to do
   
   if(return.inits) out$inits = inits.long
   class(out) <- 'joint'
@@ -358,7 +358,7 @@ print.joint <- function(x){
   cat("\n===================\nModel specification\n===================\n")
   if(K == 1){
     cat("Univariate longitudinal process specification:\n")
-    cat(sprintf("%s: %s\n", M$ResponseInfo[k], deparse(M$long.formulas[[1]])))
+    cat(sprintf("%s: %s\n", M$ResponseInfo[1], deparse(M$long.formulas[[1]])))
   }else{
     cat("Multivariate longitudinal process specifications: \n")
     for(k in 1:K){

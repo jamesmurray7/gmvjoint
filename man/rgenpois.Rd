@@ -7,16 +7,17 @@
 rgenpois(mu, phi)
 }
 \arguments{
-\item{mu}{A numeric vector of rates i.e. \eqn{\exp{\eta}}, with \eqn{\eta} the linear predictor.}
+\item{mu}{A numeric vector of rates \eqn{\exp{\eta}}, with \eqn{\eta} the linear predictor.}
 
-\item{phi}{A numeric specifying the dispersion \eqn{\varphi}. If \eqn{\varphi<0} the response will be under-
-dispersed and overdispered if \eqn{\varphi>0}.}
+\item{phi}{A numeric specifying the dispersion \eqn{\varphi}. If \eqn{\varphi<0} the response 
+will be under-dispersed and overdispered if \eqn{\varphi>0}.}
 }
 \description{
 Simulate realisations from a generalised poisson distribution
 }
 \details{
-Follows the "GP-1" implementation of the generalised poissson distribution outlined in Zamani & Ismail (2012).
+Follows the "GP-1" implementation of the generalised poissson distribution outlined 
+in Zamani & Ismail (2012).
 }
 \references{
 Zamani H and Ismail N. Functional Form for the Generalized Poisson Regression Model, 

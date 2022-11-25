@@ -44,8 +44,8 @@ With the degrees of freedom, we can additionally compute AIC and BIC, which are 
 in no special way; and are calculated using the observed data log-likelihood.
 }
 \references{
-Henderson R, Diggle P, Dobson A. Joint modelling of longitudinal measurements and event time data.
-\emph{Biostatistics} 2000; \strong{1(4)}; 465-480.
+Henderson R, Diggle P, Dobson A. Joint modelling of longitudinal measurements and event time
+data. \emph{Biostatistics} 2000; \strong{1(4)}; 465-480.
 
 Wulfsohn MS, Tsiatis AA. A joint model for survival and longitudinal data measured with error.
 \emph{Biometrics} 1997; \strong{53(1)}; 330-339.

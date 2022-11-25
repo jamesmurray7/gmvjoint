@@ -17,5 +17,8 @@ S3method(print, joint)
 S3method(summary, joint)
 S3method(print, summary.joint)
 S3method(logLik, joint)
+S3method(vcov, joint)
+S3method(fixef, joint)
+S3method(ranef, joint)
 
 exportPattern("^[[:alpha:]]+")

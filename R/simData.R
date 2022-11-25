@@ -129,7 +129,7 @@ simData <- function(n = 250, ntms = 10, fup = 5,
                     family = list('gaussian', 'gaussian'), 
                     sigma = c(0.16, 0.16),
                     beta = rbind(c(1, 0.10, 0.33, -0.50), c(1, 0.10, 0.33, -0.50)), D = NULL,
-                    gamma = c(0.5, -0.5), zeta = c(0.05, -0.30),d
+                    gamma = c(0.5, -0.5), zeta = c(0.05, -0.30),
                     theta = c(-4, 0.2), cens.rate = exp(-3.5),
                     random.formula = NULL,
                     return.ranefs = FALSE){
