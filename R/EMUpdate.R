@@ -46,23 +46,20 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   D.update <- mapply(function(Sigma, b) Sigma + tcrossprod(b), Sigma = Sigma, b = b.hat, SIMPLIFY = F)
   
   # \beta =====================================
-  Sb <- mapply(function(X, Y, Z, b){
-    Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K)
-  }, X = X, Y = Y, Z = Z, b = bsplit, SIMPLIFY = F)
-  Hb <- mapply(function(X, Y, Z, b){
-    Hbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K)
-  }, X = X, Y = Y, Z = Z, b = bsplit, SIMPLIFY = F)
+  if(beta.quad){
+    tau2 = mapply(maketau2, Z = Z, S = SigmaSplit, SIMPLIFY = F)
+  }else{
+    tau2 = list(0)
+  }
   
-  tau2 <- mapply(function(Z, S) diag(tcrossprod(Z[[1]] %*% S, Z[[1]]))/2, Z = Z, S = Sigma)
-  eta <- mapply(function(X, Z, b) X[[1]] %*% beta + Z[[1]] %*% b, X = X, Z = Z, b = b.hat)
-  
-  # Sbq <- rowSums(mapply(function(X, Y, eta, tau2) crossprod(X[[1]], 
-  #                                                    Score_eta_poiss_quad(eta, Y[[1]], tau2, w, v)),
-  #                X = X, Y = Y, eta = eta, tau2 = tau2))
-  # 
-  # Hbq <- mapply(function(eta, Y, X, tau2){
-  #   Hess_eta_poiss_quad(eta, Y[[1]], X[[1]], tau2, w, v)
-  # }, eta = eta, Y = Y, X = X, tau2 = tau2, SIMPLIFY = F)
+  Sb <- mapply(function(X, Y, Z, b, tau2){
+    Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K, 
+          beta.quad, tau2, w, v)
+  }, X = X, Y = Y, Z = Z, b = bsplit, tau2 = tau2, SIMPLIFY = F)
+  Hb <- mapply(function(X, Y, Z, b, tau2){
+    Hbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K,
+          beta.quad, tau2, w, v)
+  }, X = X, Y = Y, Z = Z, b = bsplit, tau2 = tau2, SIMPLIFY = F)
   
   # Dispersion ('\sigma') =====================
   funlist <- unlist(family)
@@ -79,6 +76,9 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
       sigma.update[[j]] <- rowSums(mapply(function(b, X, Y, Z, tau){
         unlist(phi_update(b[[j]], X[[j]], Y[[j]], Z[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v, tau))
       }, b = bsplit, X = X, Y = Y, Z = Z, tau = tau))
+      # sigma.update[[j]] <- rowSums(mapply(function(b, X, Y, Z, S){
+      #   unlist(phi_update2(b[[j]], X[[j]], Y[[j]], Z[[j]], S[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v))
+      # }, b = bsplit, X = X, Y = Y, Z = Z, S = SigmaSplit))
     }
     if(funlist[j] == 'Gamma'){
       sigma.update[[j]] <- rowSums(mapply(function(X, Y, Z, tau, b){
@@ -86,6 +86,31 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
       }, X = X, Y = Y, Z = Z, tau = tau, b = bsplit))
     }
   }
+  
+  Ellgp <- function(phi, y, X, z, b, tau){
+    eta <- X[[1]]%*%beta[1:4]+z[[1]]%*%b[1:2]
+    y <- y[[1]]
+    gh <- length(w); mi <- length(y)
+    p1 <- p2 <- matrix(0, nr = mi, nc = gh)
+    for(l in 1:gh){
+      p1[,l] <- w[l] * log(exp(eta + tau[[1]] * v[l]) + phi * y)
+      p2[,l] <- w[l] * exp(eta + tau[[1]] * v[l])
+    }
+    p1 <- rowSums(p1); p2 <- rowSums(p2)
+    sum(
+      (y-1) * p1 - y * log(1+phi) - (p2 + phi * y)/(1+phi)
+    )
+  }
+  
+  S <- H <- numeric(n)
+  for(i in 1:n){
+    S[i] <-  pracma::grad(Ellgp, 0.2680261 , y = Y[[i]], X = X[[i]], z = Z[[i]], b = b.hat[[i]],
+                           tau = tau2[[i]])
+    H[i] <-  pracma::hessian(Ellgp, 0.2680261 , y = Y[[i]], X = X[[i]], z = Z[[i]], b = b.hat[[i]],
+                             tau = tau2[[i]])
+  }
+  
+  
   for(j in setdiff(1:K, c(disps))) sigma.update[[j]] <- NA # Return null for all distsn which do not have disp. parameters.
   
   # Survival parameters (\gamma, \zeta) =======

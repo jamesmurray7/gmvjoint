@@ -4,7 +4,7 @@
 using namespace Rcpp;
 using namespace arma;
 
-// Specifically for obtaining pmf in simulations (since requisite doesn't exist in R).
+//' Specifically for obtaining pmf in simulations (since requisite doesn't exist in R).
 //' @keywords internal
 // [[Rcpp::export]]
 double GP1_pmf_scalar(const double mu, const double phi, const double Y){

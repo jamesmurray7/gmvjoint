@@ -119,6 +119,19 @@ double joint_density(const arma::vec& b, const List Y, const List X, const List 
   return -1.0 * (ll + as_scalar(-(double)q/2.0 * log2pi - 0.5 * log(det(D)) - 0.5 * b.t() * D.i() * b + ll_Ti));;
 }
 
+// Quadrature
+//' @keywords internal
+// [[Rcpp::export]]
+List maketau2(const List& S, const List& Z){
+  int K = S.size();
+  List out = List(K);
+  for(int k = 0; k < K; k++){
+    mat Zk = Z[k], Sk = S[k];
+    out[k] = 0.5 * diagvec(Zk * Sk * Zk.t());
+  }
+  return out;
+}
+
 // Derivatives ------------------------------------------------------------
 // Scores of the linear predictors eta = X(t)*beta+Z(t)*b;
 arma::vec Score_eta_gauss(const arma::vec& eta, const arma::vec& Y, const double sigma){ // sigma = variance!
@@ -140,7 +153,7 @@ vec Score_eta_binom_quad(const vec& eta, const vec& Y,
   int mi = Y.size(), gh = w.size();
   mat exp_part = mat(mi, gh);
   for(int l = 0; l < gh; l++){
-    exp_part.col(l) = w[l] * exp(eta + tau2 * v[l]) / (exp(eta + tau2 * v[l]) + 1.)
+    exp_part.col(l) = w[l] * exp(eta + tau2 * v[l]) / (exp(eta + tau2 * v[l]) + 1.);
   }
   return Y - sum(exp_part, 1);
 }
@@ -189,8 +202,6 @@ vec Score_eta_genpois_quad(const vec& eta, const vec& Y, const double phi, const
   return grad;
 }
 
-
-
 vec Score_eta_Gamma(const vec& eta, const vec& Y, const double shape, const mat& design){
   int q = design.n_cols;
   vec mu = exp(eta), grad = vec(q);
@@ -200,6 +211,8 @@ vec Score_eta_Gamma(const vec& eta, const vec& Y, const double shape, const mat&
   }
   return grad;
 }
+
+// TO DO:: Gamma quad version.
 
 // Obtain kth derivative of log-likelihood wrt design matrix {X, Z}
 // (Exploiting the structure of d/dbeta == d/db besides the design measure.)
@@ -227,11 +240,11 @@ vec get_long_score_quad(const vec& eta, const vec& Y, const std::string family, 
   int p = design.n_cols;
   vec Score = vec(p);
   if(family == "poisson"){
-    Score += design.t() * Score_eta_poiss_quad(eta, Y, tau, w, v);
+    Score += design.t() * Score_eta_poiss_quad(eta, Y, tau2, w, v);
   }else if(family == "binomial"){
-    Score += design.t() * Score_eta_binom_quad(eta, Y, tau, w, v);
+    Score += design.t() * Score_eta_binom_quad(eta, Y, tau2, w, v);
   }else if(family == "genpois"){
-    Score += Score_eta_genpois(eta, Y, sigma, design);
+    Score += Score_eta_genpois_quad(eta, Y, sigma, design, tau2, w, v);
   }else if(family == "Gamma"){
     Score += Score_eta_Gamma(eta, Y, sigma, design);
   }
@@ -272,7 +285,7 @@ arma::vec joint_density_ddb(const arma::vec& b, const List Y, const List X, cons
 // [[Rcpp::export]]
 arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& b, 
                 const List& sigma, const List& family, const List& beta_inds, const int K,
-                const bool quad, const arma::vec& tau2, const arma::vec& w, const arma::vec& v){
+                const bool quad, const List& tau2, const arma::vec& w, const arma::vec& v){
   int p = beta.size();
   vec Score = vec(p);
   
@@ -286,10 +299,10 @@ arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     vec b_k = b[k];
     vec eta = Xk * beta_k + Zk * b_k;
     double sigmak = sigma[k];
-    if(f == 'gaussian' | !quad){ // gaussian is the same, so do it here.
+    if(f == "gaussian" || !quad){ // gaussian is the same, so do it here.
       Score.elem(beta_k_inds) += get_long_score(eta, Yk, f, sigmak, Xk);
     }else{
-      vec tauk = tau2[k]; // This should be tau^2/2.
+      vec tauk = tau2[k]; // This is tau^2/2 (fron e.g. make tau2).
       Score.elem(beta_k_inds) += get_long_score_quad(eta, Yk, f, sigmak, Xk,
                                                      tauk, w, v);
     }
@@ -356,7 +369,7 @@ mat Hess_eta_binom_quad(const arma::vec& eta, const arma::vec& Y, const arma::ma
   mat H = zeros<mat>(q, q);
   vec exp_part = vec(mi);
   for(int l = 0; l < gh; l++){
-    exp_part += w[l] * exp(eta + tau2 * v[l])/(exp(eta + tau2 * v[l]) + 1.)
+    exp_part += w[l] * exp(eta + tau2 * v[l])/square(exp(eta + tau2 * v[l]) + 1.);
   }
   for(int j = 0; j < mi; j ++){
     rowvec xjT = design.row(j);
@@ -365,8 +378,6 @@ mat Hess_eta_binom_quad(const arma::vec& eta, const arma::vec& Y, const arma::ma
   }
   return -H;
 }
-
-
 
 arma::mat Hess_eta_genpois(const arma::vec& eta, const arma::vec& Y, const double phi, const arma::mat& design){
   int mi = design.n_rows, q = design.n_cols;
@@ -381,6 +392,25 @@ arma::mat Hess_eta_genpois(const arma::vec& eta, const arma::vec& Y, const doubl
   return H;
 }
 
+mat Hess_eta_genpois_quad(const vec& eta, const vec& Y, const double phi, const mat& design,
+                          const vec& tau2, const vec& w, const vec& v){
+  int mi = design.n_rows, q = design.n_cols, gh = w.size();
+  mat H = zeros<mat>(q, q);
+  vec exp_part1a = vec(mi), exp_part1b = vec(mi), exp_part2 = vec(mi);
+  for(int l = 0; l < gh; l++){
+    vec eta_l = eta + v[l] * tau2;
+    exp_part2 += w[l] * exp(eta_l);
+    exp_part1a += w[l] * exp(eta_l);
+    exp_part1b += w[l] * square(exp(eta_l) + phi * Y);
+  }
+  for(int j = 0; j < mi; j++){
+    rowvec xjT = design.row(j);
+    vec xj = xjT.t();
+    H += (phi * Y[j] * (Y[j] - 1.) * exp_part1a[j]/exp_part1b[j] - exp_part2[j] / (phi + 1.)) * xj * xjT;
+  }
+  return H;
+}
+                          
 mat Hess_eta_Gamma(const vec& eta, const vec& Y, const double shape, const mat& design){
   int mi = design.n_rows, q = design.n_cols;
   vec mu = exp(eta);
@@ -393,7 +423,9 @@ mat Hess_eta_Gamma(const vec& eta, const vec& Y, const double shape, const mat& 
   return H;
 }
 
-mat get_long_hess(const vec& eta, const vec& Y, const std::string family, const double sigma,
+// TODO:: Hessian for Gamma with quadrature.
+
+mat get_long_hess(const vec& eta, const vec& Y, const std::string family, const double sigma, 
                   const mat& design){
   int p = design.n_cols;
   mat H = zeros<mat>(p, p);
@@ -411,10 +443,27 @@ mat get_long_hess(const vec& eta, const vec& Y, const std::string family, const 
   return H;
 }
 
+mat get_long_hess_quad(const vec& eta, const vec& Y, const std::string family, const double sigma,
+                       const mat& design, const vec& tau2, const vec& w, const vec& v){
+  int p = design.n_cols;
+  mat H = zeros<mat>(p, p);
+  if(family == "poisson"){
+    H += Hess_eta_poiss_quad(eta, Y, design, tau2, w, v);
+  }else if(family == "binomial"){
+    H += Hess_eta_binom_quad(eta, Y, design, tau2, w, v);
+  }else if(family == "genpois"){
+    H += Hess_eta_genpois_quad(eta, Y, sigma, design, tau2, w, v);
+  }else if(family == "Gamma"){
+    H += Hess_eta_Gamma(eta, Y, sigma, design); //, tau2, w, v); // NYI
+  }
+  return H;
+}
+
 //' @keywords internal
 // [[Rcpp::export]]
 arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& b, 
-                const List& sigma, const List& family, const List& beta_inds, const int K){
+                const List& sigma, const List& family, const List& beta_inds, const int K,
+                const bool& quad, const List& tau2, const arma::vec& w, const arma::vec& v){
   int P = beta.size();
   mat H = zeros<mat>(P, P);
   for(int k = 0; k < K; k++){
@@ -428,14 +477,20 @@ arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     vec beta_k = beta.elem(beta_k_inds); // Ensure indexing from zero!!
     vec b_k = b[k];
     vec eta = Xk * beta_k + Zk * b_k;
-    H(span(start, end), span(start, end)) = get_long_hess(eta, Yk, f, sigmak, Xk);
+    if(f == "gaussian" || !quad){
+      H(span(start, end), span(start, end)) = get_long_hess(eta, Yk, f, sigmak, Xk);
+    }else{
+      vec tauk = tau2[k];
+      H(span(start, end), span(start, end)) = get_long_hess_quad(eta, Yk, f, sigmak, Xk,
+                                                                 tauk, w, v);
+    }
   } // Return the (psuedo-) block diagonal.
   return H;
 }
 
 // Updates for dispersion parameters --------------------------------------
 
-// Update for residual variance (f = gaussian)
+//' Update for residual variance (sigma for gaussian family)
 //' @keywords internal
 // [[Rcpp::export]]
 double vare_update(const arma::mat& X, const arma::vec& Y, const arma::mat& Z, const arma::vec& b, 
@@ -450,7 +505,7 @@ double vare_update(const arma::mat& X, const arma::vec& Y, const arma::mat& Z, c
   return out;
 }
 
-// Update for dispersion parameter phi (f = genpois)
+//' Update for dispersion parameter (sigma for genpois family)
 //' @keywords internal
 // [[Rcpp::export]]
 List phi_update(const arma::vec& b, const arma::mat& X, const arma::vec& Y, const arma::mat& Z, 
@@ -458,9 +513,10 @@ List phi_update(const arma::vec& b, const arma::mat& X, const arma::vec& Y, cons
                 const arma::vec& w, const arma::vec& v, const arma::vec& tau){
   int gh = w.size();
   vec eta = X * beta + Z * b;
+  vec tau2 = square(tau) * .5;
   double rhs = sum(Y)/(1.+phi), lhs = sum(Y)/(pow(1.+phi,2.)), Score = 0., Hess = 0.;
   for(int l = 0; l < gh; l++){
-    vec eta_l = eta + tau * v[l];
+    vec eta_l = eta + tau2 * v[l];
     vec mu = exp(eta_l);
     Score += w[l] * sum(
       ((Y - 1.) % Y)/(mu + phi * Y) + (mu - Y)/(pow(phi + 1., 2.))
@@ -470,6 +526,33 @@ List phi_update(const arma::vec& b, const arma::mat& X, const arma::vec& Y, cons
     );
   }
   return List::create(_["Score"] = Score - rhs, _["Hessian"] = lhs + Hess);
+}  
+
+//' Update for dispersion parameter (sigma for genpois family)
+//' @keywords internal
+// [[Rcpp::export]]
+List phi_update2(const arma::vec& b, const arma::mat& X, const arma::vec& Y, const arma::mat& Z,
+                 const arma::mat& S, const arma::vec& beta, const double phi, 
+                 const arma::vec& w, const arma::vec& v){
+  int gh = w.size(), mi = Y.size();
+  vec eta = X * beta + Z * b, tau2 = .5 * diagvec(Z * S * Z.t());
+  
+  vec p1 = vec(mi), p2 = vec(mi);
+  for(int l = 0; l < gh; l++){
+    vec mu = exp(eta + tau2 * v[l]);
+    p1 += w[l] * (mu);
+    p2 += w[l] * square(mu + phi * Y);
+  }
+  
+  double Score = sum(
+    Y % (Y - 1.) / (p1 + phi * Y) - Y / (1. + phi) + (p1 - Y)/pow(1. + phi, 2.)
+  );
+  
+  double Hess = sum(
+    -square(Y) % (Y - 1.)/p2 + Y/pow(1. + phi, 2.) - 2 * (p1 - Y) / pow(1. + phi, 3.)
+  );
+  
+  return List::create(_["Score"] = Score, _["Hessian"] = Hess);
 }  
 
 // Updates for the survival pair (gamma, zeta) ----------------------------
