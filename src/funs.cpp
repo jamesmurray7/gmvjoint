@@ -505,7 +505,7 @@ double vare_update(const arma::mat& X, const arma::vec& Y, const arma::mat& Z, c
   return out;
 }
 
-//' Update for dispersion parameter (sigma for genpois family)
+//' Update for dispersion parameter (sigma for \code{"genpois"} family)
 //' @keywords internal
 // [[Rcpp::export]]
 List phi_update(const arma::vec& b, const arma::mat& X, const arma::vec& Y, const arma::mat& Z, 
@@ -513,7 +513,7 @@ List phi_update(const arma::vec& b, const arma::mat& X, const arma::vec& Y, cons
                 const arma::vec& w, const arma::vec& v, const arma::vec& tau){
   int gh = w.size();
   vec eta = X * beta + Z * b;
-  vec tau2 = square(tau) * .5;
+  vec tau2 = tau;
   double rhs = sum(Y)/(1.+phi), lhs = sum(Y)/(pow(1.+phi,2.)), Score = 0., Hess = 0.;
   for(int l = 0; l < gh; l++){
     vec eta_l = eta + tau2 * v[l];
@@ -528,33 +528,6 @@ List phi_update(const arma::vec& b, const arma::mat& X, const arma::vec& Y, cons
   return List::create(_["Score"] = Score - rhs, _["Hessian"] = lhs + Hess);
 }  
 
-//' Update for dispersion parameter (sigma for genpois family)
-//' @keywords internal
-// [[Rcpp::export]]
-List phi_update2(const arma::vec& b, const arma::mat& X, const arma::vec& Y, const arma::mat& Z,
-                 const arma::mat& S, const arma::vec& beta, const double phi, 
-                 const arma::vec& w, const arma::vec& v){
-  int gh = w.size(), mi = Y.size();
-  vec eta = X * beta + Z * b, tau2 = .5 * diagvec(Z * S * Z.t());
-  
-  vec p1 = vec(mi), p2 = vec(mi);
-  for(int l = 0; l < gh; l++){
-    vec mu = exp(eta + tau2 * v[l]);
-    p1 += w[l] * (mu);
-    p2 += w[l] * square(mu + phi * Y);
-  }
-  
-  double Score = sum(
-    Y % (Y - 1.) / (p1 + phi * Y) - Y / (1. + phi) + (p1 - Y)/pow(1. + phi, 2.)
-  );
-  
-  double Hess = sum(
-    -square(Y) % (Y - 1.)/p2 + Y/pow(1. + phi, 2.) - 2 * (p1 - Y) / pow(1. + phi, 3.)
-  );
-  
-  return List::create(_["Score"] = Score, _["Hessian"] = Hess);
-}  
-
 // Updates for the survival pair (gamma, zeta) ----------------------------
 // Define the conditional expectation and then take Score AND Hessian via forward differencing
 double Egammazeta(vec& gammazeta, vec& b, List Sigma,
@@ -565,6 +538,7 @@ double Egammazeta(vec& gammazeta, vec& b, List Sigma,
   // determine tau
   vec tau = vec(Fu.n_rows);
   vec gammas = vec(q);
+  int gh = w.size();
   for(int k = 0; k < K; k++){
     double gk = g[k];
     uvec b_inds_k = b_inds[k];
@@ -574,8 +548,8 @@ double Egammazeta(vec& gammazeta, vec& b, List Sigma,
     tau += pow(gk, 2.0) * diagvec(Fu_k * Sigma_k * Fu_k.t());
   }
   double rhs = 0.0;
-  for(int l = 0; l < w.size(); l++){
-    rhs += w[l] * as_scalar(haz.t() * exp(SS * z + Fu * (b % gammas) + v[l] * 0.5 * tau));
+  for(int l = 0; l < gh; l++){
+    rhs += w[l] * as_scalar(haz.t() * exp(SS * z + Fu * (b % gammas) + v[l] * sqrt(tau)));
   }
   return as_scalar(Delta * (S * z + Fi * (b % gammas)) - rhs);
 }
@@ -585,9 +559,10 @@ arma::vec Sgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma,
                      arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi, arma::vec& haz, 
                      int Delta, arma::vec& w, arma::vec& v,
                      List b_inds, int K, int q, long double eps){
-  vec out = vec(gammazeta.size());
+  int ps = gammazeta.size();
+  vec out = vec(ps);
   double f0 = Egammazeta(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q);
-  for(int i = 0; i < gammazeta.size(); i++){
+  for(int i = 0; i < ps; i++){
     vec ge = gammazeta;
     double xi = std::max(ge[i], 1.0);
     ge[i] = gammazeta[i] + xi * eps;
@@ -603,9 +578,10 @@ arma::mat Hgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma,
                      arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi, arma::vec& haz, 
                      int Delta, arma::vec& w, arma::vec& v,
                      List b_inds, int K, int q, double eps){
-  mat out = zeros<mat>(gammazeta.size(), gammazeta.size());
+  int ps = gammazeta.size();
+  mat out = zeros<mat>(ps, ps);
   vec f0 = Sgammazeta(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q, eps);
-  for(int i = 0; i < gammazeta.size(); i++){
+  for(int i = 0; i < ps; i++){
     vec ge = gammazeta;
     double xi = std::max(ge[i], 1.0);
     ge[i] = gammazeta[i] + xi * eps;
@@ -628,7 +604,8 @@ arma::mat lambdaUpdate(List survtimes, arma::mat& ft, arma::vec& gamma, arma::ve
     List Sigma_i = Sigma[i];
     vec b_i = b[i];
     rowvec S_i = S[i];
-    for(int j = 0; j < survtimes_i.size(); j++){ // Loop over subject i's j survived failure times.
+    int ui = survtimes_i.size();
+    for(int j = 0; j < ui; j++){ // Loop over subject i's j survived failure times.
       rowvec Fst = ft.row(j);
       double tau = 0.0;
       vec rhs = gamma_rep % b_i;

@@ -5,6 +5,7 @@
 #' Obtain fixed and random effects 
 #' @keywords internal
 #' @importFrom Matrix nearPD
+#' @importFrom glmmTMB fixef ranef genpois
 Longit.inits <- function(long.formula, data, family){
   lapply(long.formula, function(x) if(!"formula"%in%class(x)) stop('"long.formula" must be of class "formula"'))
   family.form <- lapply(family, function(f){
@@ -61,7 +62,7 @@ Longit.inits <- function(long.formula, data, family){
     if("function"%in%class(family[[k]])) f <- family[[k]]()$family else f <- family[[k]]
     f <- match.arg(f, c('gaussian', 'binomial', 'poisson', 'genpois', 'Gamma'), several.ok = F)
     if(f=='genpois'){
-      out <- setNames(glmmTMB::fixef(fits[[k]])$disp, paste0('phi_', k))
+      out <- setNames(exp(glmmTMB::fixef(fits[[k]])$disp/2) - 1, paste0('phi_', k))
     }else if(f == 'gaussian'){
       out <- setNames(glmmTMB::sigma(fits[[k]])^2, paste0('sigma^2_', k))
     }else if(f == 'Gamma'){

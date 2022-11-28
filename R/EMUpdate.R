@@ -61,10 +61,19 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
           beta.quad, tau2, w, v)
   }, X = X, Y = Y, Z = Z, b = bsplit, tau2 = tau2, SIMPLIFY = F)
   
+  Sbq <- mapply(function(X, Y, Z, b, tau2){
+    Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K, 
+          beta.quad, tau2, w, v)
+  }, X = X, Y = Y, Z = Z, b = bsplit, tau2 = tau2, SIMPLIFY = F)
+  Hbq <- mapply(function(X, Y, Z, b, tau2){
+    Hbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K,
+          beta.quad, tau2, w, v)
+  }, X = X, Y = Y, Z = Z, b = bsplit, tau2 = tau2, SIMPLIFY = F)
+  
   # Dispersion ('\sigma') =====================
   funlist <- unlist(family)
   disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma'))
-  sigma.update <- replicate(K, list(), simplify = F)
+  sigma.update <- sigma.update2 <- replicate(K, list(), simplify = F)
   for(j in disps){
     tau <- mapply(function(Z, S) unname(sqrt(diag(tcrossprod(Z[[j]] %*% S[[j]], Z[[j]])))), Z = Z, S = SigmaSplit)
     if(funlist[j] == 'gaussian'){
@@ -74,11 +83,8 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
     }
     if(funlist[j] == 'genpois'){
       sigma.update[[j]] <- rowSums(mapply(function(b, X, Y, Z, tau){
-        unlist(phi_update(b[[j]], X[[j]], Y[[j]], Z[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v, tau))
+      unlist(phi_update(b[[j]], X[[j]], Y[[j]], Z[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v, tau))
       }, b = bsplit, X = X, Y = Y, Z = Z, tau = tau))
-      # sigma.update[[j]] <- rowSums(mapply(function(b, X, Y, Z, S){
-      #   unlist(phi_update2(b[[j]], X[[j]], Y[[j]], Z[[j]], S[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v))
-      # }, b = bsplit, X = X, Y = Y, Z = Z, S = SigmaSplit))
     }
     if(funlist[j] == 'Gamma'){
       sigma.update[[j]] <- rowSums(mapply(function(X, Y, Z, tau, b){
@@ -86,30 +92,6 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
       }, X = X, Y = Y, Z = Z, tau = tau, b = bsplit))
     }
   }
-  
-  Ellgp <- function(phi, y, X, z, b, tau){
-    eta <- X[[1]]%*%beta[1:4]+z[[1]]%*%b[1:2]
-    y <- y[[1]]
-    gh <- length(w); mi <- length(y)
-    p1 <- p2 <- matrix(0, nr = mi, nc = gh)
-    for(l in 1:gh){
-      p1[,l] <- w[l] * log(exp(eta + tau[[1]] * v[l]) + phi * y)
-      p2[,l] <- w[l] * exp(eta + tau[[1]] * v[l])
-    }
-    p1 <- rowSums(p1); p2 <- rowSums(p2)
-    sum(
-      (y-1) * p1 - y * log(1+phi) - (p2 + phi * y)/(1+phi)
-    )
-  }
-  
-  S <- H <- numeric(n)
-  for(i in 1:n){
-    S[i] <-  pracma::grad(Ellgp, 0.2680261 , y = Y[[i]], X = X[[i]], z = Z[[i]], b = b.hat[[i]],
-                           tau = tau2[[i]])
-    H[i] <-  pracma::hessian(Ellgp, 0.2680261 , y = Y[[i]], X = X[[i]], z = Z[[i]], b = b.hat[[i]],
-                             tau = tau2[[i]])
-  }
-  
   
   for(j in setdiff(1:K, c(disps))) sigma.update[[j]] <- NA # Return null for all distsn which do not have disp. parameters.
   
@@ -147,6 +129,8 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   
   # Survival parameters (gamma, zeta)
   gammazeta.new <- c(gamma, zeta) - solve(Reduce('+', Hgz), rowSums(Sgz))
+  # gamma_1   zeta_bin 
+  # 0.7068625 -0.6576819 
   
   # The baseline hazard and related objects
   lambda.update <- lambdaUpdate(sv$surv.times, do.call(cbind, sv$ft.mat), gamma, gamma.rep, zeta, S, SigmaSplit, b.hat, w, v, b.inds2, K, q)
