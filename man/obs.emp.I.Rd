@@ -21,33 +21,11 @@ obs.emp.I(
   K,
   q,
   beta.inds,
-  b.inds
+  b.inds,
+  beta.quad
 )
 }
 \description{
 Calculate the observed empirical information matrix \eqn{\tilde{I}}.
 }
-\keyword{(\gamma,}
-\keyword{----}
-\keyword{//}
-\keyword{D}
-\keyword{Extract}
-\keyword{Longitudinal}
-\keyword{Omega}
-\keyword{RE}
-\keyword{Survival}
-\keyword{The}
-\keyword{Unpack}
-\keyword{\beta}
-\keyword{\sigma}
-\keyword{\zeta)}
-\keyword{covariance}
-\keyword{data}
-\keyword{dispersion}
-\keyword{effects,}
-\keyword{fixed}
 \keyword{internal}
-\keyword{matrix,}
-\keyword{objects}
-\keyword{parameter,}
-\keyword{parameters}

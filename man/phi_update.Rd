@@ -2,11 +2,11 @@
 % Please edit documentation in R/RcppExports.R
 \name{phi_update}
 \alias{phi_update}
-\title{Update for dispersion parameter (sigma for genpois family)}
+\title{Update for dispersion parameter (sigma for \code{"genpois"} family)}
 \usage{
 phi_update(b, X, Y, Z, beta, phi, w, v, tau)
 }
 \description{
-Update for dispersion parameter (sigma for genpois family)
+Update for dispersion parameter (sigma for \code{"genpois"} family)
 }
 \keyword{internal}

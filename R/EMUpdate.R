@@ -2,7 +2,7 @@
 EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
                      S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv,   # Survival
                      w, v, n, m, hessian,                      # Quadrature + additional info.
-                     beta.inds, b.inds, K, q){
+                     beta.inds, b.inds, K, q, beta.quad){
   
   #' Unpack Omega, the parameter vector
   D <- Omega$D; beta <- Omega$beta; sigma <- Omega$sigma; gamma <- Omega$gamma; zeta <- Omega$zeta
@@ -47,35 +47,31 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   
   # \beta =====================================
   if(beta.quad){
-    tau2 = mapply(maketau2, Z = Z, S = SigmaSplit, SIMPLIFY = F)
+    tau = mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
   }else{
-    tau2 = list(0)
+    tau = list(0)
   }
   
-  Sb <- mapply(function(X, Y, Z, b, tau2){
+  Sb <- mapply(function(X, Y, Z, b, tau){
     Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K, 
-          beta.quad, tau2, w, v)
-  }, X = X, Y = Y, Z = Z, b = bsplit, tau2 = tau2, SIMPLIFY = F)
-  Hb <- mapply(function(X, Y, Z, b, tau2){
+          beta.quad, tau, w, v)
+  }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau, SIMPLIFY = F)
+  Hb <- mapply(function(X, Y, Z, b, tau){
     Hbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K,
-          beta.quad, tau2, w, v)
-  }, X = X, Y = Y, Z = Z, b = bsplit, tau2 = tau2, SIMPLIFY = F)
-  
-  Sbq <- mapply(function(X, Y, Z, b, tau2){
-    Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K, 
-          beta.quad, tau2, w, v)
-  }, X = X, Y = Y, Z = Z, b = bsplit, tau2 = tau2, SIMPLIFY = F)
-  Hbq <- mapply(function(X, Y, Z, b, tau2){
-    Hbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K,
-          beta.quad, tau2, w, v)
-  }, X = X, Y = Y, Z = Z, b = bsplit, tau2 = tau2, SIMPLIFY = F)
+          beta.quad, tau, w, v)
+  }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau, SIMPLIFY = F)
   
   # Dispersion ('\sigma') =====================
   funlist <- unlist(family)
   disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma'))
   sigma.update <- sigma.update2 <- replicate(K, list(), simplify = F)
   for(j in disps){
-    tau <- mapply(function(Z, S) unname(sqrt(diag(tcrossprod(Z[[j]] %*% S[[j]], Z[[j]])))), Z = Z, S = SigmaSplit)
+    if(beta.quad)
+      tau <- lapply(tau, el, j)
+    else
+      tau <- mapply(function(Z, S) unname(sqrt(diag(tcrossprod(Z[[j]] %*% S[[j]], Z[[j]])))), Z = Z, S = SigmaSplit)
+    
+    # Update accordingly.
     if(funlist[j] == 'gaussian'){
       sigma.update[[j]] <- sum(mapply(function(X, Y, Z, b, tau){
         vare_update(X[[j]], Y[[j]], Z[[j]], b[[j]], beta[beta.inds[[j]]], tau, w, v)

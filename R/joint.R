@@ -35,6 +35,10 @@
 #'   option for the latter.}
 #'   \item{\code{return.inits}}{Logical: Should lists containing the initial conditions for the 
 #'   longitudinal and survival sub-models be returned? Defaults to \code{return.inits=FALSE}.}
+#'   \item{\code{beta.quad}}{Logical: Should gauss-hermite quadrature be used to appraise
+#'   calculation of score and Hessian in updates to fixed effects \eqn{\beta}? Default is 
+#'   \code{beta.quad=FALSE} which works very well in most situations. Dispersion parameters
+#'   and survival pair are always calculated with quadrature.}
 #' 
 #' }
 #' 
@@ -108,6 +112,9 @@
 #' Zamani H and Ismail N. Functional Form for the Generalized Poisson Regression Model, 
 #' \emph{Communications in Statistics - Theory and Methods} 2012; \strong{41(20)}; 3666-3675.
 #' 
+#' @seealso \code{\link{summary.joint}}, \code{\link{print.joint}}, \code{\link{fixef.joint}},
+#' \code{\link{ranef.joint}}, \code{\link{vcov.joint}} and \code{\link{joint.object}}.
+#' 
 #' @export
 #'
 #' @examples
@@ -150,17 +157,10 @@
 #' )
 #' surv.formula <- Surv(survtime, status) ~ drug
 #' 
-#' # Fit both with/out correlated REs ----
-#' fit.indep <- joint(long.formulas, surv.formula, PBC, 
-#'                    family = list("gaussian", "gaussian", "poisson", "binomial"),
-#'                    control = list(verbose = T, correlated = F))
-#' 
-#' fit.corr <-  joint(long.formulas, surv.formula, PBC, 
-#'                    family = list("gaussian", "gaussian", "poisson", "binomial"),
-#'                    control = list(verbose = T, correlated = T))
-#' # Any tangible difference?                    
-#' summary(fit.indep)
-#' summary(fit.corr)
+#' fit <-  joint(long.formulas, surv.formula, PBC, 
+#'               family = list("gaussian", "gaussian", "poisson", "binomial"),
+#'               control = list(verbose = T))
+#' fit
 #' }
 joint <- function(long.formulas, surv.formula, data, family, post.process = T, control = list()){
   
@@ -239,12 +239,13 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
   if(!is.null(control$hessian)) hessian <- control$hessian else hessian <- 'auto'
   if(!hessian %in% c('auto', 'manual')) stop("Argument 'hessian' needs to be either 'auto' (i.e. from optim) or 'manual' (i.e. from _sdb, the defualt).")
   if(!is.null(control$return.inits)) return.inits <- control$return.inits else return.inits <- F
+  if(!is.null(control$beta.quad)) beta.quad <- control$beta.quad else beta.quad <- F
   
   EMstart <- proc.time()[3]
   while(diff > tol && iter < maxit){
     update <- EMupdate(Omega, family, X, Y, Z, b, 
                        S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv, 
-                       w, v, n, m, hessian, beta.inds, b.inds, K, q)
+                       w, v, n, m, hessian, beta.inds, b.inds, K, q, beta.quad)
     if(!correlated) update$D[inits.long$off.inds] <- 0
     params.new <- c(vech(update$D), update$beta, unlist(update$sigma)[inits.long$sigma.include], 
                     update$gamma, update$zeta)
@@ -312,7 +313,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
     # The Information matrix
     I <- structure(obs.emp.I(coeffs, dmats, surv, sv, 
                              Sigma, SigmaSplit, b, bsplit, 
-                             l0u, w, v, n, family, K, q, beta.inds, b.inds),
+                             l0u, w, v, n, family, K, q, beta.inds, b.inds, beta.quad),
                    dimnames = list(names(params), names(params)))
 
     I.inv <- tryCatch(solve(I), error = function(e) e)

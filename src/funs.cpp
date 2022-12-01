@@ -9,8 +9,9 @@ static double const log2pi = std::log(2.0 * M_PI);
 // Log-likelihoods --------------------------------------------------------
 // Gaussian
 double gaussian_ll(const arma::vec& Y,  const arma::vec& eta, const double sigma){ // important/misleading - sigma is the __variance__!!
-  vec out = vec(Y.size());
-  for(int i = 0; i < Y.size(); i++){
+  int mi = Y.size();
+  vec out = vec(mi);
+  for(int i = 0; i < mi; i++){
     out[i] = R::dnorm(Y[i], eta[i], sqrt(sigma), 1);
   }
   return sum(out);
@@ -19,8 +20,9 @@ double gaussian_ll(const arma::vec& Y,  const arma::vec& eta, const double sigma
 // Binomial
 double binomial_ll(const arma::vec& Y, const arma::vec& eta){
   vec mu = exp(eta)/(1.0 + exp(eta));
-  vec out = vec(mu.size());
-  for(int i = 0; i < mu.size(); i++){
+  int mi = Y.size();
+  vec out = vec(mi);
+  for(int i = 0; i < mi; i++){
     out[i] = R::dbinom(Y[i], 1, mu[i], 1);
   }
   return sum(out);
@@ -28,8 +30,9 @@ double binomial_ll(const arma::vec& Y, const arma::vec& eta){
 
 // Poisson
 double poisson_ll(const arma::vec& Y, const arma::vec& eta){
-  vec out = vec(Y.size());
-  for(int i = 0; i < Y.size(); i++){
+  int mi = Y.size();
+  vec out = vec(mi);
+  for(int i = 0; i < mi; i++){
     out[i] = R::dpois(Y[i], exp(eta[i]), 1);
   }
   return sum(out);
@@ -119,15 +122,15 @@ double joint_density(const arma::vec& b, const List Y, const List X, const List 
   return -1.0 * (ll + as_scalar(-(double)q/2.0 * log2pi - 0.5 * log(det(D)) - 0.5 * b.t() * D.i() * b + ll_Ti));;
 }
 
-// Quadrature
+// Quadrature - standard deviation of N(mu, tau^2).
 //' @keywords internal
 // [[Rcpp::export]]
-List maketau2(const List& S, const List& Z){
+List maketau(const List& S, const List& Z){
   int K = S.size();
   List out = List(K);
   for(int k = 0; k < K; k++){
     mat Zk = Z[k], Sk = S[k];
-    out[k] = 0.5 * diagvec(Zk * Sk * Zk.t());
+    out[k] = sqrt(diagvec(Zk * Sk * Zk.t()));
   }
   return out;
 }
@@ -149,11 +152,11 @@ vec Score_eta_binom(const vec& eta, const vec& Y){
 
 // Binomial d/d{eta} taken with quadrature.
 vec Score_eta_binom_quad(const vec& eta, const vec& Y,
-                         const vec& tau2, const vec& w, const vec& v){
+                         const vec& tau, const vec& w, const vec& v){
   int mi = Y.size(), gh = w.size();
   mat exp_part = mat(mi, gh);
   for(int l = 0; l < gh; l++){
-    exp_part.col(l) = w[l] * exp(eta + tau2 * v[l]) / (exp(eta + tau2 * v[l]) + 1.);
+    exp_part.col(l) = w[l] * exp(eta + tau * v[l]) / (exp(eta + tau * v[l]) + 1.);
   }
   return Y - sum(exp_part, 1);
 }
@@ -163,12 +166,12 @@ vec Score_eta_poiss(const vec& eta, const vec& Y){
 }
 
 // Poisson d/d{eta} taken with quadrature
-vec Score_eta_poiss_quad(const vec& eta, const vec& Y, const vec& tau2,
+vec Score_eta_poiss_quad(const vec& eta, const vec& Y, const vec& tau,
 				                 const vec& w, const vec& v){
   int mi = Y.size(), gh = w.size();
   mat exp_part = mat(mi, gh);
   for(int l = 0; l < gh; l++){
-    exp_part.col(l) = w[l] * exp(eta + tau2 * v[l]);
+    exp_part.col(l) = w[l] * exp(eta + tau * v[l]);
   }
   return Y - sum(exp_part, 1);
 }
@@ -185,13 +188,13 @@ vec Score_eta_genpois(const vec& eta, const vec& Y, const double phi, const mat&
 
 // GP1 d/d{eta} taken with quadrature
 vec Score_eta_genpois_quad(const vec& eta, const vec& Y, const double phi, const mat& design,
-                           const vec& tau2, const vec& w, const vec& v){
+                           const vec& tau, const vec& w, const vec& v){
   int q = design.n_cols, gh = w.size(), mi = Y.size();
   vec mu = exp(eta), grad = vec(q);
   vec exp_part1 = vec(mi), exp_part2 = vec(mi);
   // Work out parts we need to via quadrature.
   for(int l = 0; l < gh; l++){
-    vec mu = exp(eta + tau2 * v[l]);
+    vec mu = exp(eta + tau * v[l]);
     exp_part1 += w[l] * mu / (phi * Y + mu);
     exp_part2 += w[l] * mu;
   }
@@ -236,15 +239,15 @@ vec get_long_score(const vec& eta, const vec& Y, const std::string family, const
 
 // For quadrature (Can't think of a neat way to do one function 25/11/22).
 vec get_long_score_quad(const vec& eta, const vec& Y, const std::string family, const double sigma,
-                        const mat& design, const vec& tau2, const vec& w, const vec& v){
+                        const mat& design, const vec& tau, const vec& w, const vec& v){
   int p = design.n_cols;
   vec Score = vec(p);
   if(family == "poisson"){
-    Score += design.t() * Score_eta_poiss_quad(eta, Y, tau2, w, v);
+    Score += design.t() * Score_eta_poiss_quad(eta, Y, tau, w, v);
   }else if(family == "binomial"){
-    Score += design.t() * Score_eta_binom_quad(eta, Y, tau2, w, v);
+    Score += design.t() * Score_eta_binom_quad(eta, Y, tau, w, v);
   }else if(family == "genpois"){
-    Score += Score_eta_genpois_quad(eta, Y, sigma, design, tau2, w, v);
+    Score += Score_eta_genpois_quad(eta, Y, sigma, design, tau, w, v);
   }else if(family == "Gamma"){
     Score += Score_eta_Gamma(eta, Y, sigma, design);
   }
@@ -285,7 +288,7 @@ arma::vec joint_density_ddb(const arma::vec& b, const List Y, const List X, cons
 // [[Rcpp::export]]
 arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& b, 
                 const List& sigma, const List& family, const List& beta_inds, const int K,
-                const bool quad, const List& tau2, const arma::vec& w, const arma::vec& v){
+                const bool quad, const List& tau, const arma::vec& w, const arma::vec& v){
   int p = beta.size();
   vec Score = vec(p);
   
@@ -302,7 +305,7 @@ arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     if(f == "gaussian" || !quad){ // gaussian is the same, so do it here.
       Score.elem(beta_k_inds) += get_long_score(eta, Yk, f, sigmak, Xk);
     }else{
-      vec tauk = tau2[k]; // This is tau^2/2 (fron e.g. make tau2).
+      vec tauk = tau[k]; // This is tau^2/2 (fron e.g. make tau2).
       Score.elem(beta_k_inds) += get_long_score_quad(eta, Yk, f, sigmak, Xk,
                                                      tauk, w, v);
     }
@@ -334,12 +337,12 @@ mat Hess_eta_poiss(const vec& eta, const vec& Y, const mat& design){
 
 // Poisson d2/d{eta}2 taken with quadrature
 arma::mat Hess_eta_poiss_quad(const arma::vec& eta, const arma::vec& Y, const arma::mat& design,
-                              const arma::vec& tau2, const arma::vec& w, const arma::vec v){
+                              const arma::vec& tau, const arma::vec& w, const arma::vec v){
   int mi = design.n_rows, q = design.n_cols, gh = w.size();
   mat H = zeros<mat>(q, q);
   vec exp_part = vec(mi);
   for(int l = 0; l< gh; l++){
-    exp_part += exp(eta + tau2 * v[l]) * w[l];
+    exp_part += exp(eta + tau * v[l]) * w[l];
   }
   for(int j = 0; j < mi; j ++){
     rowvec xjT = design.row(j);
@@ -364,12 +367,12 @@ mat Hess_eta_binom(const vec& eta, const vec& Y, const mat& design){
 
 // Binomial d2/d{eta}^2 taken with quadrature
 mat Hess_eta_binom_quad(const arma::vec& eta, const arma::vec& Y, const arma::mat& design,
-                        const arma::vec& tau2, const arma::vec& w, const arma::vec v){
+                        const arma::vec& tau, const arma::vec& w, const arma::vec v){
   int mi = design.n_rows, q = design.n_cols, gh = w.size();
   mat H = zeros<mat>(q, q);
   vec exp_part = vec(mi);
   for(int l = 0; l < gh; l++){
-    exp_part += w[l] * exp(eta + tau2 * v[l])/square(exp(eta + tau2 * v[l]) + 1.);
+    exp_part += w[l] * exp(eta + tau * v[l])/square(exp(eta + tau * v[l]) + 1.);
   }
   for(int j = 0; j < mi; j ++){
     rowvec xjT = design.row(j);
@@ -393,12 +396,12 @@ arma::mat Hess_eta_genpois(const arma::vec& eta, const arma::vec& Y, const doubl
 }
 
 mat Hess_eta_genpois_quad(const vec& eta, const vec& Y, const double phi, const mat& design,
-                          const vec& tau2, const vec& w, const vec& v){
+                          const vec& tau, const vec& w, const vec& v){
   int mi = design.n_rows, q = design.n_cols, gh = w.size();
   mat H = zeros<mat>(q, q);
   vec exp_part1a = vec(mi), exp_part1b = vec(mi), exp_part2 = vec(mi);
   for(int l = 0; l < gh; l++){
-    vec eta_l = eta + v[l] * tau2;
+    vec eta_l = eta + v[l] * tau;
     exp_part2 += w[l] * exp(eta_l);
     exp_part1a += w[l] * exp(eta_l);
     exp_part1b += w[l] * square(exp(eta_l) + phi * Y);
@@ -444,15 +447,15 @@ mat get_long_hess(const vec& eta, const vec& Y, const std::string family, const 
 }
 
 mat get_long_hess_quad(const vec& eta, const vec& Y, const std::string family, const double sigma,
-                       const mat& design, const vec& tau2, const vec& w, const vec& v){
+                       const mat& design, const vec& tau, const vec& w, const vec& v){
   int p = design.n_cols;
   mat H = zeros<mat>(p, p);
   if(family == "poisson"){
-    H += Hess_eta_poiss_quad(eta, Y, design, tau2, w, v);
+    H += Hess_eta_poiss_quad(eta, Y, design, tau, w, v);
   }else if(family == "binomial"){
-    H += Hess_eta_binom_quad(eta, Y, design, tau2, w, v);
+    H += Hess_eta_binom_quad(eta, Y, design, tau, w, v);
   }else if(family == "genpois"){
-    H += Hess_eta_genpois_quad(eta, Y, sigma, design, tau2, w, v);
+    H += Hess_eta_genpois_quad(eta, Y, sigma, design, tau, w, v);
   }else if(family == "Gamma"){
     H += Hess_eta_Gamma(eta, Y, sigma, design); //, tau2, w, v); // NYI
   }
@@ -463,7 +466,7 @@ mat get_long_hess_quad(const vec& eta, const vec& Y, const std::string family, c
 // [[Rcpp::export]]
 arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& b, 
                 const List& sigma, const List& family, const List& beta_inds, const int K,
-                const bool& quad, const List& tau2, const arma::vec& w, const arma::vec& v){
+                const bool& quad, const List& tau, const arma::vec& w, const arma::vec& v){
   int P = beta.size();
   mat H = zeros<mat>(P, P);
   for(int k = 0; k < K; k++){
@@ -480,7 +483,7 @@ arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     if(f == "gaussian" || !quad){
       H(span(start, end), span(start, end)) = get_long_hess(eta, Yk, f, sigmak, Xk);
     }else{
-      vec tauk = tau2[k];
+      vec tauk = tau[k];
       H(span(start, end), span(start, end)) = get_long_hess_quad(eta, Yk, f, sigmak, Xk,
                                                                  tauk, w, v);
     }

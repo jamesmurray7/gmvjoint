@@ -23,8 +23,8 @@ joint_density <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i,
 }
 
 #' @keywords internal
-maketau2 <- function(S, Z) {
-    .Call(`_GMVJM_maketau2`, S, Z)
+maketau <- function(S, Z) {
+    .Call(`_GMVJM_maketau`, S, Z)
 }
 
 #' @keywords internal
@@ -34,13 +34,13 @@ joint_density_ddb <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, 
 
 #' Create vector of scores on fixed effects.
 #' @keywords internal
-Sbeta <- function(beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau2, w, v) {
-    .Call(`_GMVJM_Sbeta`, beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau2, w, v)
+Sbeta <- function(beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v) {
+    .Call(`_GMVJM_Sbeta`, beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v)
 }
 
 #' @keywords internal
-Hbeta <- function(beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau2, w, v) {
-    .Call(`_GMVJM_Hbeta`, beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau2, w, v)
+Hbeta <- function(beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v) {
+    .Call(`_GMVJM_Hbeta`, beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v)
 }
 
 #' Update for residual variance (sigma for gaussian family)
@@ -49,16 +49,10 @@ vare_update <- function(X, Y, Z, b, beta, tau, w, v) {
     .Call(`_GMVJM_vare_update`, X, Y, Z, b, beta, tau, w, v)
 }
 
-#' Update for dispersion parameter (sigma for genpois family)
+#' Update for dispersion parameter (sigma for \code{"genpois"} family)
 #' @keywords internal
 phi_update <- function(b, X, Y, Z, beta, phi, w, v, tau) {
     .Call(`_GMVJM_phi_update`, b, X, Y, Z, beta, phi, w, v, tau)
-}
-
-#' Update for dispersion parameter (sigma for genpois family)
-#' @keywords internal
-phi_update2 <- function(b, X, Y, Z, S, beta, phi, w, v) {
-    .Call(`_GMVJM_phi_update2`, b, X, Y, Z, S, beta, phi, w, v)
 }
 
 #' @keywords internal

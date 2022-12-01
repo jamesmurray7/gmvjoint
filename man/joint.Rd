@@ -54,6 +54,10 @@ log-likelihood? Defaults to \code{TRUE}.}
   option for the latter.}
   \item{\code{return.inits}}{Logical: Should lists containing the initial conditions for the 
   longitudinal and survival sub-models be returned? Defaults to \code{return.inits=FALSE}.}
+  \item{\code{beta.quad}}{Logical: Should gauss-hermite quadrature be used to appraise
+  calculation of score and Hessian in updates to fixed effects \eqn{\beta}? Default is 
+  \code{beta.quad=FALSE} which works very well in most situations. Dispersion parameters
+  and survival pair are always calculated with quadrature.}
 
 }}
 }
@@ -154,17 +158,10 @@ long.formulas <- list(
 )
 surv.formula <- Surv(survtime, status) ~ drug
 
-# Fit both with/out correlated REs ----
-fit.indep <- joint(long.formulas, surv.formula, PBC, 
-                   family = list("gaussian", "gaussian", "poisson", "binomial"),
-                   control = list(verbose = T, correlated = F))
-
-fit.corr <-  joint(long.formulas, surv.formula, PBC, 
-                   family = list("gaussian", "gaussian", "poisson", "binomial"),
-                   control = list(verbose = T, correlated = T))
-# Any tangible difference?                    
-summary(fit.indep)
-summary(fit.corr)
+fit <-  joint(long.formulas, surv.formula, PBC, 
+              family = list("gaussian", "gaussian", "poisson", "binomial"),
+              control = list(verbose = T))
+fit
 }
 }
 \references{
@@ -185,6 +182,10 @@ multivariate longitudinal data.\emph{Computational Statistics and Data Analysis}
 
 Zamani H and Ismail N. Functional Form for the Generalized Poisson Regression Model, 
 \emph{Communications in Statistics - Theory and Methods} 2012; \strong{41(20)}; 3666-3675.
+}
+\seealso{
+\code{\link{summary.joint}}, \code{\link{print.joint}}, \code{\link{fixef.joint}},
+\code{\link{ranef.joint}}, \code{\link{vcov.joint}} and \code{\link{joint.object}}.
 }
 \author{
 James Murray (\email{j.murray7@ncl.ac.uk}).

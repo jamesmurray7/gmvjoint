@@ -17,9 +17,8 @@ extern SEXP _GMVJM_joint_density_sdb(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, S
 extern SEXP _GMVJM_lambdaUpdate(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _GMVJM_ll_genpois(SEXP, SEXP, SEXP);
 extern SEXP _GMVJM_logfti(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _GMVJM_maketau2(SEXP, SEXP);
+extern SEXP _GMVJM_maketau(SEXP, SEXP);
 extern SEXP _GMVJM_phi_update(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _GMVJM_phi_update2(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _GMVJM_Sbeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _GMVJM_Sgammazeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _GMVJM_vare_update(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
@@ -34,9 +33,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_GMVJM_lambdaUpdate",      (DL_FUNC) &_GMVJM_lambdaUpdate,      13},
     {"_GMVJM_ll_genpois",        (DL_FUNC) &_GMVJM_ll_genpois,         3},
     {"_GMVJM_logfti",            (DL_FUNC) &_GMVJM_logfti,            10},
-    {"_GMVJM_maketau2",          (DL_FUNC) &_GMVJM_maketau2,           2},
+    {"_GMVJM_maketau",           (DL_FUNC) &_GMVJM_maketau,            2},
     {"_GMVJM_phi_update",        (DL_FUNC) &_GMVJM_phi_update,         9},
-    {"_GMVJM_phi_update2",       (DL_FUNC) &_GMVJM_phi_update2,        9},
     {"_GMVJM_Sbeta",             (DL_FUNC) &_GMVJM_Sbeta,             13},
     {"_GMVJM_Sgammazeta",        (DL_FUNC) &_GMVJM_Sgammazeta,        15},
     {"_GMVJM_vare_update",       (DL_FUNC) &_GMVJM_vare_update,        8},

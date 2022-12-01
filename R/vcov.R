@@ -2,16 +2,16 @@
 #' @keywords internal
 obs.emp.I <- function(Omega, dmats, surv, sv,
                       Sigma, SigmaSplit, b, bsplit, 
-                      l0u, w, v, n, family, K, q, beta.inds, b.inds){
-  #' Unpack Omega ----
+                      l0u, w, v, n, family, K, q, beta.inds, b.inds, beta.quad){
+  # Unpack Omega ----
   D <- Omega$D
   beta <- c(Omega$beta)
   sigma <- Omega$sigma
   gamma <- c(Omega$gamma)
   zeta <- c(Omega$zeta)
   
-  #' Extract data objects ----
-  #' Longitudinal //
+  # Extract data objects ----
+  # Longitudinal //
   Z <- dmats$Z
   X <- dmats$X
   Y <- dmats$Y
@@ -19,7 +19,7 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   
   beta.inds2 <- lapply(beta.inds, function(x) x - 1); b.inds2 <- lapply(b.inds, function(x) x - 1) # Indexed for C++ use.
   
-  #' Survival //
+  # Survival //
   S <- sv$S
   SS <- sv$SS
   Fi <- sv$Fi
@@ -27,7 +27,7 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   Delta <- surv$Delta
   
   # Scores ------------------------------------------------------------------
-  #' The RE covariance matrix, D
+  # The RE covariance matrix, D
   Dinv <- solve(D)
   vech.indices <- which(lower.tri(D, diag = T), arr.ind = T)
   dimnames(vech.indices) <- NULL
@@ -54,18 +54,29 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   sD <- sapply(1:nrow(vech.indices), sDi)
   sD <- lapply(1:nrow(sD), function(x) sD[x, ]) # Cast to list
   
-  #' The fixed effects, \beta 
-  Sb <- mapply(function(X, Y, Z, b){
-    c(Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K))
-  }, X = X, Y = Y, Z = Z, b = bsplit, SIMPLIFY = F)
+  # The fixed effects, \beta 
+  if(beta.quad){
+    tau = mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
+  }else{
+    tau = list(0)
+  }
   
-  #' The dispersion parameter, \sigma
+  Sb <- mapply(function(X, Y, Z, b, tau){
+    c(Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K,
+            beta.quad, tau, w, v))
+  }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau, SIMPLIFY = F)
+  
+  # The dispersion parameter, \sigma
   Ss <- vector('list', K)
   funlist <- unlist(family)
   disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma'))
   for(j in disps){
-    tau <- mapply(function(S, Z) sqrt(diag(tcrossprod(Z[[j]] %*% S[[j]],
-                                                      Z[[j]]))), Z = Z, S = SigmaSplit, SIMPLIFY = F)
+    if(beta.quad)
+      tau <- lapply(tau, el, j)
+    else
+      tau <- mapply(function(Z, S) unname(sqrt(diag(tcrossprod(Z[[j]] %*% S[[j]], Z[[j]])))), Z = Z, S = SigmaSplit)
+    
+    # Create score accordingly.
     if(funlist[j] == 'gaussian'){
       temp <- numeric(n)
       for(i in 1:n){
@@ -78,7 +89,7 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
       Ss[[j]] <- temp
     }else if(funlist[j] == 'genpois'){
       Ss[[j]] <- mapply(function(b, X, Y, Z, tau){
-        phi_update(sigma[[j]], X[[j]], Y[[j]], Z[[j]], tau, beta[beta.inds[[j]]], b[[j]], w, v)$Score
+        phi_update(b[[j]], X[[j]], Y[[j]], Z[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v, tau)$Score
       }, b = bsplit, X = X, Y = Y, Z = Z, tau = tau, SIMPLIFY = F)
     }else if(funlist[j] == 'Gamma'){
       Ss[[j]] <- mapply(function(b, X, Y, Z, tau){
@@ -90,7 +101,7 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
     }
   }
 
-  #' Survival parameters (\gamma, \zeta)
+  # Survival parameters (\gamma, \zeta)
   Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
     Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, q, .Machine$double.eps^(1/3))
   }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
@@ -132,6 +143,27 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
 #' @method vcov joint
 #' 
 #' @export
+#' 
+#' @examples 
+#' \dontrun{
+#' data(PBC)
+#' PBC$serBilir <- log(PBC$serBilir)
+#'
+#' # Subset data and remove NAs
+#' PBC <- subset(PBC, select = c('id', 'survtime', 'status', 'drug', 'time',
+#'                               'albumin'))
+#' PBC <- na.omit(PBC) 
+#' 
+#' # Specify GLMM sub-models, including interaction and natural spline terms
+#' long.formulas <- list(
+#'   albumin ~ drug * time + (1 + time|id)
+#' )
+#' surv.formula <- Surv(survtime, status) ~ drug
+#' 
+#' fit <-  joint(long.formulas, surv.formula, PBC, 
+#'               family = list("gaussian"))
+#' vcov(fit)
+#' }
 vcov.joint <- function(x, corr = F){
   if(!inherits(x, 'joint')) stop("Only usable with objects of class 'joint'.")
   

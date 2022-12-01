@@ -4,7 +4,7 @@
 \alias{Sbeta}
 \title{Create vector of scores on fixed effects.}
 \usage{
-Sbeta(beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau2, w, v)
+Sbeta(beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v)
 }
 \description{
 Create vector of scores on fixed effects.

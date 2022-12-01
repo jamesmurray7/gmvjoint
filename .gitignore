@@ -6,4 +6,6 @@ _archive/
 src/*.o
 src/*.so
 src/*.dll
+src/.n*
 .Rapp.history
+*.swp
