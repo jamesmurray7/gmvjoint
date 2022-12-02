@@ -26,7 +26,7 @@
 #' fit <- joint(long.formula, surv.formula, PBC, family = list('genpois', 'gaussian'),
 #'             control = list(verbose = TRUE))
 #' summary(fit)
-summary.joint <- function(x){
+summary.joint <- function(x, ...){
   if(!inherits(x, 'joint')) stop("Only usable with object of class 'joint'.")
   if(is.null(x$SE)) stop('Rerun with post.process = TRUE.')
   qz <- qnorm(.975)
@@ -118,7 +118,7 @@ summary.joint <- function(x){
 #' @method print summary.joint
 #' @keywords internal
 #' @export
-print.summary.joint <- function(x, digits = 3, printD = FALSE){
+print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   if(!inherits(x, 'summary.joint')) stop("Only usable with object of class 'summary.joint'.")
   .round <- function(X) round(X, digits) # Show all to <digits> only.
   K <- length(x$families)

@@ -164,7 +164,7 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
 #'               family = list("gaussian"))
 #' vcov(fit)
 #' }
-vcov.joint <- function(x, corr = F){
+vcov.joint <- function(x, corr = F, ...){
   if(!inherits(x, 'joint')) stop("Only usable with objects of class 'joint'.")
   
   v <- x$vcov

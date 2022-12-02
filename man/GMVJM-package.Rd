@@ -15,8 +15,12 @@ Wulfoshn and Tsiatis (1997). The user is able to simulate data under many differ
 types.
 }
 
-\packageAuthor{GMVJM}
-Maintainer: \packageMaintainer{GMVJM}
+\author{ 
+  \packageAuthor{GMVJM}
+}
+\maintainer{
+  \packageMaintainer{GMVJM}
+}
 
 \references{
 Bernhardt PW, Zhang D and Wang HJ. A fast EM Algorithm for Fitting Joint Models of a Binary 

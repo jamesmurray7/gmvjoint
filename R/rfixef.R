@@ -29,7 +29,7 @@
 #' 
 #' fixef(fit, 'long')
 #' fixef(fit, 'surv')
-fixef.joint <- function(x, what = c("long", 'surv')){
+fixef.joint <- function(x, what = c("long", 'surv'), ...){
   if(!inherits(x, 'joint')) stop("Only usable with objects of class 'joint'.")
   co <- x$coeffs
   what <- match.arg(what)
@@ -77,7 +77,7 @@ fixef.joint <- function(x, what = c("long", 'surv')){
 #' fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian'))
 #' b <- ranef(fit, FALSE)
 #' }
-ranef.joint <- function(x, Var = FALSE){
+ranef.joint <- function(x, Var = FALSE, ...){
   if(!inherits(x, 'joint')) stop("Only usable with objects of class 'joint'.")
   if(is.null(x$REs)) stop("Rerun with post.process = TRUE.")
   RE <- x$REs

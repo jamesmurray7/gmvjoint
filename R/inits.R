@@ -46,7 +46,7 @@ Longit.inits <- function(long.formula, data, family){
   # Random effects
   Ds <- lapply(1:K, function(k){
     D <- glmmTMB::VarCorr(fits[[k]])$c$id; dimD <- dim(D)
-    D <- matrix(D, nr = dimD[1], nc = dimD[2])
+    D <- matrix(D, nrow = dimD[1], ncol = dimD[2])
     # Checking pos-def. on this D, if not then use Matrix::nearPD()$mat
     if(any(eigen(D)$values < 0) || (det(D) <= 0)){
       message("Generated covariance matrix not positive semi-definite, occurred for ", markers[k], ".")

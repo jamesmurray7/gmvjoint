@@ -3,7 +3,7 @@
 .DataWorkhorse <- function(data, subj.id, fixed, random, response, what = 'X'){
   fixed.formula <- as.formula(paste0('~', fixed))
   random.formula <- as.formula(paste0('~', random))
-  if(what == 'Y') rtn <- matrix(data[data$id == subj.id, response],nc = 1)
+  if(what == 'Y') rtn <- matrix(data[data$id == subj.id, response], ncol = 1)
   else{
     if(!is.null(attr(fixed, 'special')) & (attr(fixed, 'special') == 'spline' | attr(random, 'special') == 'spline')){
       newData <- as.data.frame(cbind(id = data$id, model.matrix(fixed.formula, data)))
@@ -11,7 +11,7 @@
       if(what == 'X') rtn <- as.matrix(newData[newData$id == subj.id, -1, drop = F])
       else if(what == 'Z') rtn <- as.matrix(newDataRandom[newDataRandom$id == subj.id, -1, drop = F])
     }else{ 
-      i.dat <- subset(data, id == subj.id)
+      i.dat <- data[data$id == subj.id, ]
       if(what == 'X') rtn <- model.matrix(fixed.formula, i.dat)
       else if(what == 'Z') rtn <- model.matrix(random.formula, i.dat)
     }
@@ -19,7 +19,7 @@
   rtn
 }
 
-# Create lists of design matrices for each subject for each response
+#' Create lists of design matrices for each subject for each longitudinal response
 #' @keywords internal
 createDataMatrices <- function(data, formulas){
   K <- length(formulas)

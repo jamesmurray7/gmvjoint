@@ -92,7 +92,7 @@ surv.mod <- function(ph, survdata, formulas, l0.init){
       q <- length(el(strsplit(random, '\\+|\\*|\\:')))
       # Define two functions to construct F_i and F_u ----
       .getFi <- function(time, q = q){
-        Fi <- matrix(NA, nr = 1, nc = q)
+        Fi <- matrix(NA, nrow = 1, ncol = q)
         for(i in 1:q) Fi[, i] <- time^(i - 1)
         Fi
       }

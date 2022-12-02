@@ -111,7 +111,7 @@ joint.log.lik <- function(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.
 #' 
 #' @keywords methods
 #' @export
-logLik.joint <- function(x, conditional = FALSE){
+logLik.joint <- function(x, conditional = FALSE, ...){
   if(!inherits(x, 'joint')) stop("Only usable with object of class 'joint'.")
   if(is.null(x$logLik)) stop("Rerun with post.process = TRUE.")
   ll <- x$logLik
@@ -119,9 +119,10 @@ logLik.joint <- function(x, conditional = FALSE){
   ll
 }
 
+##' Extract AIC from a joint model fit.
 ##' @method extractAIC joint
 ##' @export
-extractAIC.joint <- function(x, conditional = FALSE){
+extractAIC.joint <- function(x, scale, k = 2, conditional = FALSE, ...){
   if(!inherits(x, 'joint')) stop("Only usable with object of class 'joint'.")
   if(is.null(x$logLik)) stop("Rerun with post.process = TRUE.")
   L <- x$logLik
@@ -131,7 +132,7 @@ extractAIC.joint <- function(x, conditional = FALSE){
   }else{
     ll <- c(L)
   }
-  return(setNames(c(df, c(-2*ll + 2 * df)), c('df', 'AIC')))
+  return(setNames(c(df, c(-2*ll + k * df)), c('df', 'AIC')))
 }
 
 

@@ -347,7 +347,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
 #' @method print joint
 #' @keywords internal
 #' @export
-print.joint <- function(x){
+print.joint <- function(x, ...){
   if(!inherits(x, 'joint')) stop('x must be a "joint" object!')
   
   M <- x$ModelInfo

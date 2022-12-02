@@ -4,7 +4,7 @@
 \alias{ranef.joint}
 \title{Extract random effects from a \code{joint} object.}
 \usage{
-\method{ranef}{joint}(x, Var = FALSE)
+\method{ranef}{joint}(x, Var = FALSE, ...)
 }
 \arguments{
 \item{x}{a joint model fit by the \code{joint} function.}

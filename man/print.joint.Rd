@@ -4,7 +4,7 @@
 \alias{print.joint}
 \title{Print a \code{joint} object}
 \usage{
-\method{print}{joint}(x)
+\method{print}{joint}(x, ...)
 }
 \description{
 Print a \code{joint} object

@@ -4,7 +4,7 @@
 \alias{logLik.joint}
 \title{Log-likelihood for joint model.}
 \usage{
-\method{logLik}{joint}(x, conditional = FALSE)
+\method{logLik}{joint}(x, conditional = FALSE, ...)
 }
 \arguments{
 \item{x}{a \code{joint} object.}

@@ -4,7 +4,7 @@
 \alias{summary.joint}
 \title{Summary of an \code{joint} object.}
 \usage{
-\method{summary}{joint}(x)
+\method{summary}{joint}(x, ...)
 }
 \arguments{
 \item{x}{a joint model fit by the \code{joint} function.}

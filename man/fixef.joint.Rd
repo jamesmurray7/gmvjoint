@@ -4,7 +4,7 @@
 \alias{fixef.joint}
 \title{Extract fixed effects from a \code{joint} object.}
 \usage{
-\method{fixef}{joint}(x, what = c("long", "surv"))
+\method{fixef}{joint}(x, what = c("long", "surv"), ...)
 }
 \arguments{
 \item{x}{a joint model fit by the \code{joint} function.}
