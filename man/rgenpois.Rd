@@ -17,7 +17,7 @@ Simulate realisations from a generalised poisson distribution
 }
 \details{
 Follows the "GP-1" implementation of the generalised poissson distribution outlined 
-in Zamani & Ismail (2012).
+in Zamani & Ismail (2012). The variance of produced \eqn{Y} is \eqn{(1+\varphi)^2\mu}.
 }
 \references{
 Zamani H and Ismail N. Functional Form for the Generalized Poisson Regression Model, 

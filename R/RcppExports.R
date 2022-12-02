@@ -7,26 +7,36 @@ GP1_pmf_scalar <- function(mu, phi, Y) {
     .Call(`_GMVJM_GP1_pmf_scalar`, mu, phi, Y)
 }
 
+#' log-likelihood of Gamma
+#' @keywords internal
+ll_Gamma <- function(Y, shape, mu) {
+    .Call(`_GMVJM_ll_Gamma`, Y, shape, mu)
+}
+
 #' @keywords internal
 ll_genpois <- function(eta, phi, Y) {
     .Call(`_GMVJM_ll_genpois`, eta, phi, Y)
 }
 
+#' Survival log-density
 #' @keywords internal
 logfti <- function(b, S, SS, Fi, Fu, l0i, haz, Delta, gamma_rep, zeta) {
     .Call(`_GMVJM_logfti`, b, S, SS, Fi, Fu, l0i, haz, Delta, gamma_rep, zeta)
 }
 
+#' The joint density
 #' @keywords internal
 joint_density <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K) {
     .Call(`_GMVJM_joint_density`, b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K)
 }
 
+#' Quadrature - standard deviation of N(mu, tau^2).
 #' @keywords internal
 maketau <- function(S, Z) {
     .Call(`_GMVJM_maketau`, S, Z)
 }
 
+#' First derivative of the joint density with respect to b.
 #' @keywords internal
 joint_density_ddb <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K) {
     .Call(`_GMVJM_joint_density_ddb`, b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K)
@@ -38,6 +48,7 @@ Sbeta <- function(beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v
     .Call(`_GMVJM_Sbeta`, beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v)
 }
 
+#' Hessian matrix on fixed effects.
 #' @keywords internal
 Hbeta <- function(beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v) {
     .Call(`_GMVJM_Hbeta`, beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v)
@@ -55,21 +66,25 @@ phi_update <- function(b, X, Y, Z, beta, phi, w, v, tau) {
     .Call(`_GMVJM_phi_update`, b, X, Y, Z, beta, phi, w, v, tau)
 }
 
+#' Score vector for survival parameters.
 #' @keywords internal
 Sgammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q, eps) {
     .Call(`_GMVJM_Sgammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q, eps)
 }
 
+#' Hessian matrix for survival parameters.
 #' @keywords internal
 Hgammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q, eps) {
     .Call(`_GMVJM_Hgammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q, eps)
 }
 
+#' Update to the baseline hazard
 #' @keywords internal
 lambdaUpdate <- function(survtimes, ft, gamma, gamma_rep, zeta, S, Sigma, b, w, v, b_inds, K, q) {
     .Call(`_GMVJM_lambdaUpdate`, survtimes, ft, gamma, gamma_rep, zeta, S, Sigma, b, w, v, b_inds, K, q)
 }
 
+#' Second derivative of joint density wrt b
 #' @keywords internal
 joint_density_sdb <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K, eps) {
     .Call(`_GMVJM_joint_density_sdb`, b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K, eps)

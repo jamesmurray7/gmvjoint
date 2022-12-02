@@ -5,7 +5,7 @@ importFrom("stats", "Gamma", "as.formula", "binomial", "coef", "cov",
            "gaussian", "model.matrix", "optim", "plogis", "poisson",
            "dnorm", "dbinom", "dpois", "dgamma",
            "rbinom", "rexp", "rgamma", "rnorm", "rpois", "runif",
-           "setNames", "pnorm", "qnorm")
+           "setNames", "pnorm", "qnorm", "cov2cor")
 importFrom("utils", "head")
 importFrom("statmod", "gauss.quad.prob")
 importFrom('pracma', 'grad', 'hessian')
@@ -20,5 +20,6 @@ S3method(logLik, joint)
 S3method(vcov, joint)
 S3method(fixef, joint)
 S3method(ranef, joint)
+S3method(extractAIC, joint)
 
 exportPattern("^[[:alpha:]]+")

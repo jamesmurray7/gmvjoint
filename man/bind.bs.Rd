@@ -2,11 +2,11 @@
 % Please edit documentation in R/misc.R
 \name{bind.bs}
 \alias{bind.bs}
-\title{create appropriately-dimensioned matrix of random effects.}
+\title{Create appropriately-dimensioned matrix of random effects.}
 \usage{
 bind.bs(bsplit)
 }
 \description{
-create appropriately-dimensioned matrix of random effects.
+Create appropriately-dimensioned matrix of random effects.
 }
 \keyword{internal}

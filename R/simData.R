@@ -4,7 +4,7 @@
 #' will be under-dispersed and overdispered if \eqn{\varphi>0}.
 #' 
 #' @details Follows the "GP-1" implementation of the generalised poissson distribution outlined 
-#' in Zamani & Ismail (2012). 
+#' in Zamani & Ismail (2012). The variance of produced \eqn{Y} is \eqn{(1+\varphi)^2\mu}.
 #' 
 #' @references 
 #' 
@@ -78,7 +78,8 @@ rgenpois <- function(mu, phi){
 #'   can be anything, as it doesn't impact simulation.}
 #'   \item{\code{"genpois"}}{Simulated with a log link, corresponding item in \code{sigma} will be
 #'   the \strong{dispersion}. Values < 0 correspond to under-dispersion, and values > 0 over-
-#'   dispersion. See \code{\link{rgenpois}} for more information.}
+#'   dispersion. See \code{\link{rgenpois}} for more information. Simulated variance is 
+#'   \eqn{(1+\varphi)^2\mu}.}
 #'   \item{\code{"Gamma"}}{Simulated with a log link, corresponding item in \code{sigma} will be
 #'   the \strong{shape}.}
 #'   

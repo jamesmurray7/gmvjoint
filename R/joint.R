@@ -73,7 +73,8 @@
 #'     \item{\code{'genpois'}}{For count data types where dispersion is at least of some
 #'     secondary interest. A log link is used. A term \eqn{\sigma_k} is estimated, denoting
 #'     the dispersion, \eqn{\varphi} of the response. This follows interpretation of Zamani & 
-#'     Ismail (2012): \eqn{\varphi>0}: Over-dispersion; \eqn{\varphi<0}: Under-dispersion.}
+#'     Ismail (2012): \eqn{\varphi>0}: Over-dispersion; \eqn{\varphi<0}: Under-dispersion.
+#'     \eqn{Var[Y]=(1+\varphi)^2\mu}.}
 #'     \item{\code{'Gamma'}}{For continuous data where a Gamma distribution might be sensible.
 #'     The log link is used. A term \eqn{\sigma_k} is be estimated, denoting the shape of the
 #'     distribution.}
@@ -139,7 +140,7 @@
 #' fit <- joint(long.formulas, surv.formula, data, family)
 #' 
 #' \dontrun{
-#' 2) Fit on PBC data -----------------------------------------------------
+#' # 2) Fit on PBC data -----------------------------------------------------
 #' data(PBC)
 #' PBC$serBilir <- log(PBC$serBilir)
 #'
@@ -342,9 +343,10 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
   return(out)
 }
 
-##' @method print joint
-##' @keywords internal
-##' @export
+#' Print a \code{joint} object
+#' @method print joint
+#' @keywords internal
+#' @export
 print.joint <- function(x){
   if(!inherits(x, 'joint')) stop('x must be a "joint" object!')
   

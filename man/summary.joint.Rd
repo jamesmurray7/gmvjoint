@@ -15,6 +15,20 @@ Object of class \code{summary.joint}.
 \description{
 Generate summary of a fitted multivariate joint model.
 }
+\examples{
+data(PBC)
+long.formula <- list(
+  platelets ~ time * drug + (1 + time|id),
+  albumin ~ time * drug + (1 + time|id)
+)
+surv.formula <- Surv(survtime, status) ~ sex + drug
+
+PBC <- na.omit(PBC[,c('id', 'survtime', 'status', 'sex', 
+'drug', 'platelets', 'albumin', 'time')])
+fit <- joint(long.formula, surv.formula, PBC, family = list('genpois', 'gaussian'),
+            control = list(verbose = TRUE))
+summary(fit)
+}
 \seealso{
 \code{\link{joint}} and \code{\link{joint.object}}
 }

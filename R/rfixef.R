@@ -11,7 +11,7 @@
 #' @export
 #' 
 #' @examples
-#' Univariate fit on PBC data ---------------------------------------------
+#' # Univariate fit on PBC data -------------------------------------------
 #' data(PBC)
 #'
 #' # Subset data and remove NAs
@@ -60,7 +60,7 @@ fixef.joint <- function(x, what = c("long", 'surv')){
 #'
 #' @examples
 #' \dontrun{
-#' Univariate fit on PBC data ---------------------------------------------
+#' # Univariate fit on PBC data -----------------------------------------
 #' data(PBC)
 #'
 #' # Subset data and remove NAs

@@ -24,6 +24,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ll_Gamma
+double ll_Gamma(const arma::vec& Y, const double& shape, const arma::vec& mu);
+RcppExport SEXP _GMVJM_ll_Gamma(SEXP YSEXP, SEXP shapeSEXP, SEXP muSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const double& >::type shape(shapeSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type mu(muSEXP);
+    rcpp_result_gen = Rcpp::wrap(ll_Gamma(Y, shape, mu));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ll_genpois
 double ll_genpois(const arma::vec& eta, const double phi, arma::vec& Y);
 RcppExport SEXP _GMVJM_ll_genpois(SEXP etaSEXP, SEXP phiSEXP, SEXP YSEXP) {

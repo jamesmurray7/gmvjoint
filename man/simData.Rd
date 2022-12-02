@@ -83,7 +83,8 @@ specifies the association structure for \strong{all} responses. The specificatio
   can be anything, as it doesn't impact simulation.}
   \item{\code{"genpois"}}{Simulated with a log link, corresponding item in \code{sigma} will be
   the \strong{dispersion}. Values < 0 correspond to under-dispersion, and values > 0 over-
-  dispersion. See \code{\link{rgenpois}} for more information.}
+  dispersion. See \code{\link{rgenpois}} for more information. Simulated variance is 
+  \eqn{(1+\varphi)^2\mu}.}
   \item{\code{"Gamma"}}{Simulated with a log link, corresponding item in \code{sigma} will be
   the \strong{shape}.}
   

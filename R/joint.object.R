@@ -1,18 +1,45 @@
 #' Fitted \code{joint} object
 #'
-#' @description An object returned by the \code{joint} function, inheriting
-#'   from class \code{mjoint} and representing a fitted joint model for
-#'   multivariate longitudinal and time-to-event data. 
-#'   Objects of this class have methods for the generic functions \code{coef}, \code{logLik},
-#'   \code{plot}, \code{print}, \code{ranef}, \code{fixef}, \code{summary},
-#'   \code{AIC}, \code{getVarCov}, \code{vcov}, \code{confint}, \code{sigma},
-#'   \code{fitted}, \code{residuals}, and \code{formula}.
+#' @description An object returned by the \code{joint} function, with class \code{joint}
+#'   a fitted joint model. Objects of this class currently have methods for: \code{logLik},
+#'   \code{print}, \code{ranef}, \code{fixef}, \code{summary}, \code{AIC}, and \code{vcov}.
 #'
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #' @seealso \code{\link{joint}}.
 #' @return A list with the following components. \describe{
 #'
-#'  \item{TODO}{TODO}
+#'  \item{\code{coeffs}}{A list containing parameter estimates: \describe{
+#'  \item{\code{D}}{The variance-covariance matrix of the random effects.}
+#'  \item{\code{beta}}{Vector of fixed effects for longitudinal processes.}
+#'  \item{\code{sigma}}{List of dispersion parameters, families with no dispersion parameter
+#'  are returned as an unnamed zero value.}
+#'  \item{\code{gamma}}{Vector of association parameters.}
+#'  \item{\code{zeta}}{Vector of time-invariant survival coefficients.}
+#'  }}
+#'  \item{\code{hazard}}{A matrix with containing unique failure times \code{ft}, their hazard 
+#'  contribution \code{haz} and the number of events at the failure time \code{nev}.}
+#'  \item{\code{ModelInfo}}{A list containing information on the model fit: \describe{
+#'  \item{\code{ResponseInfo}}{A vector containing response names and families fit.}
+#'  \item{\code{family}}{A list of families fit.}
+#'  \item{\code{long.formulas}}{A list of \code{long.formulas} (i.e. from \code{joint} call).}
+#'  \item{\code{surv.formulas}}{Formula object from \code{joint} call.}
+#'  \item{\code{control}}{List of control parameters used, if none then this is \code{NULL}.}
+#'  \item{\code{inds}}{A list of length two, containing: \describe{
+#'  \item{\code{beta}}{The indices in \eqn{\beta} for each response.}
+#'  \item{\code{b}}{The indices in random effects \eqn{b} for each response.}
+#'  }}
+#'  \item{\code{nobs}}{A vector containing total number of observations for each response.}
+#'  \item{\code{n}}{Number of subjects.}
+#'  \item{\code{nev}}{Number of events.}
+#'  }}
+#'  \item{\code{SE}}{A named vector of approximated standard error for each estimated parameter.
+#'  Only returned if \code{post.process=TRUE}.}
+#'  \item{\code{vcov}}{The full variance-covariance matrix between parameters. Only returned if 
+#'  \code{post.process=TRUE}.}
+#'  \item{\code{logLik}}{log-likelihood evaluated at parameter estimates. Only returned if 
+#'  \code{post.process=TRUE}.}
+#'  \item{\code{REs}}{The random effects, with variance attributed.}
+#'  \item{\code{elapsed.time}}{Named numeric containing breakdown of elapsed time for \code{joint}
+#'  fit.}
 #' }
-#' 
 "joint.object" <- NULL

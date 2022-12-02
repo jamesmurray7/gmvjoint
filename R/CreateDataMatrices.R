@@ -26,7 +26,7 @@ createDataMatrices <- function(data, formulas){
   n <- length(unique(data$id))
   X <- Y <- Z <- vector('list', n)
   for(i in 1:n){
-    ii <<- i
+    ii <- i
     X[[i]] <- lapply(formulas, function(f){
       .DataWorkhorse(data, subj.id = ii, fixed = f$fixed, random = f$random, response = f$response, what = 'X')
     }) 

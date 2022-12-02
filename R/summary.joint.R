@@ -12,6 +12,20 @@
 #' @returns Object of class \code{summary.joint}.
 #' 
 #' @export
+#' 
+#' @examples 
+#' data(PBC)
+#' long.formula <- list(
+#'   platelets ~ time * drug + (1 + time|id),
+#'   albumin ~ time * drug + (1 + time|id)
+#' )
+#' surv.formula <- Surv(survtime, status) ~ sex + drug
+#'
+#' PBC <- na.omit(PBC[,c('id', 'survtime', 'status', 'sex', 
+#' 'drug', 'platelets', 'albumin', 'time')])
+#' fit <- joint(long.formula, surv.formula, PBC, family = list('genpois', 'gaussian'),
+#'             control = list(verbose = TRUE))
+#' summary(fit)
 summary.joint <- function(x){
   if(!inherits(x, 'joint')) stop("Only usable with object of class 'joint'.")
   if(is.null(x$SE)) stop('Rerun with post.process = TRUE.')

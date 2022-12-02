@@ -19,7 +19,7 @@ A vector containing required fixed effects.
 Extract fixed effects from a \code{joint} object.
 }
 \examples{
-Univariate fit on PBC data ---------------------------------------------
+# Univariate fit on PBC data -------------------------------------------
 data(PBC)
 
 # Subset data and remove NAs

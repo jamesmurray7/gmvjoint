@@ -39,6 +39,9 @@ double poisson_ll(const arma::vec& Y, const arma::vec& eta){
 }
 
 // Gamma
+//' log-likelihood of Gamma
+//' @keywords internal
+// [[Rcpp::export]]
 double ll_Gamma(const arma::vec& Y, const double& shape, const arma::vec& mu){
   int n = Y.size();
   vec out = (shape - 1.) * log(Y) - lgamma(shape) - shape * log(mu) + 
@@ -66,8 +69,7 @@ double ll_genpois(const arma::vec& eta, const double phi, arma::vec& Y){
   return sum(out);
 }
 
-// Survival log-density.
-// log f(T_i, \Delta_i|\b; \Omega).
+//' Survival log-density
 //' @keywords internal
 // [[Rcpp::export]]
 double logfti(const arma::vec& b, const arma::rowvec& S, const arma::mat& SS, const arma::rowvec& Fi, const arma::mat& Fu,
@@ -80,7 +82,7 @@ double logfti(const arma::vec& b, const arma::rowvec& S, const arma::mat& SS, co
   );
 }
 
-// The joint density
+//' The joint density
 //' @keywords internal
 // [[Rcpp::export]]
 double joint_density(const arma::vec& b, const List Y, const List X, const List Z,                  // Longitudinal + Random effects.
@@ -122,7 +124,7 @@ double joint_density(const arma::vec& b, const List Y, const List X, const List 
   return -1.0 * (ll + as_scalar(-(double)q/2.0 * log2pi - 0.5 * log(det(D)) - 0.5 * b.t() * D.i() * b + ll_Ti));;
 }
 
-// Quadrature - standard deviation of N(mu, tau^2).
+//' Quadrature - standard deviation of N(mu, tau^2).
 //' @keywords internal
 // [[Rcpp::export]]
 List maketau(const List& S, const List& Z){
@@ -254,7 +256,7 @@ vec get_long_score_quad(const vec& eta, const vec& Y, const std::string family, 
   return Score;
 }
 
-// First derivative of the joint density with respect to b.
+//' First derivative of the joint density with respect to b.
 //' @keywords internal
 // [[Rcpp::export]]
 arma::vec joint_density_ddb(const arma::vec& b, const List Y, const List X, const List Z,                  // Longitudinal + Random effects.
@@ -462,6 +464,7 @@ mat get_long_hess_quad(const vec& eta, const vec& Y, const std::string family, c
   return H;
 }
 
+//' Hessian matrix on fixed effects.
 //' @keywords internal
 // [[Rcpp::export]]
 arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& b, 
@@ -556,6 +559,7 @@ double Egammazeta(vec& gammazeta, vec& b, List Sigma,
   }
   return as_scalar(Delta * (S * z + Fi * (b % gammas)) - rhs);
 }
+//' Score vector for survival parameters.
 //' @keywords internal
 // [[Rcpp::export]]
 arma::vec Sgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma,
@@ -575,6 +579,7 @@ arma::vec Sgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma,
   return out;
 }
 
+//' Hessian matrix for survival parameters.
 //' @keywords internal
 // [[Rcpp::export]]
 arma::mat Hgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma,
@@ -594,7 +599,7 @@ arma::mat Hgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma,
   return 0.5 * (out + out.t());
 }
 
-// Update to the baseline hazard lambda_0 ---------------------------------
+//' Update to the baseline hazard
 //' @keywords internal
 // [[Rcpp::export]]
 arma::mat lambdaUpdate(List survtimes, arma::mat& ft, arma::vec& gamma, arma::vec& gamma_rep, arma::vec& zeta,
@@ -627,7 +632,7 @@ arma::mat lambdaUpdate(List survtimes, arma::mat& ft, arma::vec& gamma, arma::ve
   return store;
 }
 
-// Second derivative of joint density wrt b
+//' Second derivative of joint density wrt b
 //' @keywords internal
 // [[Rcpp::export]]
 arma::mat joint_density_sdb(const arma::vec& b, const List Y, const List X, const List Z,                  // Longitudinal + Random effects.

@@ -1,11 +1,13 @@
 Package: GMVJM
 Type: Package
-Title: Fit generalised multivariate joint models using an approximate EM algorithm 
+Title: Joint models of survival and multivariate longitudinal data
 Version: 0.5
-Date: 2022-11-21
+Date: 2022-12-02
 Author: James Murray
 Maintainer: James Murray <j.murray7@ncl.ac.uk>
-Description: Fit multivariate joint models, where the longitudinal responses can be of differing type, using an approximate EM algorithm 
+Description: Fit joint models of survival and multivariate longitudinal data. The longitudinal
+  data is specified by generalised linear mixed models. The joint models are fit via maximum
+  likelihood using an approximate EM algorithm.
 License: GPL-3
 Depends:
   R (>= 3.6.0),
@@ -16,6 +18,7 @@ Imports:
   Matrix,
   MASS,
   methods,
+  mvtnorm,
   pracma,
   stats,
   statmod
@@ -23,3 +26,4 @@ LinkingTo: Rcpp, RcppArmadillo
 Encoding: UTF-8
 RoxygenNote: 7.2.2
 LazyData: true
+URL: https://github.com/jamesmurray7/GMVJM

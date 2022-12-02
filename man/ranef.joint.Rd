@@ -23,7 +23,7 @@ data log-likelihood at the MLEs \eqn{\hat{\Omega}}.
 }
 \examples{
 \dontrun{
-Univariate fit on PBC data ---------------------------------------------
+# Univariate fit on PBC data -----------------------------------------
 data(PBC)
 
 # Subset data and remove NAs

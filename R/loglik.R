@@ -119,7 +119,7 @@ logLik.joint <- function(x, conditional = FALSE){
   ll
 }
 
-
+##' @method extractAIC joint
 ##' @export
 extractAIC.joint <- function(x, conditional = FALSE){
   if(!inherits(x, 'joint')) stop("Only usable with object of class 'joint'.")
