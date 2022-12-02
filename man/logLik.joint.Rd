@@ -4,13 +4,15 @@
 \alias{logLik.joint}
 \title{Log-likelihood for joint model.}
 \usage{
-\method{logLik}{joint}(x, conditional = FALSE, ...)
+\method{logLik}{joint}(object, conditional = FALSE, ...)
 }
 \arguments{
-\item{x}{a \code{joint} object.}
+\item{object}{a \code{joint} object.}
 
 \item{conditional}{Logical. Should the conditional or observed data log-likelihood
 be returned? See \strong{details}.}
+
+\item{...}{additional arguments (none used).}
 }
 \description{
 Calculate joint log-likelihood, degrees of freedom, AIC and BIC of 

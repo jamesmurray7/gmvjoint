@@ -129,7 +129,7 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
 #' @details Uses the observed-empirical \strong{approximation} of information matrix 
 #' (Mclachlan & Krishnan, 2008). The estimates for the baseline hazard are not estimated. 
 #' 
-#' @param x a joint model fit by the \code{joint} function.
+#' @param object a joint model fit by the \code{joint} function.
 #' @param corr should the correlation matrix be returned instead of the variance-covariance?
 #'
 #' @seealso \code{\link{obs.emp.I}}
@@ -164,10 +164,10 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
 #'               family = list("gaussian"))
 #' vcov(fit)
 #' }
-vcov.joint <- function(x, corr = F, ...){
-  if(!inherits(x, 'joint')) stop("Only usable with objects of class 'joint'.")
+vcov.joint <- function(object, corr = F, ...){
+  if(!inherits(object, 'joint')) stop("Only usable with objects of class 'joint'.")
   
-  v <- x$vcov
+  v <- object$vcov
   if(corr) 
     return(cov2cor(v))
   else

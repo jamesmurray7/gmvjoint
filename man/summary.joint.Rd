@@ -4,10 +4,12 @@
 \alias{summary.joint}
 \title{Summary of an \code{joint} object.}
 \usage{
-\method{summary}{joint}(x, ...)
+\method{summary}{joint}(object, ...)
 }
 \arguments{
-\item{x}{a joint model fit by the \code{joint} function.}
+\item{object}{a joint model fit by the \code{joint} function.}
+
+\item{...}{additional arguments (none used).}
 }
 \value{
 Object of class \code{summary.joint}.

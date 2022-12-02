@@ -66,9 +66,10 @@ joint.log.lik <- function(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.
 #' @description Calculate joint log-likelihood, degrees of freedom, AIC and BIC of 
 #' joint model fit.
 #' 
-#' @param x a \code{joint} object.
+#' @param object a \code{joint} object.
 #' @param conditional Logical. Should the conditional or observed data log-likelihood
 #'  be returned? See \strong{details}.
+#' @param ... additional arguments (none used).
 #' 
 #' @details 
 #' 
@@ -111,18 +112,27 @@ joint.log.lik <- function(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.
 #' 
 #' @keywords methods
 #' @export
-logLik.joint <- function(x, conditional = FALSE, ...){
-  if(!inherits(x, 'joint')) stop("Only usable with object of class 'joint'.")
-  if(is.null(x$logLik)) stop("Rerun with post.process = TRUE.")
-  ll <- x$logLik
+logLik.joint <- function(object, conditional = FALSE, ...){
+  if(!inherits(object, 'joint')) stop("Only usable with object of class 'joint'.")
+  if(is.null(object$logLik)) stop("Rerun with post.process = TRUE.")
+  ll <- object$logLik
   class(ll) <- 'logLik'
   ll
 }
 
 ##' Extract AIC from a joint model fit.
+##'
+##' @param fit A fitted \code{joint} object,
+##' @param scale See \code{\link[stats]{extractAIC}}; not used.
+##' @param k Numeric specifying the "weight" of degrees of freedom (default \code{k=2}).
+##' @param conditional Should AIC of conditional or observed log-likelihood be used? Defaults
+##' to \code{conditional = FALSE}.
+##' @param ... additional arguments (none used).
+##'
 ##' @method extractAIC joint
 ##' @export
-extractAIC.joint <- function(x, scale, k = 2, conditional = FALSE, ...){
+extractAIC.joint <- function(fit, scale, k = 2, conditional = FALSE, ...){
+  x <- fit
   if(!inherits(x, 'joint')) stop("Only usable with object of class 'joint'.")
   if(is.null(x$logLik)) stop("Rerun with post.process = TRUE.")
   L <- x$logLik

@@ -43,7 +43,6 @@ double poisson_ll(const arma::vec& Y, const arma::vec& eta){
 //' @keywords internal
 // [[Rcpp::export]]
 double ll_Gamma(const arma::vec& Y, const double& shape, const arma::vec& mu){
-  int n = Y.size();
   vec out = (shape - 1.) * log(Y) - lgamma(shape) - shape * log(mu) + 
     shape * log(shape) - (shape * Y)/mu;
   return sum(out);
@@ -58,8 +57,8 @@ double ll_Gamma2(const arma::vec& Y, const double& shape, const arma::vec& scale
   return sum(out);
 }
 
-// 'GP1' from Zamani & Ismail (2012)
 // https://www.tandfonline.com/doi/pdf/10.1080/03610926.2011.564742?needAccess=true
+//' 'GP1' from Zamani & Ismail (2012)
 //' @keywords internal
 // [[Rcpp::export]]
 double ll_genpois(const arma::vec& eta, const double phi, arma::vec& Y){

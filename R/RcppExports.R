@@ -13,6 +13,7 @@ ll_Gamma <- function(Y, shape, mu) {
     .Call(`_GMVJM_ll_Gamma`, Y, shape, mu)
 }
 
+#' 'GP1' from Zamani & Ismail (2012)
 #' @keywords internal
 ll_genpois <- function(eta, phi, Y) {
     .Call(`_GMVJM_ll_genpois`, eta, phi, Y)

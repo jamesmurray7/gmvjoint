@@ -4,13 +4,15 @@
 \alias{ranef.joint}
 \title{Extract random effects from a \code{joint} object.}
 \usage{
-\method{ranef}{joint}(x, Var = FALSE, ...)
+\method{ranef}{joint}(object, Var = FALSE, ...)
 }
 \arguments{
-\item{x}{a joint model fit by the \code{joint} function.}
+\item{object}{a joint model fit by the \code{joint} function.}
 
 \item{Var}{logical, should the estimated variance of the random effects at \eqn{\hat{\Omega}}
 be returned? Defaults to \code{Var=FALSE}.}
+
+\item{...}{additional arguments (none used).}
 }
 \value{
 A \code{matrix} containing required random effects effects. If \code{Var=TRUE},

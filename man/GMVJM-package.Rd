@@ -18,9 +18,6 @@ types.
 \author{ 
   \packageAuthor{GMVJM}
 }
-\maintainer{
-  \packageMaintainer{GMVJM}
-}
 
 \references{
 Bernhardt PW, Zhang D and Wang HJ. A fast EM Algorithm for Fitting Joint Models of a Binary 

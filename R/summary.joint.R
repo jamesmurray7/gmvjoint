@@ -7,7 +7,8 @@
 #' @method summary joint
 #' @seealso \code{\link{joint}} and \code{\link{joint.object}}
 #' 
-#' @param x a joint model fit by the \code{joint} function.
+#' @param object a joint model fit by the \code{joint} function.
+#' @param ... additional arguments (none used).
 #' 
 #' @returns Object of class \code{summary.joint}.
 #' 
@@ -26,13 +27,13 @@
 #' fit <- joint(long.formula, surv.formula, PBC, family = list('genpois', 'gaussian'),
 #'             control = list(verbose = TRUE))
 #' summary(fit)
-summary.joint <- function(x, ...){
-  if(!inherits(x, 'joint')) stop("Only usable with object of class 'joint'.")
-  if(is.null(x$SE)) stop('Rerun with post.process = TRUE.')
+summary.joint <- function(object, ...){
+  if(!inherits(object, 'joint')) stop("Only usable with object of class 'joint'.")
+  if(is.null(object$SE)) stop('Rerun with post.process = TRUE.')
   qz <- qnorm(.975)
   
   # Extract things to ModelInfo
-  M <- x$ModelInfo
+  M <- object$ModelInfo
   K <- length(M$ResponseInfo)                      # Number of responses
   responses <- lapply(sapply(M$ResponseInfo,       # Response names only
                              strsplit, '\\s\\('), el, 1)
@@ -43,8 +44,8 @@ summary.joint <- function(x, ...){
   inds.beta <- M$inds$beta; inds.b <- M$inds$b     # indices
   
   # Parameter estimates and standard errors.
-  SE <- x$SE
-  coeffs <- x$coeffs
+  SE <- object$SE
+  coeffs <- object$coeffs
   D <- coeffs$D
   betas <- coeffs$beta
   sigmas <- unlist(coeffs$sigma)
@@ -96,9 +97,9 @@ summary.joint <- function(x, ...){
   
   
   # Other items to return
-  et <- x$elapsed.time; iter <- unname(as.integer(et['iterations'])); et <- et[-which(names(et) == 'iterations')]
-  haz <- x$hazard
-  ll <- x$logLik
+  et <- object$elapsed.time; iter <- unname(as.integer(et['iterations'])); et <- et[-which(names(et) == 'iterations')]
+  haz <- object$hazard
+  ll <- object$logLik
   
   
   out <- list(
@@ -115,6 +116,7 @@ summary.joint <- function(x, ...){
   out
 }
 
+#' Print object of class summary.joint.
 #' @method print summary.joint
 #' @keywords internal
 #' @export
@@ -163,7 +165,7 @@ print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
               x$iter, x$et['EM time'], x$et['Total Computation time']))
   
   cat("\n")
-  invisible(1+1)
+  invisible(x)
 }
 
 

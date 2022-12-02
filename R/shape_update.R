@@ -1,3 +1,4 @@
+#' Conditional expectation of Gamma log-likelihood.
 #' @keywords internal
 E_shape.b <- function(shape, X, Y, Z, tau, beta, b, w, v){ # Shape for gamma via pracma::grad/hessian
   shape <- shape
@@ -10,6 +11,7 @@ E_shape.b <- function(shape, X, Y, Z, tau, beta, b, w, v){ # Shape for gamma via
   sum(out)
 }
 
+#' Compute gradient and hessian wrt shape parameter of Gamma distn.
 #' @keywords internal
 #' @importFrom pracma grad hessian
 shape_update <- function(shape, X, Y, Z, tau, beta, b, w, v){

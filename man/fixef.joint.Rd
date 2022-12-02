@@ -4,13 +4,15 @@
 \alias{fixef.joint}
 \title{Extract fixed effects from a \code{joint} object.}
 \usage{
-\method{fixef}{joint}(x, what = c("long", "surv"), ...)
+\method{fixef}{joint}(object, what = c("long", "surv"), ...)
 }
 \arguments{
-\item{x}{a joint model fit by the \code{joint} function.}
+\item{object}{a joint model fit by the \code{joint} function.}
 
 \item{what}{character string. Should the \code{"long"}itudinal process(es) be extracted,
 or the \code{"surv"}ival ones?}
+
+\item{...}{additional arguments (none used).}
 }
 \value{
 A vector containing required fixed effects.

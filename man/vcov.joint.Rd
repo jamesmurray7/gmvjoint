@@ -4,10 +4,10 @@
 \alias{vcov.joint}
 \title{Extract the variance-covariance matrix from a \code{joint} fit.}
 \usage{
-\method{vcov}{joint}(x, corr = F, ...)
+\method{vcov}{joint}(object, corr = F, ...)
 }
 \arguments{
-\item{x}{a joint model fit by the \code{joint} function.}
+\item{object}{a joint model fit by the \code{joint} function.}
 
 \item{corr}{should the correlation matrix be returned instead of the variance-covariance?}
 }

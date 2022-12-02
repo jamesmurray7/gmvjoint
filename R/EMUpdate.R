@@ -1,3 +1,4 @@
+#' EM update
 #' @keywords internal
 EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
                      S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv,   # Survival
@@ -125,8 +126,6 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   
   # Survival parameters (gamma, zeta)
   gammazeta.new <- c(gamma, zeta) - solve(Reduce('+', Hgz), rowSums(Sgz))
-  # gamma_1   zeta_bin 
-  # 0.7068625 -0.6576819 
   
   # The baseline hazard and related objects
   lambda.update <- lambdaUpdate(sv$surv.times, do.call(cbind, sv$ft.mat), gamma, gamma.rep, zeta, S, SigmaSplit, b.hat, w, v, b.inds2, K, q)

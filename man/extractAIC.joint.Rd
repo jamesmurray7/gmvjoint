@@ -4,7 +4,19 @@
 \alias{extractAIC.joint}
 \title{Extract AIC from a joint model fit.}
 \usage{
-\method{extractAIC}{joint}(x, scale, k = 2, conditional = FALSE, ...)
+\method{extractAIC}{joint}(fit, scale, k = 2, conditional = FALSE, ...)
+}
+\arguments{
+\item{fit}{A fitted \code{joint} object,}
+
+\item{scale}{See \code{\link[stats]{extractAIC}}; not used.}
+
+\item{k}{Numeric specifying the "weight" of degrees of freedom (default \code{k=2}).}
+
+\item{conditional}{Should AIC of conditional or observed log-likelihood be used? Defaults
+to \code{conditional = FALSE}.}
+
+\item{...}{additional arguments (none used).}
 }
 \description{
 Extract AIC from a joint model fit.

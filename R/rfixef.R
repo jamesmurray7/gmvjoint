@@ -1,8 +1,9 @@
 #' Extract fixed effects from a \code{joint} object.
 #' 
-#' @param x a joint model fit by the \code{joint} function. 
+#' @param object a joint model fit by the \code{joint} function. 
 #' @param what character string. Should the \code{"long"}itudinal process(es) be extracted,
 #' or the \code{"surv"}ival ones?
+#' @param ... additional arguments (none used).
 #' 
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #'
@@ -29,7 +30,8 @@
 #' 
 #' fixef(fit, 'long')
 #' fixef(fit, 'surv')
-fixef.joint <- function(x, what = c("long", 'surv'), ...){
+fixef.joint <- function(object, what = c("long", 'surv'), ...){
+  x <- object
   if(!inherits(x, 'joint')) stop("Only usable with objects of class 'joint'.")
   co <- x$coeffs
   what <- match.arg(what)
@@ -45,9 +47,10 @@ fixef.joint <- function(x, what = c("long", 'surv'), ...){
 #' @description Return the random effects \eqn{\hat{\boldsymbol{b}}} which maximises the complete
 #' data log-likelihood at the MLEs \eqn{\hat{\Omega}}.
 #'
-#' @param x a joint model fit by the \code{joint} function. 
+#' @param object a joint model fit by the \code{joint} function. 
 #' @param Var logical, should the estimated variance of the random effects at \eqn{\hat{\Omega}}
 #' be returned? Defaults to \code{Var=FALSE}.
+#' @param ... additional arguments (none used).
 #' 
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #'
@@ -77,7 +80,8 @@ fixef.joint <- function(x, what = c("long", 'surv'), ...){
 #' fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian'))
 #' b <- ranef(fit, FALSE)
 #' }
-ranef.joint <- function(x, Var = FALSE, ...){
+ranef.joint <- function(object, Var = FALSE, ...){
+  x <- object
   if(!inherits(x, 'joint')) stop("Only usable with objects of class 'joint'.")
   if(is.null(x$REs)) stop("Rerun with post.process = TRUE.")
   RE <- x$REs
