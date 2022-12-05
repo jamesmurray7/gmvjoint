@@ -1,12 +1,12 @@
-\name{GMVJM-package}
-\alias{GMVJM-package}
-\alias{GMVJM}
+\name{gmvjoint-package}
+\alias{gmvjoint-package}
+\alias{gmvjoint}
 \docType{package}
 \title{
-\packageTitle{GMVJM}
+\packageTitle{gmvjoint}
 }
 \description{
-GMVJM allows the user to fit joint models of survival and multivariate longitudinal data. The 
+gmvjoint allows the user to fit joint models of survival and multivariate longitudinal data. The 
 longitudinal data is specified by generalised linear mixed models (GLMMs). The joint models 
 are fit via maximum likelihood using an approximate EM algorithm first proposed by Bernhardt et
 al. (2015). The GLMMs are specified using the same syntax as for package \code{glmmTMB} Brooks et
@@ -16,7 +16,7 @@ types.
 }
 
 \author{ 
-  \packageAuthor{GMVJM}
+  \packageAuthor{gmvjoint}
 }
 
 \references{

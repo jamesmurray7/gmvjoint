@@ -624,7 +624,7 @@ arma::mat lambdaUpdate(List survtimes, arma::mat& ft, arma::vec& gamma, arma::ve
       }
       double mu = as_scalar(exp(S_i * zeta + Fst * rhs));
       for(int l = 0; l < gh; l++){
-        store(j, i) += as_scalar(w[l] * mu * exp(v[l] * 0.5 * tau));
+        store(j, i) += as_scalar(w[l] * mu * exp(v[l] * sqrt(tau)));
       }
     }
   }

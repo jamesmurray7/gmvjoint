@@ -1,4 +1,4 @@
-useDynLib(GMVJM, .registration=TRUE)
+useDynLib(gmvjoint, .registration=TRUE)
 importFrom(Rcpp, evalCpp)
 importFrom("methods", "el")
 importFrom("stats", "Gamma", "as.formula", "binomial", "coef", "cov",
