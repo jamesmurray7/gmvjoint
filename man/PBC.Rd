@@ -3,7 +3,7 @@
 \docType{data}
 \name{PBC}
 \alias{PBC}
-\title{Primary billiary cirrhosis data}
+\title{Primary biliary cirrhosis data}
 \format{
 \code{data.frame} with 312 patients and 19 variables:
  \describe{
@@ -43,7 +43,7 @@
 data('PBC')
 }
 \description{
-Primary billiary cirrhosis (PBC) data. PBC is a chronic liver disease which affects the bile 
+Primary biliary cirrhosis (PBC) data. PBC is a chronic liver disease which affects the bile 
 ducts of the liver, complications of which can ultimately lead to death. The longitudinal 
 profile of numerous biomarkers were observed for 312 patients at the Mayo Clinic between 1974
 and 1984  with patients assigned to either the active (D-penicillamine, n=154 (50.6%)) or 

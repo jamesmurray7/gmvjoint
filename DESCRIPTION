@@ -1,13 +1,12 @@
 Package: gmvjoint
 Type: Package
-Title: Joint models of survival and multivariate longitudinal data
-Version: 0.1
+Title: Joint Models of Survival and Multivariate Longitudinal Data
+Version: 0.1.0
 Date: 2022-12-05
-Author: James Murray
-Maintainer: James Murray <j.murray7@ncl.ac.uk>
+Authors@R: person("James", "Murray", email = "j.murray7@ncl.ac.uk", role = c("aut", "cre"))
 Description: Fit joint models of survival and multivariate longitudinal data. The longitudinal
-  data is specified by generalised linear mixed models. The joint models are fit via maximum
-  likelihood using an approximate EM algorithm.
+    data is specified by generalised linear mixed models. The joint models are fit via maximum
+    likelihood using an approximate EM algorithm.
 License: GPL-3
 Depends:
   R (>= 3.6.0),

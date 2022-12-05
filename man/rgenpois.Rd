@@ -10,13 +10,13 @@ rgenpois(mu, phi)
 \item{mu}{A numeric vector of rates \eqn{\exp{\eta}}, with \eqn{\eta} the linear predictor.}
 
 \item{phi}{A numeric specifying the dispersion \eqn{\varphi}. If \eqn{\varphi<0} the response 
-will be under-dispersed and overdispered if \eqn{\varphi>0}.}
+will be under-dispersed and overdispersed if \eqn{\varphi>0}.}
 }
 \description{
 Simulate realisations from a generalised poisson distribution
 }
 \details{
-Follows the "GP-1" implementation of the generalised poissson distribution outlined 
+Follows the "GP-1" implementation of the generalised Poisson distribution outlined 
 in Zamani & Ismail (2012). The variance of produced \eqn{Y} is \eqn{(1+\varphi)^2\mu}.
 }
 \references{

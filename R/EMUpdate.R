@@ -1,16 +1,16 @@
-#' EM update
+#' EM Update
 #' @keywords internal
 EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
                      S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv,   # Survival
                      w, v, n, m, hessian,                      # Quadrature + additional info.
                      beta.inds, b.inds, K, q, beta.quad){
   
-  #' Unpack Omega, the parameter vector
+  # Unpack Omega, the parameter vector
   D <- Omega$D; beta <- Omega$beta; sigma <- Omega$sigma; gamma <- Omega$gamma; zeta <- Omega$zeta
   beta.inds2 <- lapply(beta.inds, function(x) x - 1); b.inds2 <- lapply(b.inds, function(x) x - 1) # Indexed for C++ use.
   gamma.rep <- rep(gamma, sapply(b.inds, length))
   
-  #' Find b.hat and Sigma =====================
+  # Find b.hat and Sigma =====================
   if(hessian == 'auto') .hess <- T else .hess <- F
   b.update <- mapply(function(b, Y, X, Z, Delta, S, Fi, l0i, SS, Fu, l0u){
     optim(b, joint_density, joint_density_ddb,

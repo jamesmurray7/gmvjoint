@@ -11,7 +11,7 @@ longitudinal data is specified by generalised linear mixed models (GLMMs). The j
 are fit via maximum likelihood using an approximate EM algorithm first proposed by Bernhardt et
 al. (2015). The GLMMs are specified using the same syntax as for package \code{glmmTMB} Brooks et
 al. (2017). The joint models themselves are then the  flexible extensions to those in e.g.
-Wulfoshn and Tsiatis (1997). The user is able to simulate data under many different response
+Wulfsohn and Tsiatis (1997). The user is able to simulate data under many different response
 types.
 }
 

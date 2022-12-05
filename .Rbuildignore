@@ -3,3 +3,5 @@
 ^testing$
 ^data-raw$
 ^_archive$
+^cran-comments.md$
+^CRAN-SUBMISSION$

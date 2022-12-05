@@ -12,14 +12,14 @@ longitudinal sub-models are specified by generalised linear mixed models (GLMMs)
 are fit via maximum likelihood using an approximate EM algorithm first proposed by Bernhardt *et
 al*. (2015). The GLMMs are specified using the same syntax as for package `glmmTMB` (Brooks *et
 al*., 2017). The joint models themselves are then the  flexible extensions to those in e.g.
-Wulfoshn and Tsiatis (1997). The user is able to simulate data under many different response
+Wulfsohn and Tsiatis (1997). The user is able to simulate data under many different response
 types.
 
 Currently, five families can be fit: Gaussian; Poisson; binomial; Gamma and generalised Poisson. 
 
 ## To-do list
 The package in current incantation is relatively skeletal, as such not a lot of post-hoc
-anaylses on fitted joint models is possible. As such, an immediate to-do list currently looks like
+analyses on fitted joint models is possible. As such, an immediate to-do list currently looks like
 
 * Dynamic predictions: Note that code to do this already exists at https://github.com/jamesmurray7/GLM/blob/main/Multi-test/DynamicPredictions.R, 
 which just needs to be ported over.
@@ -32,7 +32,7 @@ student and little cache is awarded for production or maintenance of R packages!
 To fit a joint model, we first need to specify the longitudinal and survival sub-models. 
 
 The longitudinal sub-model **must** be a list which contains the specification of the longitudinal process along with its random effects structure 
-in the same syntax as a [glmmTMB](https://cran.r-project.org/web/packages/glmmTMB/index.html) model (which itself is the same as the widely-used `lme4`). 
+in the same syntax as a [glmmTMB](https://cran.r-project.org/package=glmmTMB) model (which itself is the same as the widely-used `lme4`). 
 As an example, suppose we want to fit a trivariate model on the oft-used PBC data, with a linear time-drug interaction term on albumin, a spline term on
 (logged) serum bilirubin and a linear fit on spiders, we specify
 ```r
@@ -45,7 +45,7 @@ long.formulas <- list(
 ```
 where we note interactions and spline-time fits are possible. Currently, transformations on variables (e.g. `log(Y)`) must be done *before* this setup of formulae. 
 
-The survival sub-model must be set-up using `Surv()` from the [survival](https://cran.r-project.org/web/packages/survival/) package e.g.
+The survival sub-model must be set-up using `Surv()` from the [survival](https://cran.r-project.org/package=survival) package e.g.
 ```r
 surv.formula <- Surv(survtime, status) ~ drug
 ```
@@ -57,7 +57,7 @@ list. We call our `fit` via
 fit <- joint(long.formulas = long.formulas, surv.formula = surv.formula, data = PBC, 
              family = list("gaussian", "gaussian", "binomial"))
 ```
-where extra control arguments are documented in `?joint`.
+where extra control arguments are documented in `?joint`. Numerous S3 methods exist for the class of object `joint` creates, for example `summary()`, `logLik()`, and `fixef()`.
 
 ## References
 

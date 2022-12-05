@@ -2,7 +2,7 @@
 % Please edit documentation in R/EMUpdate.R
 \name{EMupdate}
 \alias{EMupdate}
-\title{EM update}
+\title{EM Update}
 \usage{
 EMupdate(
   Omega,
@@ -33,16 +33,6 @@ EMupdate(
 )
 }
 \description{
-EM update
+EM Update
 }
-\keyword{=====================}
-\keyword{Find}
-\keyword{Omega,}
-\keyword{Sigma}
-\keyword{Unpack}
-\keyword{and}
-\keyword{b.hat}
 \keyword{internal}
-\keyword{parameter}
-\keyword{the}
-\keyword{vector}

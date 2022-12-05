@@ -9,3 +9,4 @@ src/*.dll
 src/.n*
 .Rapp.history
 *.swp
+CRAN-SUBMISSION

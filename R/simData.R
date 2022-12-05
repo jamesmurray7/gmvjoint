@@ -1,9 +1,9 @@
 #' Simulate realisations from a generalised poisson distribution
 #' @param mu A numeric vector of rates \eqn{\exp{\eta}}, with \eqn{\eta} the linear predictor.
 #' @param phi A numeric specifying the dispersion \eqn{\varphi}. If \eqn{\varphi<0} the response 
-#' will be under-dispersed and overdispered if \eqn{\varphi>0}.
+#' will be under-dispersed and overdispersed if \eqn{\varphi>0}.
 #' 
-#' @details Follows the "GP-1" implementation of the generalised poissson distribution outlined 
+#' @details Follows the "GP-1" implementation of the generalised Poisson distribution outlined 
 #' in Zamani & Ismail (2012). The variance of produced \eqn{Y} is \eqn{(1+\varphi)^2\mu}.
 #' 
 #' @references 
