@@ -15,6 +15,7 @@
 #' @export
 #' 
 #' @examples 
+#' \dontrun{
 #' data(PBC)
 #' long.formula <- list(
 #'   platelets ~ time * drug + (1 + time|id),
@@ -27,6 +28,7 @@
 #' fit <- joint(long.formula, surv.formula, PBC, family = list('genpois', 'gaussian'),
 #'             control = list(verbose = TRUE))
 #' summary(fit)
+#' }
 summary.joint <- function(object, ...){
   if(!inherits(object, 'joint')) stop("Only usable with object of class 'joint'.")
   if(is.null(object$SE)) stop('Rerun with post.process = TRUE.')

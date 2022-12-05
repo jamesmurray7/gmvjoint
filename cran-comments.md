@@ -15,3 +15,4 @@ i.e. gmvjoint.so has size 5.6Mb.
 * Windows (Release and devel, via win-builde.r-project.org).
 
 R-hub build OK.
+NOTE on windows/CRAN submission is on "checking CRAN incoming feasibility", which I can do nothing about.

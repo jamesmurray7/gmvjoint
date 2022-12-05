@@ -18,6 +18,7 @@ Object of class \code{summary.joint}.
 Generate summary of a fitted multivariate joint model.
 }
 \examples{
+\dontrun{
 data(PBC)
 long.formula <- list(
   platelets ~ time * drug + (1 + time|id),
@@ -30,6 +31,7 @@ PBC <- na.omit(PBC[,c('id', 'survtime', 'status', 'sex',
 fit <- joint(long.formula, surv.formula, PBC, family = list('genpois', 'gaussian'),
             control = list(verbose = TRUE))
 summary(fit)
+}
 }
 \seealso{
 \code{\link{joint}} and \code{\link{joint.object}}

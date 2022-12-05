@@ -120,22 +120,21 @@
 #'
 #' @examples
 #' 
-#' # 1) Fit on simulated trivariate data, (2x gaussian, 1x poisson) -------
-#' beta <- do.call(rbind, replicate(3, c(2, -0.1, 0.1, -0.2), simplify = FALSE))
-#' gamma <- c(0.3, -0.3, 0.3)
-#' D <- diag(c(0.25, 0.09, 0.25, 0.05, 0.25, 0.09))
-#' data <- simData(ntms = 15, beta = beta, D = D, 
-#'                 family = list('gaussian', 'poisson', 'gaussian'), zeta = c(0, -0.2),
-#'                 sigma = c(0.16, 0, 0.2), gamma = c(-0.5, 0.5, -0.5))$data
+#' # 1) Fit on simulated bivariate data, (1x gaussian, 1x poisson) --------
+#' beta <- do.call(rbind, replicate(2, c(2, -0.1, 0.1, -0.2), simplify = FALSE))
+#' gamma <- c(0.3, -0.3)
+#' D <- diag(c(0.25, 0.09, 0.25, 0.05))
+#' family <- list('gaussian', 'poisson')
+#' data <- simData(ntms = 10, beta = beta, D = D, n = 100,
+#'                 family = family, zeta = c(0, -0.2),
+#'                 sigma = c(0.16, 0, 0.2), gamma = gamma)$data
 #'
 #' # Specify formulae and target families
 #' long.formulas <- list(
 #'   Y.1 ~ time + cont + bin + (1 + time|id),  # Gaussian
-#'   Y.2 ~ time + cont + bin + (1 + time|id),  # Poisson
-#'   Y.3 ~ time + cont + bin + (1 + time|id)   # Gaussian
+#'   Y.2 ~ time + cont + bin + (1 + time|id)  # Poisson
 #' )
 #' surv.formula <- Surv(survtime, status) ~ bin
-#' family <- list('gaussian', 'poisson', 'gaussian')
 #' 
 #' fit <- joint(long.formulas, surv.formula, data, family)
 #' 
