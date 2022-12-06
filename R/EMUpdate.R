@@ -1,4 +1,3 @@
-#' EM Update
 #' @keywords internal
 EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
                      S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv,   # Survival

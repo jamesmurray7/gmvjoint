@@ -1,6 +1,3 @@
-#' Calculate log-likelihood and degrees of freedom from a multivariate joint model
-#' @author James Murray (\email{j.murray7@@ncl.ac.uk})
-#' @seealso \code{\link{logLik.joint}}
 #' @importFrom mvtnorm dmvnorm
 #' @keywords internal
 joint.log.lik <- function(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.inds, b.inds, K, q, family, Sigma){
@@ -89,7 +86,7 @@ joint.log.lik <- function(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.
 #' 
 #' Additionally, the degrees of freedom, \eqn{nu} is given by
 #' 
-#' \deqn{\nu = \sum_{k=1}^KP_k + P_s + \code{length(vech(D))} + P_{\sigma_k},}
+#' \deqn{\nu = \code{length(vech(D))} + \sum_{k=1}^KP_k + P_s + P_{\sigma_k},}
 #' 
 #' where \eqn{P_k} denotes the number of coefficients estimated for the \eqn{k}th response,
 #' and \eqn{P_{\sigma_k}} the number of dispersion parameters estimated. \eqn{P_s} denotes
@@ -99,8 +96,26 @@ joint.log.lik <- function(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.
 #' With the degrees of freedom, we can additionally compute AIC and BIC, which are defined
 #' in no special way; and are calculated using the observed data log-likelihood.
 #' 
-#' @seealso \code{\link{joint.log.lik}}
+#' @seealso \code{\link{extractAIC.joint}}
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk})
+#' 
+#' @returns Returns an object of class \code{logLik}, a number which is the log-likelihood
+#' of the fitted model \code{object}. This has multiple attributes: \code{df} which is the 
+#' degrees of freedom, \code{df.residual}; the number of residual degrees of freedom;
+#' \code{AIC} and {BIC} which are the Akaike or Bayes information criterion evaluated at either
+#' the conditional or observed log-likelihood (as requested by argument \code{conditional}).
+#' 
+#' @examples 
+#' # Bivariate simulated data (2x Gaussian)
+#' data <- simData(n = 100)$data
+#' fit <- joint(list(
+#'     Y.1 ~ time + cont + bin + (1 + time|id),
+#'     Y.2 ~ time + cont + bin + (1 + time|id)
+#'   ), Surv(survtime, status) ~ cont + bin, 
+#'   data = data, 
+#'   family = list('gaussian', 'gaussian'))
+#' 
+#' logLik(fit)
 #' 
 #' @references 
 #'  
@@ -110,7 +125,7 @@ joint.log.lik <- function(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.
 #' Wulfsohn MS, Tsiatis AA. A joint model for survival and longitudinal data measured with error.
 #' \emph{Biometrics} 1997; \strong{53(1)}; 330-339.
 #' 
-#' @keywords methods
+#' @method logLik joint
 #' @export
 logLik.joint <- function(object, conditional = FALSE, ...){
   if(!inherits(object, 'joint')) stop("Only usable with object of class 'joint'.")
@@ -130,6 +145,12 @@ logLik.joint <- function(object, conditional = FALSE, ...){
 ##' @param ... additional arguments (none used).
 ##'
 ##' @method extractAIC joint
+##' 
+##' @returns A numeric vector of length 2, with first and second element giving \describe{
+##' \item{\code{df}}{The degrees of freedom for the fitted model.}
+##' \item{\code{AIC}}{The Akaike Information Criterionf for the fitted model.}
+##' }
+##' 
 ##' @export
 extractAIC.joint <- function(fit, scale, k = 2, conditional = FALSE, ...){
   x <- fit

@@ -14,6 +14,13 @@ be returned? See \strong{details}.}
 
 \item{...}{additional arguments (none used).}
 }
+\value{
+Returns an object of class \code{logLik}, a number which is the log-likelihood
+of the fitted model \code{object}. This has multiple attributes: \code{df} which is the 
+degrees of freedom, \code{df.residual}; the number of residual degrees of freedom;
+\code{AIC} and {BIC} which are the Akaike or Bayes information criterion evaluated at either
+the conditional or observed log-likelihood (as requested by argument \code{conditional}).
+}
 \description{
 Calculate joint log-likelihood, degrees of freedom, AIC and BIC of 
 joint model fit.
@@ -35,7 +42,7 @@ If \code{conditional = FALSE}, then the observed data log-likelihood is returned
 
 Additionally, the degrees of freedom, \eqn{nu} is given by
 
-\deqn{\nu = \sum_{k=1}^KP_k + P_s + \code{length(vech(D))} + P_{\sigma_k},}
+\deqn{\nu = \code{length(vech(D))} + \sum_{k=1}^KP_k + P_s + P_{\sigma_k},}
 
 where \eqn{P_k} denotes the number of coefficients estimated for the \eqn{k}th response,
 and \eqn{P_{\sigma_k}} the number of dispersion parameters estimated. \eqn{P_s} denotes
@@ -45,6 +52,19 @@ all covariance parameters are captured in \code{length(vech(D))}.
 With the degrees of freedom, we can additionally compute AIC and BIC, which are defined
 in no special way; and are calculated using the observed data log-likelihood.
 }
+\examples{
+# Bivariate simulated data (2x Gaussian)
+data <- simData(n = 100)$data
+fit <- joint(list(
+    Y.1 ~ time + cont + bin + (1 + time|id),
+    Y.2 ~ time + cont + bin + (1 + time|id)
+  ), Surv(survtime, status) ~ cont + bin, 
+  data = data, 
+  family = list('gaussian', 'gaussian'))
+
+logLik(fit)
+
+}
 \references{
 Henderson R, Diggle P, Dobson A. Joint modelling of longitudinal measurements and event time
 data. \emph{Biostatistics} 2000; \strong{1(4)}; 465-480.
@@ -53,9 +73,8 @@ Wulfsohn MS, Tsiatis AA. A joint model for survival and longitudinal data measur
 \emph{Biometrics} 1997; \strong{53(1)}; 330-339.
 }
 \seealso{
-\code{\link{joint.log.lik}}
+\code{\link{extractAIC.joint}}
 }
 \author{
 James Murray (\email{j.murray7@ncl.ac.uk})
 }
-\keyword{methods}

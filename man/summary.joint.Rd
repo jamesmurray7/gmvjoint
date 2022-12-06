@@ -18,7 +18,7 @@ Object of class \code{summary.joint}.
 Generate summary of a fitted multivariate joint model.
 }
 \examples{
-\dontrun{
+\donttest{
 data(PBC)
 long.formula <- list(
   platelets ~ time * drug + (1 + time|id),
@@ -27,7 +27,7 @@ long.formula <- list(
 surv.formula <- Surv(survtime, status) ~ sex + drug
 
 PBC <- na.omit(PBC[,c('id', 'survtime', 'status', 'sex', 
-'drug', 'platelets', 'albumin', 'time')])
+                      'drug', 'platelets', 'albumin', 'time')])
 fit <- joint(long.formula, surv.formula, PBC, family = list('genpois', 'gaussian'),
             control = list(verbose = TRUE))
 summary(fit)
@@ -39,4 +39,3 @@ summary(fit)
 \author{
 James Murray \email{j.murray7@ncl.ac.uk}
 }
-\keyword{internal}

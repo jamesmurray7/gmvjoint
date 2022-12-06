@@ -39,7 +39,6 @@ double poisson_ll(const arma::vec& Y, const arma::vec& eta){
 }
 
 // Gamma
-//' log-likelihood of Gamma
 //' @keywords internal
 // [[Rcpp::export]]
 double ll_Gamma(const arma::vec& Y, const double& shape, const arma::vec& mu){
@@ -58,7 +57,6 @@ double ll_Gamma2(const arma::vec& Y, const double& shape, const arma::vec& scale
 }
 
 // https://www.tandfonline.com/doi/pdf/10.1080/03610926.2011.564742?needAccess=true
-//' 'GP1' from Zamani & Ismail (2012)
 //' @keywords internal
 // [[Rcpp::export]]
 double ll_genpois(const arma::vec& eta, const double phi, arma::vec& Y){
@@ -68,7 +66,6 @@ double ll_genpois(const arma::vec& eta, const double phi, arma::vec& Y){
   return sum(out);
 }
 
-//' Survival log-density
 //' @keywords internal
 // [[Rcpp::export]]
 double logfti(const arma::vec& b, const arma::rowvec& S, const arma::mat& SS, const arma::rowvec& Fi, const arma::mat& Fu,
@@ -81,7 +78,6 @@ double logfti(const arma::vec& b, const arma::rowvec& S, const arma::mat& SS, co
   );
 }
 
-//' The joint density
 //' @keywords internal
 // [[Rcpp::export]]
 double joint_density(const arma::vec& b, const List Y, const List X, const List Z,                  // Longitudinal + Random effects.
@@ -123,7 +119,7 @@ double joint_density(const arma::vec& b, const List Y, const List X, const List 
   return -1.0 * (ll + as_scalar(-(double)q/2.0 * log2pi - 0.5 * log(det(D)) - 0.5 * b.t() * D.i() * b + ll_Ti));;
 }
 
-//' Quadrature - standard deviation of N(mu, tau^2).
+// Quadrature - standard deviation of N(mu, tau^2).
 //' @keywords internal
 // [[Rcpp::export]]
 List maketau(const List& S, const List& Z){
@@ -255,7 +251,6 @@ vec get_long_score_quad(const vec& eta, const vec& Y, const std::string family, 
   return Score;
 }
 
-//' First derivative of the joint density with respect to b.
 //' @keywords internal
 // [[Rcpp::export]]
 arma::vec joint_density_ddb(const arma::vec& b, const List Y, const List X, const List Z,                  // Longitudinal + Random effects.
@@ -284,7 +279,6 @@ arma::vec joint_density_ddb(const arma::vec& b, const List Y, const List X, cons
 
 // Second derivative of joint density is found by BFGS method in maximisation step.
 
-//' Create vector of scores on fixed effects.
 //' @keywords internal
 // [[Rcpp::export]]
 arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& b, 
@@ -463,7 +457,6 @@ mat get_long_hess_quad(const vec& eta, const vec& Y, const std::string family, c
   return H;
 }
 
-//' Hessian matrix on fixed effects.
 //' @keywords internal
 // [[Rcpp::export]]
 arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& b, 
@@ -495,7 +488,6 @@ arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List&
 
 // Updates for dispersion parameters --------------------------------------
 
-//' Update for residual variance (sigma for gaussian family)
 //' @keywords internal
 // [[Rcpp::export]]
 double vare_update(const arma::mat& X, const arma::vec& Y, const arma::mat& Z, const arma::vec& b, 
@@ -510,7 +502,6 @@ double vare_update(const arma::mat& X, const arma::vec& Y, const arma::mat& Z, c
   return out;
 }
 
-//' Update for dispersion parameter (sigma for \code{"genpois"} family)
 //' @keywords internal
 // [[Rcpp::export]]
 List phi_update(const arma::vec& b, const arma::mat& X, const arma::vec& Y, const arma::mat& Z, 
@@ -558,7 +549,7 @@ double Egammazeta(vec& gammazeta, vec& b, List Sigma,
   }
   return as_scalar(Delta * (S * z + Fi * (b % gammas)) - rhs);
 }
-//' Score vector for survival parameters.
+
 //' @keywords internal
 // [[Rcpp::export]]
 arma::vec Sgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma,
@@ -578,7 +569,6 @@ arma::vec Sgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma,
   return out;
 }
 
-//' Hessian matrix for survival parameters.
 //' @keywords internal
 // [[Rcpp::export]]
 arma::mat Hgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma,
@@ -598,7 +588,6 @@ arma::mat Hgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma,
   return 0.5 * (out + out.t());
 }
 
-//' Update to the baseline hazard
 //' @keywords internal
 // [[Rcpp::export]]
 arma::mat lambdaUpdate(List survtimes, arma::mat& ft, arma::vec& gamma, arma::vec& gamma_rep, arma::vec& zeta,
@@ -631,7 +620,6 @@ arma::mat lambdaUpdate(List survtimes, arma::mat& ft, arma::vec& gamma, arma::ve
   return store;
 }
 
-//' Second derivative of joint density wrt b
 //' @keywords internal
 // [[Rcpp::export]]
 arma::mat joint_density_sdb(const arma::vec& b, const List Y, const List X, const List Z,                  // Longitudinal + Random effects.

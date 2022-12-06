@@ -24,7 +24,7 @@ Return the random effects \eqn{\hat{\boldsymbol{b}}} which maximises the complet
 data log-likelihood at the MLEs \eqn{\hat{\Omega}}.
 }
 \examples{
-\dontrun{
+\donttest{
 # Univariate fit on PBC data -----------------------------------------
 data(PBC)
 
@@ -35,13 +35,16 @@ PBC <- na.omit(PBC)
 
 # Specify univariate fit
 long.formulas <- list(
-  albumin ~ time + (1 + time|id)
+  albumin ~ time*drug + (1 + time|id)
 )
 surv.formula <- Surv(survtime, status) ~ drug
 
 fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian'))
 b <- ranef(fit, FALSE)
 }
+}
+\seealso{
+\code{\link{fixef.joint}}
 }
 \author{
 James Murray (\email{j.murray7@ncl.ac.uk}).

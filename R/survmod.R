@@ -39,8 +39,8 @@ parseCoxph <- function(surv.formula, data){
 }
 
 
-#' Create survival data objects based on random effects formula(e), a ph fit,
-#' the survival data and an initial estimation of \eqn{\lambda_0}.
+# Create survival data objects based on random effects formula(e), a ph fit,
+# the survival data and an initial estimation of \eqn{\lambda_0}.
 #' @keywords internal
 surv.mod <- function(ph, survdata, formulas, l0.init){
   uids <- unique(survdata$id); n <- length(uids); K <- length(formulas)

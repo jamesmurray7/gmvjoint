@@ -15,7 +15,7 @@ or the \code{"surv"}ival ones?}
 \item{...}{additional arguments (none used).}
 }
 \value{
-A vector containing required fixed effects.
+A vector containing requested fixed effects.
 }
 \description{
 Extract fixed effects from a \code{joint} object.
@@ -29,7 +29,7 @@ PBC <- subset(PBC, select = c('id', 'survtime', 'status', 'drug', 'time',
                               'albumin'))
 PBC <- na.omit(PBC) 
 
-# Specify univariate fit
+# Specify simple univariate fit
 long.formulas <- list(
   albumin ~ time + (1 + time|id)
 )
@@ -39,6 +39,9 @@ fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian'))
 
 fixef(fit, 'long')
 fixef(fit, 'surv')
+}
+\seealso{
+\code{\link{ranef.joint}}
 }
 \author{
 James Murray (\email{j.murray7@ncl.ac.uk}).

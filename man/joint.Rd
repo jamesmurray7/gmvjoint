@@ -9,7 +9,7 @@ joint(
   surv.formula,
   data,
   family,
-  post.process = T,
+  post.process = TRUE,
   control = list()
 )
 }
@@ -19,8 +19,7 @@ usable by \code{\link[glmmTMB]{glmmTMB}}. A restriction is that unique identifie
 be named `id`, and increment in intervals of at exactly one.}
 
 \item{surv.formula}{A formula specifying the time-to-event sub-model. Must be usable by 
-\code{\link[survival]{coxph}}. A restriction is the survival time must be called 
-`surv.time` and censoring status `status`.}
+\code{\link[survival]{coxph}}.}
 
 \item{data}{A \code{data.frame} containing all covariates and responses.}
 
@@ -139,7 +138,7 @@ surv.formula <- Surv(survtime, status) ~ bin
 
 fit <- joint(long.formulas, surv.formula, data, family)
 
-\dontrun{
+\donttest{
 # 2) Fit on PBC data -----------------------------------------------------
 data(PBC)
 PBC$serBilir <- log(PBC$serBilir)

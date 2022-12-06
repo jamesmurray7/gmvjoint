@@ -6,6 +6,8 @@
 #' @details Follows the "GP-1" implementation of the generalised Poisson distribution outlined 
 #' in Zamani & Ismail (2012). The variance of produced \eqn{Y} is \eqn{(1+\varphi)^2\mu}.
 #' 
+#' @return An appropriately-dimensioned vector of count data.
+#' 
 #' @references 
 #' 
 #' Zamani H and Ismail N. Functional Form for the Generalized Poisson Regression Model, 

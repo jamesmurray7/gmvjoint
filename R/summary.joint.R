@@ -3,19 +3,17 @@
 #' @description Generate summary of a fitted multivariate joint model.
 #' 
 #' @author James Murray \email{j.murray7@@ncl.ac.uk}
-#' @keywords internal
 #' @method summary joint
+#' @export
 #' @seealso \code{\link{joint}} and \code{\link{joint.object}}
 #' 
 #' @param object a joint model fit by the \code{joint} function.
 #' @param ... additional arguments (none used).
 #' 
 #' @returns Object of class \code{summary.joint}.
-#' 
-#' @export
-#' 
+#'  
 #' @examples 
-#' \dontrun{
+#' \donttest{
 #' data(PBC)
 #' long.formula <- list(
 #'   platelets ~ time * drug + (1 + time|id),
@@ -24,7 +22,7 @@
 #' surv.formula <- Surv(survtime, status) ~ sex + drug
 #'
 #' PBC <- na.omit(PBC[,c('id', 'survtime', 'status', 'sex', 
-#' 'drug', 'platelets', 'albumin', 'time')])
+#'                       'drug', 'platelets', 'albumin', 'time')])
 #' fit <- joint(long.formula, surv.formula, PBC, family = list('genpois', 'gaussian'),
 #'             control = list(verbose = TRUE))
 #' summary(fit)
@@ -118,9 +116,8 @@ summary.joint <- function(object, ...){
   out
 }
 
-#' Print object of class summary.joint.
-#' @method print summary.joint
 #' @keywords internal
+#' @method print summary.joint
 #' @export
 print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   if(!inherits(x, 'summary.joint')) stop("Only usable with object of class 'summary.joint'.")

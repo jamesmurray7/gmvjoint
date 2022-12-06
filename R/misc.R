@@ -1,8 +1,8 @@
-#' Half-vectorisation of matrix x
+# Half-vectorisation of matrix x
 #' @keywords internal
 vech <- function(x) x[lower.tri(x, T)]
 
-#' Parsing input formula
+# Parsing input formula
 #' @keywords internal
 #' @importFrom glmmTMB splitForm
 parseFormula <- function(formula){ 
@@ -42,7 +42,7 @@ parseFormula <- function(formula){
   ))
 }
 
-#' Take and return difference between two vectors according to some criterion.
+# Take and return difference between two vectors according to some criterion.
 #' @keywords internal
 difference <- function(params.old, params.new, type){
   if(type == 'absolute'){
@@ -58,7 +58,7 @@ difference <- function(params.old, params.new, type){
 }
 
 # Don't think this is ever used (?)
-#' Create appropriately-dimensioned matrix of random effects.
+# Create appropriately-dimensioned matrix of random effects.
 #' @keywords internal
 bind.bs<- function(bsplit){
   qmax <- max(sapply(bsplit, length)) # Maximum number of REs across all longitudinal responses.

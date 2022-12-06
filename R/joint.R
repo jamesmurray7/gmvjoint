@@ -4,8 +4,7 @@
 #'        usable by \code{\link[glmmTMB]{glmmTMB}}. A restriction is that unique identifiers must 
 #'        be named `id`, and increment in intervals of at exactly one.
 #' @param surv.formula A formula specifying the time-to-event sub-model. Must be usable by 
-#'   \code{\link[survival]{coxph}}. A restriction is the survival time must be called 
-#'   `surv.time` and censoring status `status`.
+#'   \code{\link[survival]{coxph}}.
 #' @param data A \code{data.frame} containing all covariates and responses.
 #' @param family A list of families corresponding in order to \code{long.formula}.
 #' @param post.process Logical, should post processing be done to obtain standard errors and 
@@ -138,7 +137,7 @@
 #' 
 #' fit <- joint(long.formulas, surv.formula, data, family)
 #' 
-#' \dontrun{
+#' \donttest{
 #' # 2) Fit on PBC data -----------------------------------------------------
 #' data(PBC)
 #' PBC$serBilir <- log(PBC$serBilir)
@@ -162,7 +161,7 @@
 #'               control = list(verbose = T))
 #' fit
 #' }
-joint <- function(long.formulas, surv.formula, data, family, post.process = T, control = list()){
+joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE, control = list()){
   
   start.time <- proc.time()[3]
   
