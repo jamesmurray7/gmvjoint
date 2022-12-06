@@ -1,4 +1,4 @@
-me{gmvjoint-package}
+\name{gmvjoint-package}
 \alias{gmvjoint-package}
 \alias{gmvjoint}
 \docType{package}
