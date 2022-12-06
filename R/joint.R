@@ -4,8 +4,7 @@
 #'        usable by \code{\link[glmmTMB]{glmmTMB}}. A restriction is that unique identifiers must 
 #'        be named `id`, and increment in intervals of at exactly one.
 #' @param surv.formula A formula specifying the time-to-event sub-model. Must be usable by 
-#'   \code{\link[survival]{coxph}}. A restriction is the survival time must be called 
-#'   `surv.time` and censoring status `status`.
+#'   \code{\link[survival]{coxph}}.
 #' @param data A \code{data.frame} containing all covariates and responses.
 #' @param family A list of families corresponding in order to \code{long.formula}.
 #' @param post.process Logical, should post processing be done to obtain standard errors and 
@@ -56,7 +55,7 @@
 #' where \eqn{h} is a known, monotonic link function. An association is induced between the 
 #' \eqn{K}th response and the hazard \eqn{\lambda_i(t)} by: 
 #' 
-#' \deqn{\lambda_i(t)=\lambda_0(t)\exp\{S_i^T\zeta + \sum_{k=1}^K\gamma_kW_k(t)b_{ik}\}} 
+#' \deqn{\lambda_i(t)=\lambda_0(t)\exp\{S_i^T\zeta + \sum_{k=1}^K\gamma_kW_k(t)^Tb_{ik}\}} 
 #' 
 #' where \eqn{\gamma_k} is the association parameter and \eqn{W_k(t)} is the vector function of 
 #' time imposed on the \eqn{K}th random effects structure (i.e. intercept-and-slope; spline).
@@ -113,8 +112,9 @@
 #' Zamani H and Ismail N. Functional Form for the Generalized Poisson Regression Model, 
 #' \emph{Communications in Statistics - Theory and Methods} 2012; \strong{41(20)}; 3666-3675.
 #' 
-#' @seealso \code{\link{summary.joint}}, \code{\link{print.joint}}, \code{\link{fixef.joint}},
-#' \code{\link{ranef.joint}}, \code{\link{vcov.joint}} and \code{\link{joint.object}}.
+#' @seealso \code{\link{summary.joint}}, \code{\link{logLik.joint}}, 
+#' \code{\link{extractAIC.joint}}, \code{\link{fixef.joint}}, \code{\link{ranef.joint}},
+#' \code{\link{vcov.joint}} and \code{\link{joint.object}}.
 #' 
 #' @export
 #'
@@ -127,7 +127,7 @@
 #' family <- list('gaussian', 'poisson')
 #' data <- simData(ntms = 10, beta = beta, D = D, n = 100,
 #'                 family = family, zeta = c(0, -0.2),
-#'                 sigma = c(0.16, 0, 0.2), gamma = gamma)$data
+#'                 sigma = c(0.16, 0), gamma = gamma)$data
 #'
 #' # Specify formulae and target families
 #' long.formulas <- list(
@@ -138,7 +138,7 @@
 #' 
 #' fit <- joint(long.formulas, surv.formula, data, family)
 #' 
-#' \dontrun{
+#' \donttest{
 #' # 2) Fit on PBC data -----------------------------------------------------
 #' data(PBC)
 #' PBC$serBilir <- log(PBC$serBilir)
@@ -159,10 +159,10 @@
 #' 
 #' fit <-  joint(long.formulas, surv.formula, PBC, 
 #'               family = list("gaussian", "gaussian", "poisson", "binomial"),
-#'               control = list(verbose = T))
+#'               control = list(verbose = TRUE))
 #' fit
 #' }
-joint <- function(long.formulas, surv.formula, data, family, post.process = T, control = list()){
+joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE, control = list()){
   
   start.time <- proc.time()[3]
   
@@ -342,7 +342,6 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = T, c
   return(out)
 }
 
-#' Print a \code{joint} object
 #' @method print joint
 #' @keywords internal
 #' @export

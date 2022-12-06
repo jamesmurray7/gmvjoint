@@ -1,2 +1,2 @@
-# gmvjoint version 0.1
+# gmvjoint version 0.1.0
 * First release

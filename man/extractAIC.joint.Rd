@@ -18,6 +18,12 @@ to \code{conditional = FALSE}.}
 
 \item{...}{additional arguments (none used).}
 }
+\value{
+A numeric vector of length 2, with first and second element giving \describe{
+\item{\code{df}}{The degrees of freedom for the fitted model.}
+\item{\code{AIC}}{The Akaike Information Criterion for the fitted model.}
+}
+}
 \description{
 Extract AIC from a joint model fit.
 }

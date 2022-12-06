@@ -8,6 +8,9 @@ Note:
 
 i.e. gmvjoint.so has size 5.6Mb.
 
+Many items which were previously exported (i.e. had an .Rd)
+file are now removed, as they weren't meant to be included.
+
 ## Test environments 
 
 * Local Ubuntu (R version 3.6.3).
@@ -16,3 +19,5 @@ i.e. gmvjoint.so has size 5.6Mb.
 
 R-hub build OK.
 NOTE on windows/CRAN submission is on "checking CRAN incoming feasibility", which I can do nothing about.
+Release version of windows seems slower than development counterpart for one example (vcov.joint), but both are 
+< 10s on my most recent testing.

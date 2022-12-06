@@ -1,4 +1,3 @@
-# Quite slow in higher dimension; could work out a C++ alternative?
 #' @keywords internal
 .DataWorkhorse <- function(data, subj.id, fixed, random, response, what = 'X'){
   fixed.formula <- as.formula(paste0('~', fixed))
@@ -19,7 +18,6 @@
   rtn
 }
 
-#' Create lists of design matrices for each subject for each longitudinal response
 #' @keywords internal
 createDataMatrices <- function(data, formulas){
   K <- length(formulas)

@@ -22,4 +22,7 @@ S3method(fixef, joint)
 S3method(ranef, joint)
 S3method(extractAIC, joint)
 
-exportPattern("^[[:alpha:]]+")
+export(joint)
+export(simData)
+export(parseCoxph)
+export(rgenpois)

@@ -2,7 +2,6 @@
 # Initial conditions for longitudinal and survival sub-models.
 # ============================================================
 
-#' Obtain fixed and random effects 
 #' @keywords internal
 #' @importFrom Matrix nearPD
 #' @importFrom glmmTMB fixef ranef genpois
@@ -97,7 +96,6 @@ Longit.inits <- function(long.formula, data, family){
   )
 }
 
-#' Transform data into time1/time2 format...
 #' @keywords internal
 .ToStartStop <- function(data){
   this.subj <- list()
@@ -123,7 +121,6 @@ Longit.inits <- function(long.formula, data, family){
   as.data.frame(out)
 }
 
-#' Obtain initial conditions for survival submodel.
 #' @keywords internal
 TimeVarCox <- function(data, b, ph, formulas, b.inds){
   # Prepare data

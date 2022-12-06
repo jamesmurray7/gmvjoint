@@ -1,4 +1,3 @@
-#' Calculate the observed empirical information matrix \eqn{\tilde{I}}.
 #' @keywords internal
 obs.emp.I <- function(Omega, dmats, surv, sv,
                       Sigma, SigmaSplit, b, bsplit, 
@@ -131,40 +130,38 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
 #' 
 #' @param object a joint model fit by the \code{joint} function.
 #' @param corr should the correlation matrix be returned instead of the variance-covariance?
+#' @param ... extra arguments (none used).
+#' 
+#' @return A variance-covariance matrix for the joint model object.
 #'
-#' @seealso \code{\link{obs.emp.I}}
 #' @author James Murray \email{j.murray7@@ncl.ac.uk}
 #' @references 
 #' 
 #' McLachlan GJ, Krishnan T. \emph{The EM Algorithm and Extensions.} Second Edition. 
 #' Wiley-Interscience; 2008.
 #' 
-#' @keywords internal
 #' @method vcov joint
-#' 
 #' @export
 #' 
-#' @examples 
-#' \dontrun{
+#' @examples
+#' # Univariate fit on PBC data -------------------------------------------
 #' data(PBC)
-#' PBC$serBilir <- log(PBC$serBilir)
 #'
 #' # Subset data and remove NAs
 #' PBC <- subset(PBC, select = c('id', 'survtime', 'status', 'drug', 'time',
 #'                               'albumin'))
 #' PBC <- na.omit(PBC) 
 #' 
-#' # Specify GLMM sub-models, including interaction and natural spline terms
+#' # Specify univariate fit
 #' long.formulas <- list(
-#'   albumin ~ drug * time + (1 + time|id)
+#'   albumin ~ time + (1 + time|id)
 #' )
 #' surv.formula <- Surv(survtime, status) ~ drug
 #' 
-#' fit <-  joint(long.formulas, surv.formula, PBC, 
-#'               family = list("gaussian"))
+#' fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian'))
+#' 
 #' vcov(fit)
-#' }
-vcov.joint <- function(object, corr = F, ...){
+vcov.joint <- function(object, corr = FALSE, ...){
   if(!inherits(object, 'joint')) stop("Only usable with objects of class 'joint'.")
   
   v <- object$vcov

@@ -4,12 +4,17 @@
 \alias{vcov.joint}
 \title{Extract the variance-covariance matrix from a \code{joint} fit.}
 \usage{
-\method{vcov}{joint}(object, corr = F, ...)
+\method{vcov}{joint}(object, corr = FALSE, ...)
 }
 \arguments{
 \item{object}{a joint model fit by the \code{joint} function.}
 
 \item{corr}{should the correlation matrix be returned instead of the variance-covariance?}
+
+\item{...}{extra arguments (none used).}
+}
+\value{
+A variance-covariance matrix for the joint model object.
 }
 \description{
 Extract the variance-covariance matrix from a \code{joint} fit.
@@ -19,34 +24,28 @@ Uses the observed-empirical \strong{approximation} of information matrix
 (Mclachlan & Krishnan, 2008). The estimates for the baseline hazard are not estimated.
 }
 \examples{
-\dontrun{
+# Univariate fit on PBC data -------------------------------------------
 data(PBC)
-PBC$serBilir <- log(PBC$serBilir)
 
 # Subset data and remove NAs
 PBC <- subset(PBC, select = c('id', 'survtime', 'status', 'drug', 'time',
                               'albumin'))
 PBC <- na.omit(PBC) 
 
-# Specify GLMM sub-models, including interaction and natural spline terms
+# Specify univariate fit
 long.formulas <- list(
-  albumin ~ drug * time + (1 + time|id)
+  albumin ~ time + (1 + time|id)
 )
 surv.formula <- Surv(survtime, status) ~ drug
 
-fit <-  joint(long.formulas, surv.formula, PBC, 
-              family = list("gaussian"))
+fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian'))
+
 vcov(fit)
-}
 }
 \references{
 McLachlan GJ, Krishnan T. \emph{The EM Algorithm and Extensions.} Second Edition. 
 Wiley-Interscience; 2008.
 }
-\seealso{
-\code{\link{obs.emp.I}}
-}
 \author{
 James Murray \email{j.murray7@ncl.ac.uk}
 }
-\keyword{internal}

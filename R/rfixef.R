@@ -6,9 +6,10 @@
 #' @param ... additional arguments (none used).
 #' 
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
+#' @seealso \code{\link{ranef.joint}}
 #'
 #' @method fixef joint
-#' @return A vector containing required fixed effects.
+#' @return A vector containing requested fixed effects.
 #' @export
 #' 
 #' @examples
@@ -20,7 +21,7 @@
 #'                               'albumin'))
 #' PBC <- na.omit(PBC) 
 #' 
-#' # Specify univariate fit
+#' # Specify simple univariate fit
 #' long.formulas <- list(
 #'   albumin ~ time + (1 + time|id)
 #' )
@@ -53,7 +54,7 @@ fixef.joint <- function(object, what = c("long", 'surv'), ...){
 #' @param ... additional arguments (none used).
 #' 
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
-#'
+#' @seealso \code{\link{fixef.joint}}
 #' @method ranef joint
 #' @return A \code{matrix} containing required random effects effects. If \code{Var=TRUE},
 #' instead a list is returned with first element the \code{matrix} of random effects and second a 
@@ -62,7 +63,7 @@ fixef.joint <- function(object, what = c("long", 'surv'), ...){
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Univariate fit on PBC data -----------------------------------------
 #' data(PBC)
 #'
@@ -73,7 +74,7 @@ fixef.joint <- function(object, what = c("long", 'surv'), ...){
 #' 
 #' # Specify univariate fit
 #' long.formulas <- list(
-#'   albumin ~ time + (1 + time|id)
+#'   albumin ~ time*drug + (1 + time|id)
 #' )
 #' surv.formula <- Surv(survtime, status) ~ drug
 #' 

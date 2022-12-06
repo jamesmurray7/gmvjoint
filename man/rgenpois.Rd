@@ -12,6 +12,9 @@ rgenpois(mu, phi)
 \item{phi}{A numeric specifying the dispersion \eqn{\varphi}. If \eqn{\varphi<0} the response 
 will be under-dispersed and overdispersed if \eqn{\varphi>0}.}
 }
+\value{
+An appropriately-dimensioned vector of count data.
+}
 \description{
 Simulate realisations from a generalised poisson distribution
 }
