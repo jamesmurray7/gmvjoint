@@ -1,4 +1,4 @@
-\name{gmvjoint-package}
+\name{gmvjoint}
 \alias{gmvjoint-package}
 \alias{gmvjoint}
 \docType{package}
@@ -16,7 +16,7 @@
 }
 
 \author{ 
-	  \packageAuthor{gmvjoint}
+	  James Murray <j.murray7@ncl.ac.uk>
 }
 
 \references{
