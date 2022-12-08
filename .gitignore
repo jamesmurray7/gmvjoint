@@ -10,3 +10,5 @@ src/.n*
 .Rapp.history
 *.swp
 CRAN-SUBMISSION
+paper-sims/data/
+paper-sims/fits/

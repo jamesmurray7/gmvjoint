@@ -62,7 +62,7 @@ all.bin <- joint(
     make.formula('hepatomegaly', 'int')
   ),
   surv.formula = Surv(survtime, status) ~ drug,
-  data = PBC, control = list(verbose = T),
+  data = PBC, #control = list(verbose = T),
   family = list('binomial', 'binomial', 'binomial')
 )
 summary(all.bin) # Take Ascites.
@@ -78,7 +78,7 @@ all.cont <- joint(
     make.formula('prothrombin', 'spline')
   ),
   surv.formula = Surv(survtime, status) ~ drug,
-  data = PBC, control = list(verbose = T),
+  data = PBC, #control = list(verbose = T),
   family = list('gaussian', 'gaussian', 'gaussian', 'gaussian')
 )
 summary(all.cont)
