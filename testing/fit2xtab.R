@@ -70,22 +70,25 @@ fit2xtab <- function(fit, max.row = NULL){
   if(nr > 15 && is.null(max.row)){
     cat('Consider breaking at a certain number of rows and presenting a "wider" table.\nnrows: ', nr, '\n') 
   }
-  
+  nr <- nrow(tab3)
   if(!is.null(max.row)){
-    if(nr <= max.row) stop('max.row must exceed the number of rows in output table: ', nr, '.\n')
-    
-    # Work out how many 'cbinds' we'll need to do.
-    num.splits <- nr %/% max.row
-    nr.each <- suppressWarnings(split(1:nr, rep(1:num.splits, each = ceiling(nr/num.splits))))
-    split.tab <- lapply(nr.each, function(k){
-      x <- tab3[k,]
-      while(nrow(x) < max.row){
-        x <- rbind(x, c('-','-','-'))
-      }
-      x
+    # How many rows should be in each split?
+    num.splits <- ceiling(nr / max.row)
+    split.indices <- suppressWarnings(split(1:nr, 
+                           rep(1:num.splits, each = max.row)))
+    split.indices <- lapply(split.indices, function(x){
+      x[which(x<=nr)]
     })
-    
-    tab3 <- do.call(cbind, split.tab)
+    split.tabs <- lapply(split.indices, function(k){
+      this <- tab3[k,]
+      .nr <- nrow(this)
+      while(.nr < max.row){
+        this <- rbind(this, c('-', '-', '-'))
+        .nr <- nrow(this)
+      }
+      this
+    })
+    tab3 <- do.call(cbind, split.tabs)
   }
   
   xt <- xtable::xtable(tab3,
