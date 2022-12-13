@@ -4,22 +4,23 @@
 \alias{residuals.joint}
 \title{Obtain joint model residuals}
 \usage{
-\method{residuals}{joint}(object, data, ...)
+\method{residuals}{joint}(object, data, type = c("response", "pearson"), ...)
 }
 \arguments{
 \item{object}{a joint model fit by \code{\link{joint}} function.}
 
 \item{data}{the \emph{original} data set (i.e. that used in the \code{joint} call).}
 
+\item{type}{character. The residual type}
+
 \item{...}{Additional arguments (none used).}
 }
 \value{
 a named list of length \eqn{K}, with residuals produced by the joint model
-for each of the \eqn{k=1,\dots,K} responses.
+for each of the \eqn{k=1,\dots,K} responses, along with the fitted values as an attribute.
 }
 \description{
-returns the residuals values from a \code{joint} object. The residuals
-are of the same type as the corresponding response.
+returns the Pearson residuals values from a \code{joint} object.
 }
 \examples{
 \donttest{
@@ -41,7 +42,7 @@ surv.formula <- Surv(survtime, status) ~ drug
 
 fit <- joint(long.formulas, surv.formula, PBC, 
 family = list('gaussian', 'poisson', 'binomial'))
-residuals(fit)
+residuals(fit, PBC)
 }
 }
 \seealso{

@@ -42,7 +42,7 @@ long.formulas <- list(
 surv.formula <- Surv(survtime, status) ~ drug
 
 fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian', 'poisson'))
-fitted(fit)
+fitted(fit, PBC)
 }
 }
 \seealso{

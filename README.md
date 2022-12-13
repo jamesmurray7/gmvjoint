@@ -17,13 +17,23 @@ types.
 
 Currently, five families can be fit: Gaussian; Poisson; binomial; Gamma and generalised Poisson. 
 
+## Installation
+You can install the latest 'official' release from CRAN in the usual way: 
+```r
+install.packages('gmvjoint')
+```
+
+or the latest development version using `devtools`: 
+```r
+devtools::install_github('jamesmurray7/gmvjoint')
+``` 
+
 ## To-do list
 The package in current incantation is relatively skeletal, as such not a lot of post-hoc
 analyses on fitted joint models is possible. As such, an immediate to-do list currently looks like
 
 * Dynamic predictions: Note that code to do this already exists at https://github.com/jamesmurray7/GLM/blob/main/Multi-test/DynamicPredictions.R, 
 which just needs to be ported over.
-* Usual modelling generics: Fitted, residuals (probably just longitudinal) and plots. 
 
 No promises are made w.r.t timescale of these being implemented: Currently I am a PhD
 student and little cache is awarded for production or maintenance of R packages!

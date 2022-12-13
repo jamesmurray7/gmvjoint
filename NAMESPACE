@@ -25,6 +25,7 @@ S3method(extractAIC, joint)
 S3method(fitted, joint)
 S3method(residuals, joint)
 S3method(plot, residuals.joint)
+S3method(print, residuals.joint)
 
 export(joint)
 export(simData)

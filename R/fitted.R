@@ -78,11 +78,11 @@ fitted.joint <- function(object, data, as = "matrix", ...){
 
 #' Obtain joint model residuals
 #' 
-#' @description returns the residuals values from a \code{joint} object. The residuals
-#' are of the same type as the corresponding response.
+#' @description returns the Pearson residuals values from a \code{joint} object.
 #' 
 #' @param object a joint model fit by \code{\link{joint}} function.
 #' @param data the \emph{original} data set (i.e. that used in the \code{joint} call).
+#' @param type character. The residual type
 #' @param ... Additional arguments (none used).
 #' 
 #' @method residuals joint
@@ -92,7 +92,7 @@ fitted.joint <- function(object, data, as = "matrix", ...){
 #' @seealso \code{\link{fitted.joint}}
 #' 
 #' @returns a named list of length \eqn{K}, with residuals produced by the joint model
-#' for each of the \eqn{k=1,\dots,K} responses.
+#' for each of the \eqn{k=1,\dots,K} responses, along with the fitted values as an attribute.
 #' 
 #' @examples 
 #' \donttest{
@@ -116,9 +116,10 @@ fitted.joint <- function(object, data, as = "matrix", ...){
 #' family = list('gaussian', 'poisson', 'binomial'))
 #' residuals(fit, PBC)
 #' }
-residuals.joint <- function(object, data, ...){
+residuals.joint <- function(object, data, type = c('response', 'pearson'), ...){
   if(!inherits(object, 'joint')) stop("Only usable with objects of class 'joint'.")
   if(missing(data)) stop("Please provide original data in 'data' argument.")
+  type <- match.arg(type)
   
   fits <- fitted(object, data, 'list') # Get fitted values
   
@@ -126,29 +127,52 @@ residuals.joint <- function(object, data, ...){
   resps <- unname(sapply(M$ResponseInfo, function(x) gsub('\\s+.*$', '', x)))
   Ys <- data[,match(resps, names(data))]
   fams <- unlist(M$family); K <- length(fams)
+  S <- unlist(object$coeffs$sigma)
   
   out <- setNames(lapply(1:K, function(k){
     f <- fams[k]
     fitsk <-  switch(f,
                      gaussian = fits[[resps[k]]],
                      poisson = exp(fits[[resps[k]]]),
-                     genpois = exp(fits[[resps[k]]]), # This incorrect!
+                     genpois = exp(fits[[resps[k]]]), 
                      binomial = plogis(fits[[resps[k]]]),
                      Gamma = exp(fits[[resps[k]]])
     )
-    r <- switch(f,
-           gaussian = Ys[,resps[k]] - fitsk,
-           poisson = (Ys[,resps[k]] - fitsk)/sqrt(fitsk),
-           genpois = Ys[,resps[k]] - fitsk, # This incorrect!
-           binomial = Ys[,resps[k]] - fitsk,
-           Gamma = Ys[,resps[k]] - fitsk
+    res <- Ys[,resps[k]] - fitsk
+    r <- switch(type,
+                response = res,
+                pearson = {
+                  switch(f, 
+                         gaussian = res/sqrt(S[k]),
+                         poisson = res/sqrt(fitsk),
+                         genpois = res/sqrt(fitsk*(1+S[k])^2),
+                         binomial = res/sqrt(fitsk * (1 - fitsk)),
+                         Gamma = res/sqrt(fitsk^2)
+                         )
+                }
     )
     list(fitted = fitsk, residuals = r)
   }), resps)
   r <- lapply(out, el, 2)
   class(r) <- "residuals.joint"
   attr(r, 'fitted') <- lapply(out, el, 1)
+  attr(r, 'type') <- type
   r
+}
+
+#' @method print residuals.joint
+#' @keywords internal
+#' @export
+print.residuals.joint <- function(x, ...){
+  type <- attr(x, 'type') 
+  attr(x, 'type') <- NULL; attr(x, 'fitted') <- NULL
+  attr(x, 'class') <- NULL
+  print(x)
+  if(type == 'pearson') cat("Pearson residuals ")
+  if(type == 'response') cat("Residuals ")
+  cat("summary:\n")
+  print(round(sapply(x, summary), 4))
+  invisible(x)
 }
 
 #' Plot joint model residuals 
@@ -169,6 +193,7 @@ plot.residuals.joint <- function(x, ...){
   .par <- par(no.readonly = T) # store old par
   
   K <- length(x); resps <- names(x)
+  type <- attr(x, 'type')
   # Work out plot dimensions, set maximum of three plots per row.
   ncol <- 3
   nrow <- max(cumsum(1:K%%3 == 1))
@@ -176,10 +201,11 @@ plot.residuals.joint <- function(x, ...){
       mai = c(0.6, 0.75, 0.2, 0.25))
   
   # Plot the residuals from residuals.joint object (x).
+  ylab <- ifelse(type=='pearson', 'Pearson residuals', 'Residuals')
   for(k in 1:K){
     fitk <- attr(x, 'fitted')[[resps[k]]]
     plot(x[[k]]~fitk, main = resps[k], cex = .75,
-         pch = 20, ylab = 'Residuals', xlab = 'Fitted')
+         pch = 20, ylab = ylab, xlab = 'Fitted')
     abline(h = 0, lty = 5, col = 'red')
   }
   
