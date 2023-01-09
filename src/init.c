@@ -8,6 +8,8 @@
 */
 
 /* .Call calls */
+extern SEXP _gmvjoint_dmvnrm_arma_fast(SEXP, SEXP, SEXP, SEXP);
+extern SEXP _gmvjoint_dmvt_arma_fast(SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_GP1_pmf_scalar(SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_Hbeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_Hgammazeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
@@ -20,11 +22,14 @@ extern SEXP _gmvjoint_ll_genpois(SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_logfti(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_maketau(SEXP, SEXP);
 extern SEXP _gmvjoint_phi_update(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP _gmvjoint_S_(SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_Sbeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_Sgammazeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_vare_update(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_gmvjoint_dmvnrm_arma_fast",  (DL_FUNC) &_gmvjoint_dmvnrm_arma_fast,   4},
+    {"_gmvjoint_dmvt_arma_fast",    (DL_FUNC) &_gmvjoint_dmvt_arma_fast,     5},
     {"_gmvjoint_GP1_pmf_scalar",    (DL_FUNC) &_gmvjoint_GP1_pmf_scalar,     3},
     {"_gmvjoint_Hbeta",             (DL_FUNC) &_gmvjoint_Hbeta,             13},
     {"_gmvjoint_Hgammazeta",        (DL_FUNC) &_gmvjoint_Hgammazeta,        15},
@@ -37,6 +42,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_gmvjoint_logfti",            (DL_FUNC) &_gmvjoint_logfti,            10},
     {"_gmvjoint_maketau",           (DL_FUNC) &_gmvjoint_maketau,            2},
     {"_gmvjoint_phi_update",        (DL_FUNC) &_gmvjoint_phi_update,         9},
+    {"_gmvjoint_S_",                (DL_FUNC) &_gmvjoint_S_,                 4},
     {"_gmvjoint_Sbeta",             (DL_FUNC) &_gmvjoint_Sbeta,             13},
     {"_gmvjoint_Sgammazeta",        (DL_FUNC) &_gmvjoint_Sgammazeta,        15},
     {"_gmvjoint_vare_update",       (DL_FUNC) &_gmvjoint_vare_update,        8},

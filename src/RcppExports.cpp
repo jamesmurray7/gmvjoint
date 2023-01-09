@@ -24,6 +24,49 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// dmvnrm_arma_fast
+arma::vec dmvnrm_arma_fast(arma::mat const& x, arma::rowvec const& mean, arma::mat const& sigma, bool const logd);
+RcppExport SEXP _gmvjoint_dmvnrm_arma_fast(SEXP xSEXP, SEXP meanSEXP, SEXP sigmaSEXP, SEXP logdSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat const& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< arma::rowvec const& >::type mean(meanSEXP);
+    Rcpp::traits::input_parameter< arma::mat const& >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< bool const >::type logd(logdSEXP);
+    rcpp_result_gen = Rcpp::wrap(dmvnrm_arma_fast(x, mean, sigma, logd));
+    return rcpp_result_gen;
+END_RCPP
+}
+// dmvt_arma_fast
+arma::vec dmvt_arma_fast(arma::mat const& x, arma::rowvec const& mean, arma::mat const& sigma, double const df, bool const logd);
+RcppExport SEXP _gmvjoint_dmvt_arma_fast(SEXP xSEXP, SEXP meanSEXP, SEXP sigmaSEXP, SEXP dfSEXP, SEXP logdSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat const& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< arma::rowvec const& >::type mean(meanSEXP);
+    Rcpp::traits::input_parameter< arma::mat const& >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< double const >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< bool const >::type logd(logdSEXP);
+    rcpp_result_gen = Rcpp::wrap(dmvt_arma_fast(x, mean, sigma, df, logd));
+    return rcpp_result_gen;
+END_RCPP
+}
+// S_
+double S_(const Rcpp::List& L, const arma::vec& gamma_rep, const arma::vec& zeta, const arma::vec& b);
+RcppExport SEXP _gmvjoint_S_(SEXP LSEXP, SEXP gamma_repSEXP, SEXP zetaSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type L(LSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type gamma_rep(gamma_repSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type zeta(zetaSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(S_(L, gamma_rep, zeta, b));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ll_Gamma
 double ll_Gamma(const arma::vec& Y, const double& shape, const arma::vec& mu);
 RcppExport SEXP _gmvjoint_ll_Gamma(SEXP YSEXP, SEXP shapeSEXP, SEXP muSEXP) {

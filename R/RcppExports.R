@@ -7,6 +7,21 @@ GP1_pmf_scalar <- function(mu, phi, Y) {
 }
 
 #' @keywords internal
+dmvnrm_arma_fast <- function(x, mean, sigma, logd = TRUE) {
+    .Call(`_gmvjoint_dmvnrm_arma_fast`, x, mean, sigma, logd)
+}
+
+#' @keywords internal
+dmvt_arma_fast <- function(x, mean, sigma, df, logd = TRUE) {
+    .Call(`_gmvjoint_dmvt_arma_fast`, x, mean, sigma, df, logd)
+}
+
+#' @keywords internal
+S_ <- function(L, gamma_rep, zeta, b) {
+    .Call(`_gmvjoint_S_`, L, gamma_rep, zeta, b)
+}
+
+#' @keywords internal
 ll_Gamma <- function(Y, shape, mu) {
     .Call(`_gmvjoint_ll_Gamma`, Y, shape, mu)
 }
