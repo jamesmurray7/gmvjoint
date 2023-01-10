@@ -5,6 +5,8 @@
 using namespace Rcpp;
 using namespace arma;
 
+static double log2pi = log(2.0 * M_PI); 
+
 // Fast multivariate normal and t density calculations (see https://gallery.rcpp.org/articles/dmvnorm_arma/)
 void inplace_tri_mat_mult(arma::rowvec &x, arma::mat const &trimat){
   arma::uword const n = trimat.n_cols;

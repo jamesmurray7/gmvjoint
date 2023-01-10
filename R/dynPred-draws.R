@@ -1,6 +1,7 @@
 #' @keywords internal
 #' @importFrom MASS mvrnorm
 #' @importFrom Matrix nearPD
+#' @importFrom stats vcov
 Omega.draw <- function(x){
   Omega.Var <- vcov(x)
   # Mean vector
@@ -41,9 +42,9 @@ logLik.b <- function(b, long, surv, O, beta.inds, b.inds, fit){
   beta <- O$beta; D <- O$D; gamma <- rep(O$gamma, sapply(b.inds, length)); zeta <- O$zeta; sigma <- O$sigma
   
   neg.ll <- joint_density(b = b, Y = long$Y, X = long$X, Z = long$Z, beta = beta, D = D, sigma = sigma,
-                          family = fit$family, Delta = surv$Delta, S = surv$S, Fi = surv$Fi, l0i = surv$l0i,
+                          family = fit$ModelInfo$family, Delta = surv$Delta, S = surv$S, Fi = surv$Fi, l0i = surv$l0i,
                           SS = surv$SS, Fu = surv$Fu, haz = surv$l0u, gamma_rep = gamma, zeta = zeta, beta_inds = beta.inds,
-                          b_inds = b.inds, K = length(b.inds))
+                          b_inds = b.inds, K = length(fit$ModelInfo$family))
   
   -neg.ll
 }
@@ -67,14 +68,12 @@ b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, beta.inds, b.inds, 
     b.hat.l <- optim(
       b.current, joint_density, joint_density_ddb,
       Y = long$Y, X = long$X, Z = long$Z, beta = beta, D = D, sigma = sigma,
-      family = fit$family, Delta = surv$Delta, S = surv$S, Fi = surv$Fi, l0i = surv$l0i,
+      family = fit$ModelInfo$family, Delta = surv$Delta, S = surv$S, Fi = surv$Fi, l0i = surv$l0i,
       SS = surv$SS, Fu = surv$Fu, haz = surv$l0u, gamma_rep = gamma, zeta = zeta, beta_inds = beta.inds,
-      b_inds = b.inds, K = length(b.inds), method = 'BFGS'
-    )$par
-    Sigma.hat.l <- solve(joint_density_sdb(b = b.hat.l, Y = long$Y, X = long$X, Z = long$Z, beta = beta, D = D, sigma = sigma,
-                                           family = fit$family, Delta = surv$Delta, S = surv$S, Fi = surv$Fi, l0i = surv$l0i,
-                                           SS = surv$SS, Fu = surv$Fu, haz = surv$l0u, gamma_rep = gamma, zeta = zeta, beta_inds = beta.inds,
-                                           b_inds = b.inds, K = length(b.inds), eps = 1e-4))
+      b_inds = b.inds, K = length(fit$ModelInfo$family), method = 'BFGS', hessian = T
+    )
+    Sigma.hat.l <- solve(b.hat.l$hessian)
+    b.hat.l <- b.hat.l$par
     # Draw from N(b.hat.l, Sigma.hat.l)
     b.prop.l <- MASS::mvrnorm(n = 1, mu = b.hat.l, Sigma = Sigma.hat.l)
     # DMNVORM on b draws
@@ -105,8 +104,8 @@ b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, beta.inds, b.inds, 
                'joint b.current: ', logLik.b(b.current, long, surv, O, beta.inds, b.inds, fit), '\n'))
   }
   a <- min(1, a)
-  u <- runif(1)
-  if(u <= a){
+  U <- runif(1)
+  if(U <= a){
     accept <- 1
     b.current <- b.prop.l
   }

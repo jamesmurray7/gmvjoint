@@ -5,8 +5,9 @@ importFrom("stats", "Gamma", "as.formula", "binomial", "coef", "cov",
            "gaussian", "model.matrix", "optim", "plogis", "poisson",
            "dnorm", "dbinom", "dpois", "dgamma",
            "rbinom", "rexp", "rgamma", "rnorm", "rpois", "runif",
-           "setNames", "pnorm", "qnorm", "cov2cor", "fitted")
-importFrom("graphics", "plot", "par", "abline")
+           "setNames", "pnorm", "qnorm", "cov2cor", "fitted",
+           "median", "vcov", "quantile")
+importFrom("graphics", "plot", "par", "abline", "lines", "axis")
 importFrom("utils", "head")
 importFrom("statmod", "gauss.quad.prob")
 importFrom('pracma', 'grad', 'hessian')
@@ -26,8 +27,11 @@ S3method(fitted, joint)
 S3method(residuals, joint)
 S3method(plot, residuals.joint)
 S3method(print, residuals.joint)
+S3method(print, dynPred)
+S3method(plot, dynPred)
 
 export(joint)
 export(simData)
 export(parseCoxph)
+export(dynPred)
 export(rgenpois)
