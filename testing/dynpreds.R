@@ -28,3 +28,10 @@ mine.t <- dynPred(data = PBC, id = 81, fit = my.fit, u = u, nsim = 200, b.densit
 
 plot(jmlsurv)
 plot(mine.normal)
+
+
+
+
+# Example from Riz book (p.176)
+joineRML::dynSurv(jML.fit, PBC[PBC$id == 2,], type = 'simulated')
+dynPred(PBC, 2, my.fit)

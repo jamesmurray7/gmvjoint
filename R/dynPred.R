@@ -8,7 +8,7 @@
 #' which assesses discriminatory power of the joint model, however it \emph{does} function
 #' by itself with proper use of its arguments.
 #' 
-#' @param data the data to which the original `joint` model was fit.
+#' @param data the data to which the original \code{joint} model was fit.
 #' @param id subject identifier, i.e. for which subject is the conditional survival probabilities 
 #' desired?
 #' @param fit a joint model fit by the  \code{joint} function. 
@@ -141,7 +141,7 @@ dynPred <- function(data, id, fit, u = NULL, nsim = 200, progress = TRUE,
     for(uu in seq_along(u)){
       # cat('uu:', uu, '; u[uu]:', u[uu],  # uncomment for loop debugging
       #     '\nb:', b.current,'.\n')
-      data.u <- prepareData(newdata, id = id, fit = fit,  u = u[uu])
+      data.u <- prepareData(newdata2, id = id, fit = fit, u = u[uu])
       pi[i, uu] <- S_(data.u$surv, rep(O$gamma, sapply(b.inds, length)), O$zeta, b.current)/(St)# + 1e-6)
       # cat('pi(uu):', 
       #     Surv_(data.u$surv, rep(O$gamma, sapply(b.inds, length)), O$zeta, b.current)/(St),
@@ -149,6 +149,7 @@ dynPred <- function(data, id, fit, u = NULL, nsim = 200, progress = TRUE,
     }
     if(progress) utils::setTxtProgressBar(pb, i)
   }
+  if(progress) close(pb)
   pi.df <- data.frame(
     u = u,
     mean = colMeans(pi),

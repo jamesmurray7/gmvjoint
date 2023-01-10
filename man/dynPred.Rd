@@ -17,7 +17,7 @@ dynPred(
 )
 }
 \arguments{
-\item{data}{the data to which the original `joint` model was fit.}
+\item{data}{the data to which the original \code{joint} model was fit.}
 
 \item{id}{subject identifier, i.e. for which subject is the conditional survival probabilities 
 desired?}
