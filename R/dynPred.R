@@ -15,8 +15,7 @@
 #' @param u a numeric \code{vector} of candidate follow-up times for which a survival probability 
 #' should be calculated. Note that the first item \code{u[1]} denotes the start of the "window"
 #' and is dropped from calculations. If \code{u=NULL} (the default), then the probability of 
-#' surviving until the next observed failure time is returned for each longitudinal time recorded
-#' for the subject \code{id}.
+#' surviving all failure times after the \code{id}'s final longitudinal \code{time} is calculated.
 #' @param nsim how many Monte Carlo simulations should be carried out? Defaults to 
 #' \code{nsim=200}.
 #' @param progress a logical, if \code{progress=TRUE} (the default) then a progress bar displaying
@@ -34,7 +33,9 @@
 #' b.density="t"} distribution.
 #' @param scale if \code{b.density = "t"} then this numeric scales the variance-covariance 
 #' parameter in the proposal distribution for the Metropolis-Hastings algorithm. Defaults to 
-#' \code{scale = NULL} which doesn't scale the variance term at all.
+#' \code{scale = NULL} which doesn't scale the variance term at all. Users are encouraged to
+#' experiment with values here. We find \code{scale=0.33} works decently well for the case when
+#' \code{b.density = "normal"} and \code{scale=2} for \code{b.density="t"}.
 #' @param df if \code{b.density = "t"} then this numeric denotes the degrees of freedom of the 
 #' proposed \eqn{t} distribution on the random effects. \code{df=4} is suggested.
 #'
@@ -87,48 +88,61 @@
 #' \donttest{
 #' data(PBC)
 #' PBC$serBilir <- log(PBC$serBilir)
+#' # Univariate -----------------------------------------------------------
 #' long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 #' surv.formula <- Surv(survtime, status) ~ drug
 #' family <- list('gaussian')
 #' fit <- joint(long.formulas, surv.formula, PBC, family, control = list(verbose=T))
-#' preds <- dynPred(PBC, id = 81, fit = my.fit, u = u, nsim = 200, b.density = 'normal')
+#' preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
+#'                  scale = 0.33)
 #' preds
 #' plot(preds)
+#' # Bivariate ------------------------------------------------------------
+#' long.formulas <- list(
+#'   serBilir ~ drug * time + I(time^2) + (1 + time + I(time^2)|id),
+#'   albumin ~ drug * time + (1 + time|id)
+#' )
+#' # Does introduction of albumin affect conditional survival probability?
+#' fit <- joint(long.formulas, surv.formula, data = PBC, family = list("gaussian", "gaussian"),
+#'               control = list(verbose = F))
+#' bi.preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
+#'                     scale = 0.50)
+#' bi.preds
+#' plot(bi.preds)
 #' }
 dynPred <- function(data, id, fit, u = NULL, nsim = 200, progress = TRUE,
                      b.density = c('normal', 't'), scale = NULL, df = NULL){
   if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
   b.density <- match.arg(b.density)
   
+  if("factor"%in%class(data$id)) data$id <- as.numeric(as.character(data$id))
   # Check survival times
   ft <- fit$hazard[,1];tmax <- max(ft); K <- length(fit$ModelInfo$family)
-  if(!is.null(u) & any(u > tmax)) stop("Can't extrapolate beyond last failure time.")
+  if(!is.null(u) & any(u > tmax)) stop(sprintf("Can't extrapolate beyond last failure time %.4f.\n", tmax))
   
   # Subset the required subject
   newdata <- data[data$id == id, ] # subset required subject
   
-  # If u isn't supplied then arbitrarily find probability of surviving until next failure time.
-  #              (for each longitudinal time recorded)
+  # If u isn't supplied then arbitrarily find probability of surviving all following failure times.
   if(is.null(u)){
-    u <- sapply(newdata$time, function(x) ft[which(ft > x)][1])
-    if(any(u > tmax)) u <- u[!which(u > tmax)] # and ensure those after T_{max} aren't included
+    last.long.time <- max(newdata$time)
+    u <- c(last.long.time, ft[ft > last.long.time])
   }
   
   # Get indices for \b and \beta
-  responsenames <- lapply(strsplit(fit$ModelInfo$ResponseInfo, '\\s\\('), el , 1)
   b.inds <- lapply(fit$ModelInfo$inds$b, function(x) x - 1)
   beta.inds <- lapply(fit$ModelInfo$inds$beta, function(x) x - 1)
   
-  # Obtain 'denominator' dataset
+  # Obtain 'denominator' dataset based on first value of vector u
   newdata2 <- newdata[newdata$time <= u[1], ]
-  data.t <- prepareData(newdata2, id = id, fit = fit, u = NULL)
+  data.t <- prepareData(newdata2, fit, u = NULL)
   
-  u <- u[-1] # Don't want to find preds for first time T_{start}...
+  u <- u[-1] # Now can remove T_start
   
-  pi <- structure(matrix(NA, nr = nsim, nc = length(u)),
-                  dimnames = list(as.character(1:nsim), paste0('u=',round(u,3))))
+  pi <- structure(matrix(NA, nrow = nsim, ncol = length(u)),
+                  dimnames = list(as.character(1:nsim), paste0('u=',u)))
   MH.accept <- 0
-  b.current <- shift <- data.t$b$par; Sigma <- solve(data.t$b$hessian)
+  b.current <- shift <- data.t$bfit$par; Sigma <- solve(data.t$bfit$hessian)
   if(!is.null(scale)) Sigma <- Sigma * scale
   if(b.density == 't' & is.null(df)) df <- 4
   if(progress) pb <- utils::txtProgressBar(max = nsim, style = 3)
@@ -141,7 +155,7 @@ dynPred <- function(data, id, fit, u = NULL, nsim = 200, progress = TRUE,
     for(uu in seq_along(u)){
       # cat('uu:', uu, '; u[uu]:', u[uu],  # uncomment for loop debugging
       #     '\nb:', b.current,'.\n')
-      data.u <- prepareData(newdata2, id = id, fit = fit, u = u[uu])
+      data.u <- prepareData(newdata, fit = fit, u = u[uu])
       pi[i, uu] <- S_(data.u$surv, rep(O$gamma, sapply(b.inds, length)), O$zeta, b.current)/(St)# + 1e-6)
       # cat('pi(uu):', 
       #     Surv_(data.u$surv, rep(O$gamma, sapply(b.inds, length)), O$zeta, b.current)/(St),
@@ -174,8 +188,8 @@ dynPred <- function(data, id, fit, u = NULL, nsim = 200, progress = TRUE,
 print.dynPred <- function(x, ...){
   if(!inherits(x, 'dynPred')) stop('x must be a "dynPred" object.')
   cat("\n")
-  print(round(x$pi, 3))
-  cat("\n")
+  print(round(x$pi[,-6], 3))
+  cat(sprintf("\nMetropolis-Hastings acceptance rate %.2f%%.\n", 100 * x$MH.accept))
   invisible(x)
 }
 
@@ -204,7 +218,7 @@ plot.dynPred <- function(x, what = c("median", "mean"), ...){
   plot(pi$u, y, main = paste0("Event-free probability for subject ", id),
        type = 's', lwd = 1.2, col = 'black',
        xlab = expression(u), ylab = expression(Pr*"("*T[i]>=u*"|"*Y[i]*","~b[i]*";"~Omega*")"),
-       ylim = 0:1, yaxt = 'n')
+       ylim = 0:1, yaxt = 'n', ...)
   axis(2, at = seq(0,1,.1), labels = as.character(seq(0,1,.1)))
   lines(pi$u, pi$lower, lwd = 1.2, lty = 3, type = 's')
   lines(pi$u, pi$upper, lwd = 1.2, lty = 3, type = 's')

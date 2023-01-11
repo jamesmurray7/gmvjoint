@@ -38,6 +38,9 @@
 #'   calculation of score and Hessian in updates to fixed effects \eqn{\beta}? Default is 
 #'   \code{beta.quad=FALSE} which works very well in most situations. Dispersion parameters
 #'   and survival pair are always calculated with quadrature.}
+#'   \item{\code{return.dmats}}{Logical: Should data matrices be returned? Defaults to 
+#'   \code{return.dmats=TRUE}. Note that some S3 methods for \code{\link{joint.object}}s
+#'   greatly benefit from inclusion of these data matrices.}
 #' 
 #' }
 #' 
@@ -239,6 +242,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   if(!is.null(control$hessian)) hessian <- control$hessian else hessian <- 'auto'
   if(!hessian %in% c('auto', 'manual')) stop("Argument 'hessian' needs to be either 'auto' (i.e. from optim) or 'manual' (i.e. from _sdb, the defualt).")
   if(!is.null(control$return.inits)) return.inits <- control$return.inits else return.inits <- F
+  if(!is.null(control$return.dmats)) return.dmats <- control$return.dmats else return.dmats <- T
   if(!is.null(control$beta.quad)) beta.quad <- control$beta.quad else beta.quad <- F
   
   EMstart <- proc.time()[3]
@@ -336,6 +340,9 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
                         `Post processing` = if(post.process) unname(postprocess.time) else NULL,
                         `Total Computation time` = unname(comp.time),
                         `iterations` = iter)
+  
+  dmats <- list(long = dmats, surv = sv, ph = surv)
+  if(return.dmats) out$dmats <- dmats
   
   if(return.inits) out$inits = inits.long
   class(out) <- 'joint'

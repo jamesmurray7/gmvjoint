@@ -57,6 +57,9 @@ log-likelihood? Defaults to \code{TRUE}.}
   calculation of score and Hessian in updates to fixed effects \eqn{\beta}? Default is 
   \code{beta.quad=FALSE} which works very well in most situations. Dispersion parameters
   and survival pair are always calculated with quadrature.}
+  \item{\code{return.dmats}}{Logical: Should data matrices be returned? Defaults to 
+  \code{return.dmats=TRUE}. Note that some S3 methods for \code{\link{joint.object}}s
+  greatly benefit from inclusion of these data matrices.}
 
 }}
 }

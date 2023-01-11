@@ -27,8 +27,7 @@ desired?}
 \item{u}{a numeric \code{vector} of candidate follow-up times for which a survival probability 
 should be calculated. Note that the first item \code{u[1]} denotes the start of the "window"
 and is dropped from calculations. If \code{u=NULL} (the default), then the probability of 
-surviving until the next observed failure time is returned for each longitudinal time recorded
-for the subject \code{id}.}
+surviving all failure times after the \code{id}'s final longitudinal \code{time} is calculated.}
 
 \item{nsim}{how many Monte Carlo simulations should be carried out? Defaults to 
 \code{nsim=200}.}
@@ -50,7 +49,9 @@ b.density="t"} distribution.}
 
 \item{scale}{if \code{b.density = "t"} then this numeric scales the variance-covariance 
 parameter in the proposal distribution for the Metropolis-Hastings algorithm. Defaults to 
-\code{scale = NULL} which doesn't scale the variance term at all.}
+\code{scale = NULL} which doesn't scale the variance term at all. Users are encouraged to
+experiment with values here. We find \code{scale=0.33} works decently well for the case when
+\code{b.density = "normal"} and \code{scale=2} for \code{b.density="t"}.}
 
 \item{df}{if \code{b.density = "t"} then this numeric denotes the degrees of freedom of the 
 proposed \eqn{t} distribution on the random effects. \code{df=4} is suggested.}
@@ -99,13 +100,27 @@ distribution by means of a Metropolis-Hastings algorithm with \code{nsim} iterat
 \donttest{
 data(PBC)
 PBC$serBilir <- log(PBC$serBilir)
+# Univariate -----------------------------------------------------------
 long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 surv.formula <- Surv(survtime, status) ~ drug
 family <- list('gaussian')
 fit <- joint(long.formulas, surv.formula, PBC, family, control = list(verbose=T))
-preds <- dynPred(PBC, id = 81, fit = my.fit, u = u, nsim = 200, b.density = 'normal')
+preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
+                 scale = 0.33)
 preds
 plot(preds)
+# Bivariate ------------------------------------------------------------
+long.formulas <- list(
+  serBilir ~ drug * time + I(time^2) + (1 + time + I(time^2)|id),
+  albumin ~ drug * time + (1 + time|id)
+)
+# Does introduction of albumin affect conditional survival probability?
+fit <- joint(long.formulas, surv.formula, data = PBC, family = list("gaussian", "gaussian"),
+              control = list(verbose = F))
+bi.preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
+                    scale = 0.50)
+bi.preds
+plot(bi.preds)
 }
 }
 \references{

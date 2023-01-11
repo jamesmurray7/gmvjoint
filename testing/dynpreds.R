@@ -18,20 +18,42 @@ jML.fit <- mjoint(
   ), verbose = F
 )
 
-test <- PBC[PBC$id == 81 & PBC$time <= 6.9,]
-ft <- my.fit$hazard[,1]
-u <- ft[ft <= 15 & ft > 6.9]
-jmlsurv <- joineRML::dynSurv(jML.fit, test, u = u, type = 'simulated', M = 200)
-mine.normal <- dynPred(data = PBC, id = 81, fit = my.fit, u = u, nsim = 200, b.density = 'normal')
-mine.normal2 <- dynPred(data = PBC, id = 81, fit = my.fit, u = u, nsim = 200, b.density = 'normal', scale = 2)
-mine.t <- dynPred(data = PBC, id = 81, fit = my.fit, u = u, nsim = 200, b.density = 't', df = 4, scale = 2)
+test <- PBC[PBC$id == 81,]
+jmlsurv <- joineRML::dynSurv(jML.fit, test, u = NULL, type = 'simulated', M = 100)
+mine.normal <- dynPred(data = PBC, id = 81, fit = my.fit, u = NULL, nsim = 100, b.density = 'normal')
+mine.normal2 <- dynPred(data = PBC, id = 81, fit = my.fit, u = NULL, nsim = 100, b.density = 'normal', scale = 0.33)
+mine.t <- dynPred(data = PBC, id = 81, fit = my.fit, u = NULL, nsim = 100, b.density = 't', df = 4, scale = 2)
+
+test <- PBC[PBC$id == 2,]
+jmlsurv <- joineRML::dynSurv(jML.fit, test, u = NULL, type = 'simulated', M = 200)
+mine.normal <- dynPred(data = PBC, id = 2, fit = my.fit, u = NULL, nsim = 200, b.density = 'normal', scale = 0.33)
+mine.t <- dynPred(data = PBC, id = 2, fit = my.fit, u = NULL, nsim = 200, b.density = 't', df = 4, scale = 2)
 
 plot(jmlsurv)
 plot(mine.normal)
 
+# Multivariate? -----------------------------------------------------------
+long.formulas <- list(
+  serBilir ~ drug * time + I(time^2) + (1 + time + I(time^2)|id),
+  albumin ~ drug * time + (1 + time|id)
+)
 
+my.fit <- joint(long.formulas, surv.formula, data = PBC, family = list("gaussian", "gaussian"),
+                control = list(verbose = T))
 
+jML.fit <- mjoint(
+  formLongFixed = list('1' = serBilir ~ drug * time + I(time^2),
+                       '2' = albumin ~ drug * time),
+  formLongRandom = list('1' = ~ time + I(time^2)|id, '2' = ~ time | id),
+  formSurv = Surv(survtime, status) ~ drug,
+  data = PBC, timeVar = 'time', control = list(
+    type = 'sobol', convCrit = 'rel', tol2 = 1e-1, tol.em = 5e-3
+  ), verbose = F
+)
 
-# Example from Riz book (p.176)
-joineRML::dynSurv(jML.fit, PBC[PBC$id == 2,], type = 'simulated')
-dynPred(PBC, 2, my.fit)
+test <- PBC[PBC$id == 81,]
+jmlsurv <- joineRML::dynSurv(jML.fit, test, u = NULL, type = 'simulated', M = 100, scale = 5)
+mine.normal <- dynPred(data = PBC, id = 81, fit = my.fit, u = NULL, nsim = 100, b.density = 'normal', scale = 0.5)
+
+plot(jmlsurv)
+plot(mine.normal)

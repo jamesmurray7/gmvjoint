@@ -35,7 +35,8 @@ A list of class \code{ROC.joint} consisting of: \describe{
   \code{TP} true positives; \code{FN} false negatives; \code{FP} false positives;
   \code{TN} true negatives; \code{TPR} true positive rate (sensitivity); \code{FPR} false
   positive rate (1-specificity); \code{Acc} accuracy; \code{PPV} positive predictive value
-  (precision); \code{NPV} negative predictive value; \code{F1s} F1 score.}
+  (precision); \code{NPV} negative predictive value; \code{F1s} F1 score and \code{J} Youden's
+  J statistic.}
   \item{AUC}{the area under the curve.}
   \item{BrierScore}{calculated Brier score (for each subject) along with attributed summary.}
   \item{MH.acceptance.bar}{mean acceptance of M-H scheme across all subjects.}
@@ -53,14 +54,14 @@ PBC$serBilir <- log(PBC$serBilir)
 long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 surv.formula <- Surv(survtime, status) ~ drug
 family <- list('gaussian')
-fit <- joint(long.formulas, surv.formula, PBC, family, control = list(verbose=T))
+fit <- joint(long.formulas, surv.formula, PBC, family, control = list(verbose=F))
 roc <- ROC(fit, PBC, Tstart = 8, delta = 2, control = list(nsim = 25))
 roc
 plot(roc)
 }
 }
 \seealso{
-\code{\link{dynPred}} and \code{\link{plot.ROC}}
+\code{\link{dynPred}} and \code{\link{plot.ROC.joint}}
 }
 \author{
 James Murray (\email{j.murray7@ncl.ac.uk}).

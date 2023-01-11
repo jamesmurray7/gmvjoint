@@ -4,7 +4,7 @@
 \alias{plot.ROC.joint}
 \title{Plot receiver operator characteristics.}
 \usage{
-\method{plot}{ROC.joint}(x, legend = TRUE, ...)
+\method{plot}{ROC.joint}(x, legend = TRUE, show.Youden = TRUE, ...)
 }
 \arguments{
 \item{x}{an object with class \code{ROC.joint}.}
@@ -12,6 +12,9 @@
 \item{legend}{should a legend displaying the number in risk set; number of failures in interval;
 area under the ROC curve and median Brier score be added to the bottom-right corner of the ROC 
 plot? Default is \code{legend = TRUE}.}
+
+\item{show.Youden}{should a line be drawn showing optimal cut-point using Youden's J statistic?
+defaults to \code{show.Youden = TRUE}.}
 
 \item{...}{additional arguments (none used).}
 }

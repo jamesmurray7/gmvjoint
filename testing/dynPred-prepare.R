@@ -1,6 +1,9 @@
+# TESTING VERSION -- with dmats
 # Preparing data for dynamic prediction routine.
 
-#' @keywords internal
+# Prepare longitudinal data for dynamic predictions.
+# This will only _ever_ be used in denominator of S(u|t)/S(t|t)
+# where t is defined by first element of u vector in dynPreds.
 prepareLongData <- function(data, fit){
   
   K <- length(fit$ModelInfo$long.formulas)
@@ -29,7 +32,6 @@ prepareLongData <- function(data, fit){
   list(X = X, Y = Y, Z = Z)
 }
 
-#' @keywords internal
 prepareSurvData <- function(data, fit, u = NULL){
   
   # This id 
@@ -46,12 +48,12 @@ prepareSurvData <- function(data, fit, u = NULL){
   
   fs <- lapply(fit$ModelInfo$long.formulas, parseFormula)
   Fi <- do.call(cbind, lapply(fs, function(x) model.matrix(as.formula(paste0('~', unlist(x$random))),
-                                                           data.frame(time = u)))) # Don't actually need to work this out.
+                                      data.frame(time = u)))) # Don't actually need to work this out.
   Fu <- Fu.all[ft <= u,]; haz <- l0u[1:nrow(Fu)]
   
   # Time-invariant items
   S <- fit$dmats$surv$S[[id]]
-  SS <- apply(S, 2, rep, nrow(Fu))
+  SS <- fit$dmats$surv$SS[[id]][1:nrow(Fu), , drop = FALSE]
   
   return(list(
     S = S, SS = SS, 
@@ -61,9 +63,6 @@ prepareSurvData <- function(data, fit, u = NULL){
   
 }
 
-
-# Prepare and collate longitudinal and survival data for dynamic predictions
-#' @keywords internal
 prepareData <- function(data, fit, u = NULL){
   id <- unique(data$id)
   

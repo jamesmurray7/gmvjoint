@@ -26,14 +26,15 @@
 #'   \code{TP} true positives; \code{FN} false negatives; \code{FP} false positives;
 #'   \code{TN} true negatives; \code{TPR} true positive rate (sensitivity); \code{FPR} false
 #'   positive rate (1-specificity); \code{Acc} accuracy; \code{PPV} positive predictive value
-#'   (precision); \code{NPV} negative predictive value; \code{F1s} F1 score.}
+#'   (precision); \code{NPV} negative predictive value; \code{F1s} F1 score and \code{J} Youden's
+#'   J statistic.}
 #'   \item{AUC}{the area under the curve.}
 #'   \item{BrierScore}{calculated Brier score (for each subject) along with attributed summary.}
 #'   \item{MH.acceptance.bar}{mean acceptance of M-H scheme across all subjects.}
 #'   \item{simulation.info}{list containing information about call to \code{dynPred}.}
 #' }
 #' @export
-#' @seealso \code{\link{dynPred}} and \code{\link{plot.ROC}}
+#' @seealso \code{\link{dynPred}} and \code{\link{plot.ROC.joint}}
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #'
 #' @examples
@@ -43,7 +44,7 @@
 #' long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 #' surv.formula <- Surv(survtime, status) ~ drug
 #' family <- list('gaussian')
-#' fit <- joint(long.formulas, surv.formula, PBC, family, control = list(verbose=T))
+#' fit <- joint(long.formulas, surv.formula, PBC, family, control = list(verbose=F))
 #' roc <- ROC(fit, PBC, Tstart = 8, delta = 2, control = list(nsim = 25))
 #' roc
 #' plot(roc)
@@ -129,6 +130,7 @@ ROC <- function(fit, data, Tstart, delta, control = list()){
   PPV <- TP/(TP + FP + 1e-6)               # Positive predictive value (precision)
   NPV <- TN/(TN + FN + 1e-6)               # Negative predictive value
   F1s <- 2*(PPV* TPR) / (PPV + TPR + 1e-6) # F1 score
+  J <- TPR + TN/(TN + FP) - 1              # Youden's J statistic
   
   # Sanity checks -- mainly for internal use.
   if(!all.equal(TPR, TP/sum(event))) stop('Something wrong: TP + FN != sum(event)')
@@ -138,7 +140,7 @@ ROC <- function(fit, data, Tstart, delta, control = list()){
   out <- data.frame(threshold = t,
                     TP = TP, TN = TN, FP = FP, FN = FN,
                     TPR = TPR, FPR = FPR, PPV = PPV, NPV = NPV,
-                    Acc = Acc, F1 = F1s)
+                    Acc = Acc, F1 = F1s, J = J)
   row.names(out) <- NULL
   
   # Flip table so if multiple thresholds have same TPR/FPR then we take the largest threshold
@@ -196,22 +198,31 @@ print.ROC.joint <- function(x, ...){
 #' @param legend should a legend displaying the number in risk set; number of failures in interval;
 #' area under the ROC curve and median Brier score be added to the bottom-right corner of the ROC 
 #' plot? Default is \code{legend = TRUE}.
+#' @param show.Youden should a line be drawn showing optimal cut-point using Youden's J statistic?
+#' defaults to \code{show.Youden = TRUE}.
 #' @param ... additional arguments (none used).
 #' 
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #' 
-#' @importFrom graphics plot abline legend
+#' @importFrom graphics plot abline legend arrorws
 #' @method plot ROC.joint
 #' @seealso \code{\link{dynPred}} and \code{\link{ROC}}
 #' @keywords internal
 #' @export
-plot.ROC.joint <- function(x, legend = TRUE, ...){
-  TPR <- x$metrics$TPR; FPR <- x$metrics$FPR;
+plot.ROC.joint <- function(x, legend = TRUE, show.Youden = TRUE, ...){
+  TPR <- x$metrics$TPR; FPR <- x$metrics$FPR
   plot(FPR, TPR,
        xlab = '1 - Specificity', ylab = 'Sensitivity',
-       main = paste0('ROC curve for time interval interval (', x$Tstart, ', ', x$Tstart + x$delta, ']'),
+       main = paste0('ROC curve for time interval (', x$Tstart, ', ', x$Tstart + x$delta, ']'),
        type = 'l')
   abline(0, 1, lty = 3)
+  if(show.Youden){
+    Ms <- x$metrics
+    maxJ <- max(Ms$J); ind <- which.max(Ms$J)
+    arrows(x0 = Ms[ind, 'FPR'], x1 = Ms[ind, 'FPR'],
+           y0 = Ms[ind, 'FPR'], y1 = Ms[ind, 'TPR'],
+           length = 0, lty = 5)
+  }
   if(legend){
     legend('bottomright', 
            paste0(x$Tstart.alive, ' at risk; ', x$window.failures, ' failures in interval.\n',

@@ -37,6 +37,8 @@ A list with the following components. \describe{
  \item{\code{n}}{Number of subjects.}
  \item{\code{nev}}{Number of events.}
  }}
+ \item{\code{dmats}}{if requested, data matrices on each of the longitudinal and survival 
+ processes for each subject.}
  \item{\code{SE}}{A named vector of approximated standard error for each estimated parameter.
  Only returned if \code{post.process=TRUE}.}
  \item{\code{vcov}}{The full variance-covariance matrix between parameters. Only returned if 
