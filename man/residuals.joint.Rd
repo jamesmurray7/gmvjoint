@@ -4,7 +4,7 @@
 \alias{residuals.joint}
 \title{Obtain joint model residuals}
 \usage{
-\method{residuals}{joint}(object, data, type = c("response", "pearson"), ...)
+\method{residuals}{joint}(object, data = NULL, type = c("response", "pearson"), ...)
 }
 \arguments{
 \item{object}{a joint model fit by \code{\link{joint}} function.}
@@ -16,8 +16,9 @@
 \item{...}{Additional arguments (none used).}
 }
 \value{
-a named list of length \eqn{K}, with residuals produced by the joint model
-for each of the \eqn{k=1,\dots,K} responses, along with the fitted values as an attribute.
+a named list of length \eqn{K} of class \code{residuals.joint} containing
+residuals produced by the joint model for each of the \eqn{k=1,\dots,K} responses, 
+along with the fitted values as an attribute.
 }
 \description{
 returns the Pearson residuals values from a \code{joint} object.
@@ -42,11 +43,12 @@ surv.formula <- Surv(survtime, status) ~ drug
 
 fit <- joint(long.formulas, surv.formula, PBC, 
 family = list('gaussian', 'poisson', 'binomial'))
-residuals(fit, PBC)
+R <- residuals(fit, type = 'pearson')
+plot(R)
 }
 }
 \seealso{
-\code{\link{fitted.joint}}
+\code{\link{fitted.joint}} \code{\link{plot.residuals.joint}}
 }
 \author{
 James Murray (\email{j.murray7@ncl.ac.uk}).

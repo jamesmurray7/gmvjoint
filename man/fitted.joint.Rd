@@ -4,7 +4,7 @@
 \alias{fitted.joint}
 \title{Obtain joint model fitted values}
 \usage{
-\method{fitted}{joint}(object, data, as = "matrix", ...)
+\method{fitted}{joint}(object, data = NULL, as = "matrix", ...)
 }
 \arguments{
 \item{object}{a joint model fit by the \code{\link{joint}} function.}
@@ -18,7 +18,7 @@
 }
 \value{
 A matrix (or list) with a column (or list entry) for each of the fitted linear
-predictors.
+predictors with class \code{fitted.joint}.
 }
 \description{
 returns the fitted values from a \code{joint} object. Note that the 
@@ -42,7 +42,7 @@ long.formulas <- list(
 surv.formula <- Surv(survtime, status) ~ drug
 
 fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian', 'poisson'))
-fitted(fit, PBC)
+fitted(fit)
 }
 }
 \seealso{

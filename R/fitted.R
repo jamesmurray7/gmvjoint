@@ -10,7 +10,7 @@
 #' @param ... Additional arguments (none used).
 #'
 #' @return A matrix (or list) with a column (or list entry) for each of the fitted linear
-#' predictors.
+#' predictors with class \code{fitted.joint}.
 #' @method fitted joint
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #' @seealso \code{\link{residuals.joint}} 
@@ -34,24 +34,19 @@
 #' surv.formula <- Surv(survtime, status) ~ drug
 #' 
 #' fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian', 'poisson'))
-#' fitted(fit, PBC)
+#' fitted(fit)
 #' }
-fitted.joint <- function(object, data, as = "matrix", ...){
+fitted.joint <- function(object, data = NULL, as = "matrix", ...){
   if(!inherits(object, 'joint')) stop("Only usable with objects of class 'joint'.")
-  if(missing(data)) stop("Please provide original data in 'data' argument.")
+  if(is.null(object$dmats) && is.null(data))
+    stop("Must provide original 'data' if 'joint' object doesn't contain data matrices.")
   as <- match.arg(as, c('matrix', 'list'))
   
-  
-  # Re-make formulae
   M <- object$ModelInfo
+  K <- length(M$family)
   # Check and stop if responses are unbalanced and matrix is requested.
   if(as == 'matrix' & (length(M$nobs) > 1 & length(unique(M$nobs)) > 1))
     stop("Unbalanced responses, please return as = 'list' instead.")
-  fs <- M$long.formulas; K <- length(fs)
-  fs <- lapply(fs, parseFormula)
-  
-  # Data matrices
-  dmats <- createDataMatrices(data, fs)
   
   # Ranefs and beta estimates
   .b <- ranef(object)
@@ -59,6 +54,16 @@ fitted.joint <- function(object, data, as = "matrix", ...){
   b.inds <- M$inds$b
   beta <- object$coeffs$beta
   beta.inds <- M$inds$beta
+  
+  if(is.null(object$dmats)){ # If return.dmats is FALSE...
+    # Re-make formulae
+    fs <- M$long.formulas; K <- length(fs)
+    fs <- lapply(fs, parseFormula)
+    
+    dmats <- createDataMatrices(data, fs)
+  }else{
+    dmats <- object$dmats$long
+  }
   
   # Fitted value (of __linear predictor__)
   fits <- mapply(function(X, Z, b){
@@ -89,10 +94,11 @@ fitted.joint <- function(object, data, as = "matrix", ...){
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #' @export
 #' 
-#' @seealso \code{\link{fitted.joint}}
+#' @seealso \code{\link{fitted.joint}} \code{\link{plot.residuals.joint}}
 #' 
-#' @returns a named list of length \eqn{K}, with residuals produced by the joint model
-#' for each of the \eqn{k=1,\dots,K} responses, along with the fitted values as an attribute.
+#' @returns a named list of length \eqn{K} of class \code{residuals.joint} containing
+#' residuals produced by the joint model for each of the \eqn{k=1,\dots,K} responses, 
+#' along with the fitted values as an attribute.
 #' 
 #' @examples 
 #' \donttest{
@@ -114,19 +120,29 @@ fitted.joint <- function(object, data, as = "matrix", ...){
 #' 
 #' fit <- joint(long.formulas, surv.formula, PBC, 
 #' family = list('gaussian', 'poisson', 'binomial'))
-#' residuals(fit, PBC)
+#' R <- residuals(fit, type = 'pearson')
+#' plot(R)
 #' }
-residuals.joint <- function(object, data, type = c('response', 'pearson'), ...){
+residuals.joint <- function(object, data = NULL, type = c('response', 'pearson'), ...){
   if(!inherits(object, 'joint')) stop("Only usable with objects of class 'joint'.")
-  if(missing(data)) stop("Please provide original data in 'data' argument.")
+  if(is.null(object$dmats) && is.null(data))
+    stop("Must provide original 'data' if 'joint' object doesn't contain data matrices.")
   type <- match.arg(type)
   
-  fits <- fitted(object, data, 'list') # Get fitted values
+  fits <- fitted(object, data = data, as = 'list') # Get fitted values
   
-  M <- object$ModelInfo
+  M <- object$ModelInfo; K <- length(M$family)
   resps <- unname(sapply(M$ResponseInfo, function(x) gsub('\\s+.*$', '', x)))
-  Ys <- data[,match(resps, names(data))]
-  fams <- unlist(M$family); K <- length(fams)
+  if(!is.null(data)){
+    Ys <- data[,match(resps, names(data))]
+  }else{
+    # Re-construct data from dmats
+    Ys <- do.call(cbind, lapply(1:K, function(k) do.call(rbind, lapply(object$dmats$long$Y, el, k))))
+    colnames(Ys) <- resps
+    Ys <- as.data.frame(Ys)
+  }
+  
+  fams <- unlist(M$family);
   S <- unlist(object$coeffs$sigma)
   
   out <- setNames(lapply(1:K, function(k){
@@ -195,11 +211,15 @@ plot.residuals.joint <- function(x, ...){
   K <- length(x); resps <- names(x)
   type <- attr(x, 'type')
   # Work out plot dimensions, set maximum of three plots per row.
-  ncol <- 3
-  nrow <- max(cumsum(1:K%%3 == 1))
-  par(mfrow = c(nrow, ncol),
-      mai = c(0.6, 0.75, 0.2, 0.25))
-  
+  if(K > 2){
+    ncol <- 3
+    nrow <- max(cumsum(1:K%%3 == 1))
+    par(mfrow = c(nrow, ncol),
+        mai = c(0.6, 0.75, 0.2, 0.25))
+  }else{
+    par(mfrow = c(1, 2),
+        mai = c(0.6, 0.9, 0.2, 0.25))
+  }
   # Plot the residuals from residuals.joint object (x).
   ylab <- ifelse(type=='pearson', 'Pearson residuals', 'Residuals')
   for(k in 1:K){
