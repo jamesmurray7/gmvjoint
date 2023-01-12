@@ -64,7 +64,7 @@ We bridge from a set of joint model parameter estimates to a prognostic one by d
 ## To-do list
 Currently the largest limitation exists with the relatively strict data structure necessary and the corresponding calls to the `joint` function. The below lists these (known) limitations and plans for relaxing.
 
-* Survival information: Time must be named `survtime` and failure indicator must be names `status`. This arose out of the origins of the package, and I have a fix in mind.
+* Survival information: Time must be named `survtime` and failure indicator must be names `status`. This arose out of the origins of the package, and I have a fix in mind. <span style="color:blue">Updated/fixed 12/01/23</span>.
 * Longitudinal information: The longitudinal time argument must be named `time` and the subject identifier (which we 'split' random effects by) `id`. Unsure if I will ever change these; I think a little more user pre-processing is no bad thing, when alternative would be a more crowded call to `joint`, which I wouldn't be a fan of.
 * Misc.: data must be balanced (i.e. no `NA` values); this will be fixed in a future update. For now I don't think this is the biggest issue, and recommend using `na.omit` for example. Additionally, the id variable __must__ increment by no more than one. That is, `data$id=1,1,1,2,2,2,3,3,3` is fine, but `data$id=1,1,1,1,3,3,3,4,4` is not. This is due to how data matrices are created internally and will be fixed in the future. 
 

@@ -1,5 +1,16 @@
 # Survival objects
 
+# Extract Surv(Time, Status) from coxph object.
+#' @keywords internal
+extract.surv.process <- function(ph){
+  if(!inherits(ph, 'coxph')) stop("ph must be object of class 'coxph'.")
+  call <- deparse(ph$formula)
+  call <- gsub('\\(|\\)', '',
+               regmatches(call, regexpr("\\(.*\\)", call)))
+  splitcall <- trimws(el(strsplit(call, '\\,')))
+  Time <- splitcall[1]; Status <- splitcall[2]
+  return(list(Time = Time, Status = Status))
+}
 
 #' Parsing the survival formula and constructing all survival-related data objects.
 #' @param surv.formula A formula readable by `coxph`.#'

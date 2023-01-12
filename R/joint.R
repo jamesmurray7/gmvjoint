@@ -2,7 +2,8 @@
 #'
 #' @param long.formulas A list of formula objects specifying the \eqn{K} responses. Each must be 
 #'        usable by \code{\link[glmmTMB]{glmmTMB}}. A restriction is that unique identifiers must 
-#'        be named `id`, and increment in intervals of at exactly one.
+#'        be named `id`, and increment in intervals of at exactly one. The variable for time
+#'        must be named `time`.
 #' @param surv.formula A formula specifying the time-to-event sub-model. Must be usable by 
 #'   \code{\link[survival]{coxph}}.
 #' @param data A \code{data.frame} containing all covariates and responses.
@@ -172,7 +173,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   # Initial parsing ----
   formulas <- lapply(long.formulas, parseFormula)
   surv <- parseCoxph(surv.formula, data)
-  n <- nrow(surv$survdata); K <- length(family)
+  n <- surv$n; K <- length(family)
   if(K!=length(long.formulas)) stop('Mismatched lengths of "family" and "long.formulas".')
   
   # Initial conditons ----

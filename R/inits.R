@@ -97,15 +97,15 @@ Longit.inits <- function(long.formula, data, family){
 }
 
 #' @keywords internal
-.ToStartStop <- function(data){
+.ToStartStop <- function(data, Tvar){
   this.subj <- list()
   uids <- unique(data$id)
   for(i in uids){
-    i.dat <- data[data$id == i, c('id', 'time', 'survtime')]
+    i.dat <- data[data$id == i, c('id', 'time', Tvar)]
     this.subj[[i]] <- cbind(
       id = i.dat$id,
       time1 = i.dat$time,
-      time2 = c(i.dat$time[-1], unique(i.dat$survtime))
+      time2 = c(i.dat$time[-1], unique(i.dat[, Tvar]))
     )
   }
   as.data.frame(do.call(rbind, this.subj))
@@ -124,10 +124,12 @@ Longit.inits <- function(long.formula, data, family){
 #' @keywords internal
 TimeVarCox <- function(data, b, ph, formulas, b.inds){
   # Prepare data
-  ss <- .ToStartStop(data); q <- ncol(b) # send to Start-Stop (ss) format
+  surv.call <- extract.surv.process(ph)
+  Tvar <- surv.call$Time; Dvar <- surv.call$Status
+  ss <- .ToStartStop(data, Tvar); q <- ncol(b) # send to Start-Stop (ss) format
   REs <- as.data.frame(b); REs$id <- 1:nrow(b); K <- length(b.inds)
   ss2 <- merge(ss, REs, 'id')
-  ss3 <- merge(ss2, data[, c('id', colnames(ph$x), 'survtime', 'status')], 'id')
+  ss3 <- merge(ss2, data[, c('id', colnames(ph$x), Tvar, Dvar)], 'id')
   ss3 <- ss3[!duplicated.matrix(ss3), ]
   
   # Create gamma variable
@@ -141,7 +143,7 @@ TimeVarCox <- function(data, b, ph, formulas, b.inds){
   # And join on ...
   ss3 <- cbind(ss3, gamma)
   # Update this to deal with ties too?
-  ss3$status2 <- ifelse(ss3$survtime == ss3$time2, ss3$status, 0)
+  ss3$status2 <- ifelse(ss3[,Tvar] == ss3$time2, ss3[, Dvar], 0)
   
   # Time Varying coxph
   # Formula
