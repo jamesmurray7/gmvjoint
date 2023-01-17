@@ -199,17 +199,20 @@ print.ROC.joint <- function(x, ...){
 #' area under the ROC curve and median Brier score be added to the bottom-right corner of the ROC 
 #' plot? Default is \code{legend = TRUE}.
 #' @param show.Youden should a line be drawn showing optimal cut-point using Youden's J statistic?
-#' defaults to \code{show.Youden = TRUE}.
+#' Defaults to \code{show.Youden = TRUE}.
+#' @param show.F1 should a line be drawn showing optimal cut-point using the F-score?
+#' Defaults to \code{show.F1 = FALSE}. Note that this measure comes under heavy criticism and is
+#' included for completeness' sake.
 #' @param ... additional arguments (none used).
 #' 
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #' 
-#' @importFrom graphics plot abline legend arrorws
+#' @importFrom graphics plot abline legend arrows
 #' @method plot ROC.joint
 #' @seealso \code{\link{dynPred}} and \code{\link{ROC}}
 #' @keywords internal
 #' @export
-plot.ROC.joint <- function(x, legend = TRUE, show.Youden = TRUE, ...){
+plot.ROC.joint <- function(x, legend = TRUE, show.Youden = TRUE, show.F1 = FALSE, ...){
   TPR <- x$metrics$TPR; FPR <- x$metrics$FPR
   plot(FPR, TPR,
        xlab = '1 - Specificity', ylab = 'Sensitivity',
@@ -222,6 +225,13 @@ plot.ROC.joint <- function(x, legend = TRUE, show.Youden = TRUE, ...){
     arrows(x0 = Ms[ind, 'FPR'], x1 = Ms[ind, 'FPR'],
            y0 = Ms[ind, 'FPR'], y1 = Ms[ind, 'TPR'],
            length = 0, lty = 5)
+  }
+  if(show.F1){
+    Ms <- x$metrics
+    maxF1 <- max(Ms$F1); ind <- which.max(Ms$F1)
+    arrows(x0 = Ms[ind, 'FPR'], x1 = Ms[ind, 'FPR'],
+           y0 = Ms[ind, 'FPR'], y1 = Ms[ind, 'TPR'],
+           length = 0, lty = 3)
   }
   if(legend){
     legend('bottomright', 
