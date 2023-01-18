@@ -29,7 +29,13 @@ Omega.draw <- function(x){
   beta <- draw[match(names(co$beta), names(draw))]
   gamma <- draw[match(names(co$gamma), names(draw))]
   zeta <- draw[match(names(co$zeta), names(draw))]
-  .sigma <- draw[match(names(sigma), names(draw))]
+  # Sort out sigma --> MUST be a list.
+  .sigma <- lapply(co$sigma, function(x){
+    if(x == 0L)
+      return(0)
+    else
+      return(draw[match(names(x), names(draw))])
+  })
   
   list(
     D = D, beta = beta, sigma = .sigma, gamma = gamma, zeta = zeta
