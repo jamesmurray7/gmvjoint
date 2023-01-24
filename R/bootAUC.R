@@ -56,6 +56,7 @@ bootAUC <- function(fit, data, Tstart, delta,
     samps <- sample(x = uids, size = size, replace = replace)
     newData <- setNames(lapply(1:size, function(i){
       newData <- data[data$id == samps[i],]
+      newData$InternalKey <- i
       newData
     }),paste0('original id ', samps))
     

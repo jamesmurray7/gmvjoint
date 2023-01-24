@@ -52,7 +52,8 @@
 #' roc
 #' plot(roc)
 #' }
-ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE){
+ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
+                boot = FALSE){
   if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
   
   # Parse control arguments ----
@@ -76,10 +77,20 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE){
   if('factor'%in%class(newdata$id)) newdata$id <- as.numeric(as.character(newdata$id)) # this confuses tapply later on
   bad.ids <- as.numeric(names(which(with(newdata, tapply(time, id, function(x) length(unique(x)))) == 1)))
   newdata <- newdata[!newdata$id%in%bad.ids, ]
-  alive.ids <- newdata[newdata$time == 0, 'id']  # For bootstrapping; can't think of easier fix currently.
+  if(boot){
+    ikeys <- unique(newdata$InternalKey)
+    keys <- 1:length(ikeys)
+    newdata <- merge(newdata, data.frame(InternalKey = ikeys, keys = keys),
+                     'InternalKey')
+    alive.ids <- newdata$id[which(diff(c(-999, newdata$keys))!=0)]
+  }else{
+    alive.ids <- unique(newdata$id)
+    keys <- sapply(alive.ids, function(i) rep) # Fix this tomorrow.
+  }
+  
+  # Give each individual instance of alive.id their own 'key'.
   n.alive <- length(alive.ids)
-  keys <- 1:n.alive
-  newdata$keys <- rep(keys, table(cumsum(newdata$time == 0)))
+  
   
   # Set out candidate failure times (u)
   ft <- fit$hazard[, 1]; tmax <- max(ft)
@@ -89,7 +100,7 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE){
   
   # Loop over ids and failure times
   probs <- acceptance <- setNames(vector('list', length = length(alive.ids)),
-                                  paste0('id ', as.character(keys)))
+                                  paste0('id ', as.character(unique(keys))))
   if(progress) pb <- utils::txtProgressBar(max = length(alive.ids), style = 3)
   for(i in seq_along(alive.ids)){
     ds <- dynPred(newdata, alive.ids[i], fit, u = candidate.u, progress = F, 
@@ -101,7 +112,7 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE){
   if(progress) close(pb)
   
   # Obtaining conditional probabilities for those alive subjects at Tstart.
-  infodf <- lapply(keys, function(x){
+  infodf <- lapply(unique(keys), function(x){
     p <- as.data.frame(probs[[paste0('id ', x)]])
     if(sim) p$mean <- p$mean else p$mean <- p$prob
     p$id <- x
