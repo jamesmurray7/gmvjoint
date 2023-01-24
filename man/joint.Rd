@@ -16,7 +16,8 @@ joint(
 \arguments{
 \item{long.formulas}{A list of formula objects specifying the \eqn{K} responses. Each must be 
 usable by \code{\link[glmmTMB]{glmmTMB}}. A restriction is that unique identifiers must 
-be named `id`, and increment in intervals of at exactly one.}
+be named `id`, and increment in intervals of at exactly one. The variable for time
+must be named `time`.}
 
 \item{surv.formula}{A formula specifying the time-to-event sub-model. Must be usable by 
 \code{\link[survival]{coxph}}.}

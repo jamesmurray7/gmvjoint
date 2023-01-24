@@ -4,7 +4,7 @@
 \alias{ROC}
 \title{Receiver Operator Characteristics (ROC) for a \code{joint} model.}
 \usage{
-ROC(fit, data, Tstart, delta, control = list())
+ROC(fit, data, Tstart, delta, control = list(), progress = TRUE)
 }
 \arguments{
 \item{fit}{a joint model fit by the  \code{joint} function.}
@@ -19,6 +19,10 @@ point up to which longitudinal process(es) is used in calculation of survival pr
 \item{control}{list of control arguments to be passed to \code{\link{dynPred}}, which
 acts as the main workhorse function for \code{ROC}. Takes default arguments of 
 \code{\link{dynPred}} if not supplied.}
+
+\item{progress}{should a progress bar be shown, showing the current progress of the ROC
+function (% showing the completed proportion of those alive at \code{Tstart}.). Defaults
+to \code{progress = TRUE}.}
 }
 \value{
 A list of class \code{ROC.joint} consisting of: \describe{
@@ -61,7 +65,7 @@ plot(roc)
 }
 }
 \seealso{
-\code{\link{dynPred}} and \code{\link{plot.ROC.joint}}
+\code{\link{dynPred}}, \code{\link{bootAUC}} and \code{\link{plot.ROC.joint}}.
 }
 \author{
 James Murray (\email{j.murray7@ncl.ac.uk}).

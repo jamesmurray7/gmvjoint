@@ -30,7 +30,7 @@ and is dropped from calculations. If \code{u=NULL} (the default), then the proba
 surviving all failure times after the \code{id}'s final longitudinal \code{time} is calculated.}
 
 \item{nsim}{how many Monte Carlo simulations should be carried out? Defaults to 
-\code{nsim=200}.}
+\code{nsim=200}. First-order estimates are calculated if \code{nsim=0}.}
 
 \item{progress}{a logical, if \code{progress=TRUE} (the default) then a progress bar displaying
 the current percentage of simulations have been completed.}
@@ -133,7 +133,7 @@ for longitudinal and time-to-event data. \emph{Biometrics} 2011;
 \strong{67}: 819–829.
 }
 \seealso{
-\code{\link{ROC}} and \code{\link{plot.dynPred}}.
+\code{\link{ROC}}, \code{\link{bootAUC}} and \code{\link{plot.dynPred}}.
 }
 \author{
 James Murray (\email{j.murray7@ncl.ac.uk}).

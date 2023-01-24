@@ -9,13 +9,15 @@
 \arguments{
 \item{x}{an object with class \code{dynPred}.}
 
-\item{what}{should the \code{"median"} (the default) or \code{"mean"} probability be displayed?}
+\item{what}{should the \code{"median"} (the default) or \code{"mean"} probability be displayed?
+if first-order predictions are used, this is ignored.}
 
 \item{...}{additional arguments (none used).}
 }
 \description{
 Produces a simple plot of the probability the subject survives given failure
-times along with the 95\% confidence interval.
+times along with the 95\% confidence interval if probabilities are generated from a simulation
+scheme, and simply the first-order estimate otherwise.
 }
 \seealso{
 \code{\link{dynPred}}

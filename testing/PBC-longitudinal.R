@@ -122,7 +122,7 @@ fit2 <-  joint(
     make.formula('albumin', 'linear'),
     make.formula('ascites', 'int')
   ), surv.formula = Surv(survtime, status) ~ drug,
-  data = PBC, control = list(verbose = T),
+  data = PBC, control = list(verbose = F),
   family = list('gaussian', 'gaussian', 'binomial')
 )
 summary(fit2) # which is the _final_ model.

@@ -4,7 +4,7 @@
 \alias{plot.ROC.joint}
 \title{Plot receiver operator characteristics.}
 \usage{
-\method{plot}{ROC.joint}(x, legend = TRUE, show.Youden = TRUE, ...)
+\method{plot}{ROC.joint}(x, legend = TRUE, show.Youden = TRUE, show.F1 = FALSE, ...)
 }
 \arguments{
 \item{x}{an object with class \code{ROC.joint}.}
@@ -14,7 +14,11 @@ area under the ROC curve and median Brier score be added to the bottom-right cor
 plot? Default is \code{legend = TRUE}.}
 
 \item{show.Youden}{should a line be drawn showing optimal cut-point using Youden's J statistic?
-defaults to \code{show.Youden = TRUE}.}
+Defaults to \code{show.Youden = TRUE}.}
+
+\item{show.F1}{should a line be drawn showing optimal cut-point using the F-score?
+Defaults to \code{show.F1 = FALSE}. Note that this measure comes under heavy criticism and is
+included for completeness' sake.}
 
 \item{...}{additional arguments (none used).}
 }

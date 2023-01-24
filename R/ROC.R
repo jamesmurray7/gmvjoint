@@ -11,6 +11,9 @@
 #' @param control list of control arguments to be passed to \code{\link{dynPred}}, which
 #' acts as the main workhorse function for \code{ROC}. Takes default arguments of 
 #' \code{\link{dynPred}} if not supplied.
+#' @param progress should a progress bar be shown, showing the current progress of the ROC
+#' function (% showing the completed proportion of those alive at \code{Tstart}.). Defaults
+#' to \code{progress = TRUE}.
 #'
 #' @return A list of class \code{ROC.joint} consisting of: \describe{
 #'   \item{\code{Tstart}}{numeric denoting the start of the time window of interest; all dynamic
@@ -34,7 +37,7 @@
 #'   \item{simulation.info}{list containing information about call to \code{dynPred}.}
 #' }
 #' @export
-#' @seealso \code{\link{dynPred}} and \code{\link{plot.ROC.joint}}
+#' @seealso \code{\link{dynPred}}, \code{\link{bootAUC}} and \code{\link{plot.ROC.joint}}.
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #'
 #' @examples
@@ -49,7 +52,7 @@
 #' roc
 #' plot(roc)
 #' }
-ROC <- function(fit, data, Tstart, delta, control = list()){
+ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE){
   if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
   
   # Parse control arguments ----
@@ -66,14 +69,17 @@ ROC <- function(fit, data, Tstart, delta, control = list()){
     df <- 4
   }
   if(!is.null(control$nsim)) nsim <- control$nsim else nsim <- 25 # Set fairly low.
+  sim <- nsim > 0
   
   # Set out new data and remove IDs where only one longitudinal measurement is available as this causes issues in calculation 
   newdata <- data[data$survtime > Tstart, ] # subjects who are ALIVE at Tstart.
   if('factor'%in%class(newdata$id)) newdata$id <- as.numeric(as.character(newdata$id)) # this confuses tapply later on
   bad.ids <- as.numeric(names(which(with(newdata, tapply(time, id, function(x) length(unique(x)))) == 1)))
   newdata <- newdata[!newdata$id%in%bad.ids, ]
-  alive.ids <- unique(newdata$id)
+  alive.ids <- newdata[newdata$time == 0, 'id']  # For bootstrapping; can't think of easier fix currently.
   n.alive <- length(alive.ids)
+  keys <- 1:n.alive
+  newdata$keys <- rep(keys, table(cumsum(newdata$time == 0)))
   
   # Set out candidate failure times (u)
   ft <- fit$hazard[, 1]; tmax <- max(ft)
@@ -83,21 +89,21 @@ ROC <- function(fit, data, Tstart, delta, control = list()){
   
   # Loop over ids and failure times
   probs <- acceptance <- setNames(vector('list', length = length(alive.ids)),
-                                  paste0('id ', alive.ids))
-  pb <- utils::txtProgressBar(max = length(alive.ids), style = 3)
+                                  paste0('id ', as.character(keys)))
+  if(progress) pb <- utils::txtProgressBar(max = length(alive.ids), style = 3)
   for(i in seq_along(alive.ids)){
     ds <- dynPred(newdata, alive.ids[i], fit, u = candidate.u, progress = F, 
                    b.density = b.density, scale = scale, df = df, nsim = nsim)
     probs[[i]] <- ds$pi#do.call(rbind, ds$pi)
-    acceptance[[i]] <- ds$MH.accept
-    utils::setTxtProgressBar(pb, i)
+    if(sim) acceptance[[i]] <- ds$MH.accept
+    if(progress) utils::setTxtProgressBar(pb, i)
   }
-  close(pb)
+  if(progress) close(pb)
   
   # Obtaining conditional probabilities for those alive subjects at Tstart.
-  infodf <- lapply(alive.ids, function(x){
+  infodf <- lapply(keys, function(x){
     p <- as.data.frame(probs[[paste0('id ', x)]])
-    p$mean <- p$mean   
+    if(sim) p$mean <- p$mean else p$mean <- p$prob
     p$id <- x
     p
   })
@@ -106,9 +112,9 @@ ROC <- function(fit, data, Tstart, delta, control = list()){
   pi <- with(infodf, tapply(`mean`, id, min))
   
   # Working out whether individuals failed in the window
-  survtimes <- with(newdata, tapply(survtime, id, unique))
+  survtimes <- with(newdata, tapply(survtime, keys, unique))
   events <- survtimes >= window[1] & survtimes <= window[2]
-  status <- as.logical(with(newdata, tapply(status, id, unique))) # Check if they failed
+  status <- as.logical(with(newdata, tapply(status, keys, unique))) # Check if they failed
   event <- status & events # Check if they failed in window.
   
   n.window.events <- sum(event)
@@ -161,7 +167,7 @@ ROC <- function(fit, data, Tstart, delta, control = list()){
     window.failures = n.window.events,
     Tstart.alive = n.alive,
     metrics = out, AUC = a, BrierScore = BS,
-    MH.acceptance.bar = mean(do.call(c, acceptance)),
+    MH.acceptance.bar = if(sim) mean(do.call(c, acceptance)) else NULL,
     simulation.info = simulation.info
   )
   class(out) <- 'ROC.joint'
