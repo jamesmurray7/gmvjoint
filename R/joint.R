@@ -288,6 +288,8 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   ModelInfo$family <- family
   ModelInfo$long.formulas <- long.formulas
   ModelInfo$surv.formulas <- surv.formula
+  ModelInfo$survtime <- surv$survtime
+  ModelInfo$status <- surv$status
   ModelInfo$control <- if(!is.null(control)) control else NULL
   ModelInfo$inds <- list(beta = beta.inds, b = b.inds)
   ModelInfo$nobs <- colSums(do.call(rbind, m))

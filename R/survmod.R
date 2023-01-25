@@ -18,13 +18,15 @@ extract.surv.process <- function(ph){
 #'   named by `surv.formula`. Can be of any 'completeness', as the function 
 #'   returns a reduced set.
 #'
-#' @returns A list containing 
-#' 
-#' * `survdata`: Reduced version of `data`, with only one row per subject, with covariates 
-#'  specified by `surv.formula` along with survival time and failure status. 
-#' * `ph`: model fit from `coxph`. 
-#' * `n`: Number of unique subjects. 
-#' * `Delta`: List of failure indicators for each subject (1=failed). 
+#' @returns A list containing \description{
+#'   \item{\code{survdata}}{reduced version of \code{data}, with only one row per subject, with 
+#'   covariates specified by \code{surv.formula} along with survival time and failure status.}
+#'   \item{\code{ph}}{the model fit from \code{coxph}.}
+#'   \item{\code{n}}{number of unique subjects.}
+#'   \item{\code{Delta}}{list of failure indicators for each of the unique subjects.}
+#'   \item{\code{survtime}}{the name of the \code{time} variable in \code{surv.formula}.}
+#'   \item{\code{status}}{the name of the \code{event} variable in \code{surv.formula}.}
+#' }
 #' 
 #' @export
 #' @examples 
@@ -43,9 +45,13 @@ parseCoxph <- function(surv.formula, data){
   
   Delta <- as.list(survdata$status)
   
+  parsed.ph <- extract.surv.process(ph)
+  survtime <- parsed.ph$Time
+  status <- parsed.ph$Status
+  
   # Return ----
   list(
-    survdata = survdata, ph = ph, n = n, Delta = Delta
+    survdata = survdata, ph = ph, n = n, Delta = Delta, survtime = survtime, status = status
   )
 }
 
