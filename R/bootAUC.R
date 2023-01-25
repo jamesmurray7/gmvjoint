@@ -124,7 +124,7 @@ print.bootAUC.joint <- function(x, ...){
               x$Tstart, q1[2], q1[1], q1[3]))
               
   cat(sprintf("Median [IQR] number of failures in window: %d [%d, %d].\n", q2[2], q2[1], q2[3]))
-  cat(sprintf("Best performing probabilistic threshold by average Youden index: %.2f", mean(info$thresh)))
+  cat(sprintf("Best performing probabilistic threshold by average Youden index: %.2f\n", mean(info$thresh)))
   
   invisible(x)
 }

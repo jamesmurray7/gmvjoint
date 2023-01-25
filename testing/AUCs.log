@@ -1,0 +1,60 @@
+Time window [8, 10).
+Based on 100 bootstrapped samples of the data
+
+First-order estimate for survival-free probabilities was used.
+Median [95% confidence interval] for AUC:
+0.661 [0.544, 0.753]
+
+Median [IQR] number of resampled subjects alive at time 8: 98 [92, 105]
+Median [IQR] number of failures in window: 15 [12, 18].
+Best performing probabilistic threshold by average Youden index: 0.81
+Time window [8, 10).
+Based on 100 bootstrapped samples of the data
+
+First-order estimate for survival-free probabilities was used.
+Median [95% confidence interval] for AUC:
+0.647 [0.486, 0.770]
+
+Median [IQR] number of resampled subjects alive at time 8: 97 [91, 102]
+Median [IQR] number of failures in window: 15 [12, 18].
+Best performing probabilistic threshold by average Youden index: 0.79
+Time window [8, 10).
+Based on 100 bootstrapped samples of the data
+
+First-order estimate for survival-free probabilities was used.
+Median [95% confidence interval] for AUC:
+0.682 [0.548, 0.779]
+
+Median [IQR] number of resampled subjects alive at time 8: 98 [91, 103]
+Median [IQR] number of failures in window: 15 [13, 17].
+Best performing probabilistic threshold by average Youden index: 0.80
+Time window [4, 7).
+Based on 100 bootstrapped samples of the data
+
+First-order estimate for survival-free probabilities was used.
+Median [95% confidence interval] for AUC:
+0.573 [0.459, 0.674]
+
+Median [IQR] number of resampled subjects alive at time 4: 212 [208, 216]
+Median [IQR] number of failures in window: 31 [28, 35].
+Best performing probabilistic threshold by average Youden index: 0.74
+Time window [4, 7).
+Based on 100 bootstrapped samples of the data
+
+First-order estimate for survival-free probabilities was used.
+Median [95% confidence interval] for AUC:
+0.588 [0.474, 0.658]
+
+Median [IQR] number of resampled subjects alive at time 4: 213 [207, 218]
+Median [IQR] number of failures in window: 32 [28, 35].
+Best performing probabilistic threshold by average Youden index: 0.73
+Time window [4, 7).
+Based on 100 bootstrapped samples of the data
+
+First-order estimate for survival-free probabilities was used.
+Median [95% confidence interval] for AUC:
+0.581 [0.476, 0.680]
+
+Median [IQR] number of resampled subjects alive at time 4: 211 [204, 217]
+Median [IQR] number of failures in window: 31 [28, 35].
+Best performing probabilistic threshold by average Youden index: 0.73
