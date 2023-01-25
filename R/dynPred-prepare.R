@@ -16,11 +16,11 @@ prepareLongData <- function(data, fit){
   trunc.time <- max(data$time)
   X <- lapply(1:K, function(k){
     Xk <- X[[k]]
-    Xk[Xk[, 'time'] <= trunc.time, ]
+    Xk[Xk[, 'time'] <= trunc.time, , drop = F]
   })
   Z <- lapply(1:K, function(k){
     Zk <- Z[[k]]
-    Zk[Zk[, 'time'] <= trunc.time, ]
+    Zk[Zk[, 'time'] <= trunc.time, , drop = F]
   })
   Y <- lapply(1:K, function(k){
     Y[[k]][1:nrow(X[[k]])]
@@ -47,22 +47,33 @@ prepareSurvData <- function(data, fit, u = NULL){
   fs <- lapply(fit$ModelInfo$long.formulas, parseFormula)
   Fi <- do.call(cbind, lapply(fs, function(x) model.matrix(as.formula(paste0('~', unlist(x$random))),
                                                            data.frame(time = u)))) # Don't actually need to work this out.
-  Fu <- Fu.all[ft <= u,]; haz <- l0u[1:nrow(Fu)]
+  
+  Fu <- Fu.all[ft <= u,]
+  if(nrow(Fu)){ # Code-in a failsafe.
+    haz <- l0u[1:nrow(Fu)]
+  }else{
+    Fu <- matrix(0, nr = 1, nc = ncol(Fu.all))
+    haz <- c(0)
+  }
+  
+  # Fail safe for Fu
   
   # Time-invariant items
   S <- fit$dmats$surv$S[[id]]
   SS <- apply(S, 2, rep, nrow(Fu))
+  if(!"matrix"%in%class(SS)) SS <- as.matrix(t(SS))
   
   return(list(
     S = S, SS = SS, 
     Fi = Fi, Fu = Fu, l0u = haz,
-    l0i = 0., Delta = 0L     # Supppose we don't know T_i*
+    l0i = 0., Delta = 0L     # Suppose we don't know T_i*
   ))
   
 }
 
 
 # Prepare and collate longitudinal and survival data for dynamic predictions
+
 #' @keywords internal
 prepareData <- function(data, fit, u = NULL){
   id <- unique(data$id)

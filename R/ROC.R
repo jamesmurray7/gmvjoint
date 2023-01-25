@@ -14,6 +14,8 @@
 #' @param progress should a progress bar be shown, showing the current progress of the ROC
 #' function (% showing the completed proportion of those alive at \code{Tstart}.). Defaults
 #' to \code{progress = TRUE}.
+#' @param boot logical. For usage via \code{\link{bootAUC}} only, do not change from 
+#' the default \code{boot=FALSE}.
 #'
 #' @return A list of class \code{ROC.joint} consisting of: \describe{
 #'   \item{\code{Tstart}}{numeric denoting the start of the time window of interest; all dynamic
@@ -72,25 +74,30 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
   if(!is.null(control$nsim)) nsim <- control$nsim else nsim <- 25 # Set fairly low.
   sim <- nsim > 0
   
+  # Ensure {survtime, status} exists via model call.
+  data$survtime <- data[,fit$ModelInfo$survtime]; data$status <- data[,fit$ModelInfo$status]
   # Set out new data and remove IDs where only one longitudinal measurement is available as this causes issues in calculation 
   newdata <- data[data$survtime > Tstart, ] # subjects who are ALIVE at Tstart.
   if('factor'%in%class(newdata$id)) newdata$id <- as.numeric(as.character(newdata$id)) # this confuses tapply later on
   bad.ids <- as.numeric(names(which(with(newdata, tapply(time, id, function(x) length(unique(x)))) == 1)))
   newdata <- newdata[!newdata$id%in%bad.ids, ]
-  if(boot){
+  
+  # Give each alive.id their own `key`.
+  if(boot){ # For bootstrapping where duplicate ids will probably exist, but need to be treated separately.
     ikeys <- unique(newdata$InternalKey)
     keys <- 1:length(ikeys)
     newdata <- merge(newdata, data.frame(InternalKey = ikeys, keys = keys),
                      'InternalKey')
     alive.ids <- newdata$id[which(diff(c(-999, newdata$keys))!=0)]
-  }else{
+  }else{ # Otherwise assume each id is unique as normal.
     alive.ids <- unique(newdata$id)
-    keys <- sapply(alive.ids, function(i) rep) # Fix this tomorrow.
+    keys <- do.call(c,
+                    sapply(1:length(alive.ids), function(i) rep(i, length(which(data$id == alive.ids[i])))))
+    newdata$keys <- keys
   }
-  
-  # Give each individual instance of alive.id their own 'key'.
+
+  # Number of individuals alive at Tstart
   n.alive <- length(alive.ids)
-  
   
   # Set out candidate failure times (u)
   ft <- fit$hazard[, 1]; tmax <- max(ft)
@@ -105,7 +112,7 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
   for(i in seq_along(alive.ids)){
     ds <- dynPred(newdata, alive.ids[i], fit, u = candidate.u, progress = F, 
                    b.density = b.density, scale = scale, df = df, nsim = nsim)
-    probs[[i]] <- ds$pi#do.call(rbind, ds$pi)
+    probs[[i]] <- ds$pi
     if(sim) acceptance[[i]] <- ds$MH.accept
     if(progress) utils::setTxtProgressBar(pb, i)
   }
@@ -185,11 +192,14 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
   out
 }
 
-# Calculate AUC from ROC table.
+# Calculate AUC from ROC table using formula for area of trapezoid.
+# https://stats.stackexchange.com/a/146174
 #' @keywords internal
 AUC <- function(x){
-  TPR <- rev(x$TPR); FPR <- rev(x$FPR);
-  sum(0.5 * diff(FPR) * (TPR[-1] + TPR[-length(TPR)]), na.rm = TRUE)
+  sens <- x$TPR; omspec <- x$FPR;
+  height <- 0.5 * (sens[-1] + sens[-length(sens)])
+  width <- -diff(omspec)
+  sum(height*width)
 }
 
 #' @method print ROC.joint

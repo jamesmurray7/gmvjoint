@@ -15,7 +15,7 @@ bootAUC(
   ci = 0.95,
   nsim = 0,
   progress = TRUE,
-  DP.control = list()
+  control = list()
 )
 }
 \arguments{
@@ -59,7 +59,7 @@ Compute summary for the area under the curve of a joint model fit
 given a set of data and a time-window of interest by bootstrapping.
 }
 \examples{
-\dontrun{
+\donttest{
 data(PBC)
 PBC$serBilir <- log(PBC$serBilir)
 long.formulas <- list(serBilir ~ drug * time + (1 + time|id))

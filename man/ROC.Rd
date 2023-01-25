@@ -4,7 +4,7 @@
 \alias{ROC}
 \title{Receiver Operator Characteristics (ROC) for a \code{joint} model.}
 \usage{
-ROC(fit, data, Tstart, delta, control = list(), progress = TRUE)
+ROC(fit, data, Tstart, delta, control = list(), progress = TRUE, boot = FALSE)
 }
 \arguments{
 \item{fit}{a joint model fit by the  \code{joint} function.}
@@ -23,6 +23,9 @@ acts as the main workhorse function for \code{ROC}. Takes default arguments of
 \item{progress}{should a progress bar be shown, showing the current progress of the ROC
 function (% showing the completed proportion of those alive at \code{Tstart}.). Defaults
 to \code{progress = TRUE}.}
+
+\item{boot}{logical. For usage via \code{\link{bootAUC}} only, do not change from 
+the default \code{boot=FALSE}.}
 }
 \value{
 A list of class \code{ROC.joint} consisting of: \describe{

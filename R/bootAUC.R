@@ -31,7 +31,7 @@
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' data(PBC)
 #' PBC$serBilir <- log(PBC$serBilir)
 #' long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
@@ -44,9 +44,10 @@
 #' }
 bootAUC <- function(fit, data, Tstart, delta, 
                     boot.size = NULL, nboot = 100, replace = TRUE, ci = 0.95,
-                    nsim = 0, progress = TRUE, DP.control = list()){
-  if(!is.null(DP.control$nsim)) 
-    stop("Control number of simulations using `nsim` argument, not `DP.control`.")
+                    nsim = 0, progress = TRUE, control = list()){
+  if(!is.null(control$nsim)) 
+    stop("Control number of simulations using `nsim` argument, not `control`.")
+  control$nsim <- nsim
   if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
   
   # If don't supply boot.size, resample the same number of ids
@@ -69,8 +70,8 @@ bootAUC <- function(fit, data, Tstart, delta,
   for(b in 1:nboot){
     bdata <- resampledata(data, boot.size, replace)
     start <- proc.time()[3]
-    bROC <- ROC(fit, bdata, Tstart, delta, control = c(DP.control, nsim = nsim),
-                progress = F)
+    bROC <- ROC(fit, bdata, Tstart, delta, control = control,
+                progress = F, boot = TRUE)
     end <- proc.time()[3]
     AUCs[b] <- bROC$AUC
     info[[b]] <- data.frame(Tstart.alive = bROC$Tstart.alive,
@@ -123,7 +124,7 @@ print.bootAUC.joint <- function(x, ...){
               x$Tstart, q1[2], q1[1], q1[3]))
               
   cat(sprintf("Median [IQR] number of failures in window: %d [%d, %d].\n", q2[2], q2[1], q2[3]))
-  cat(sprintf("Best-performing probabilitstic threshold by average Youden index: %.2f", mean(info$thresh)))
+  cat(sprintf("Best performing probabilistic threshold by average Youden index: %.2f", mean(info$thresh)))
   
   invisible(x)
 }
