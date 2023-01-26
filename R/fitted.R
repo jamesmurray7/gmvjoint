@@ -216,9 +216,11 @@ plot.residuals.joint <- function(x, ...){
     nrow <- max(cumsum(1:K%%3 == 1))
     par(mfrow = c(nrow, ncol),
         mai = c(0.6, 0.75, 0.2, 0.25))
-  }else{
+  }else if(K == 2){
     par(mfrow = c(1, 2),
         mai = c(0.6, 0.9, 0.2, 0.25))
+  }else{
+    par(mfrow = c(1,1))
   }
   # Plot the residuals from residuals.joint object (x).
   ylab <- ifelse(type=='pearson', 'Pearson residuals', 'Residuals')
