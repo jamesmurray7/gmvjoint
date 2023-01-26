@@ -42,7 +42,7 @@ If \code{conditional = FALSE}, then the observed data log-likelihood is returned
 
 Additionally, the degrees of freedom, \eqn{\nu} is given by
 
-\deqn{\nu = \code{length(vech(D))} + \sum_{k=1}^KP_k + P_s + P_{\sigma_k},}
+\deqn{\nu = \code{length(vech(D))} + \sum_{k=1}^K\{P_k + P_{\sigma_k}\} + P_s,}
 
 where \eqn{P_k} denotes the number of coefficients estimated for the \eqn{k}th response,
 and \eqn{P_{\sigma_k}} the number of dispersion parameters estimated. \eqn{P_s} denotes
@@ -75,7 +75,7 @@ Wulfsohn MS, Tsiatis AA. A joint model for survival and longitudinal data measur
 \emph{Biometrics} 1997; \strong{53(1)}; 330-339.
 }
 \seealso{
-\code{\link{extractAIC.joint}}
+\code{\link{extractAIC.joint}} and \code{\link{anova.joint}}
 }
 \author{
 James Murray (\email{j.murray7@ncl.ac.uk})

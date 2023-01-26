@@ -33,6 +33,8 @@ S3method(print, ROC.joint)
 S3method(plot, ROC.joint)
 S3method(print, bootAUC.joint)
 S3method(print, bootAUC.diff.joint)
+S3method(anova, joint)
+S3method(print, anova.joint)
 
 export(joint)
 export(simData)

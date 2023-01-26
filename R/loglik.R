@@ -86,7 +86,7 @@ joint.log.lik <- function(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.
 #' 
 #' Additionally, the degrees of freedom, \eqn{\nu} is given by
 #' 
-#' \deqn{\nu = \code{length(vech(D))} + \sum_{k=1}^KP_k + P_s + P_{\sigma_k},}
+#' \deqn{\nu = \code{length(vech(D))} + \sum_{k=1}^K\{P_k + P_{\sigma_k}\} + P_s,}
 #' 
 #' where \eqn{P_k} denotes the number of coefficients estimated for the \eqn{k}th response,
 #' and \eqn{P_{\sigma_k}} the number of dispersion parameters estimated. \eqn{P_s} denotes
@@ -96,7 +96,7 @@ joint.log.lik <- function(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.
 #' With the degrees of freedom, we can additionally compute AIC and BIC, which are defined
 #' in no special way; and are calculated using the observed data log-likelihood.
 #' 
-#' @seealso \code{\link{extractAIC.joint}}
+#' @seealso \code{\link{extractAIC.joint}} and \code{\link{anova.joint}}
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk})
 #' 
 #' @returns Returns an object of class \code{logLik}, a number which is the log-likelihood
@@ -169,5 +169,117 @@ extractAIC.joint <- function(fit, scale, k = 2, conditional = FALSE, ...){
 }
 
 
+#' Anova for joint models
+#' 
+#' @description Perform a likelihood ratio test between two (nested) \code{joint} models. 
+#'
+#' @param object a joint model fit by the \code{joint} function. This should be \strong{nested}
+#' in \code{object2}.
+#' @param object2 a joint model fit by the \code{joint} function. This should be more complex
+#' than \code{object} whilst sharing the same survival sub-model.
+#' @param ... additional arguments (none used).
+#'
+#' @return A list of class \code{anova.joint} with elements \describe{
+#' 
+#'   \item{\code{mod0}}{the name of \code{object}.}
+#'   \item{\code{l0}}{the log-likelihood of the nested model, i.e. fit under the null.}
+#'   \item{\code{AIC0}}{AIC for \code{object}.}
+#'   \item{\code{BIC0}}{BIC for \code{object}.}
+#'   \item{\code{mod1}}{the name of \code{object2}.}
+#'   \item{\code{l1}}{the log-likelihood under the alternative hypothesis.}
+#'   \item{\code{AIC1}}{AIC for \code{object2}.}
+#'   \item{\code{BIC1}}{BIC for \code{object2}.}
+#'   \item{\code{LRT}}{likelihood ratio test statistic.}
+#'   \item{\code{p}}{the p-value of \code{LRT}.}
+#' 
+#' }
+#' @export
+#' 
+#' @author James Murray (\email{j.murray7@@ncl.ac.uk})
+#' @seealso \code{\link{joint}} and \code{\link{logLik.joint}}.
+#' @method anova joint
+#'
+#' @examples
+#' \donttest{
+#' rm(list=ls())
+#' data(PBC)
+#' # Compare quadratic vs linear time specification for log(serum bilirubin) -----
+#' PBC$serBilir <- log(PBC$serBilir)
+#' long.formulas1 <- list(serBilir ~ drug * time + (1 + time|id))
+#' long.formulas2 <- list(serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id))
+#' surv.formula <- Surv(survtime, status) ~ drug
+#' family <- list('gaussian')
+#' # Fit the two competing models (fit is nested in fit2) ------------------------
+#' fit <- joint(long.formulas1, surv.formula, PBC, family, control = list(verbose=F))
+#' fit2 <- joint(long.formulas2, surv.formula, PBC, family, control = list(verbose=F))
+#' anova(fit, fit2)
+#' # Quadratic terms improve fit significantly. Now try cubic spline -------------
+#' long.formulas3 <- list(serBilir ~ drug * splines::ns(time, 3) + (1 + splines::ns(time, 3))|id)
+#' fit3 <- joint(long.formulas3, surv.formula, PBC, family, control = list(verbose=F))
+#' anova(fit2, fit3)
+#' # Spline terms do _not_ improve fit -------------------------------------------
+#' }
+anova.joint <- function(object, object2, ...){
+  if(missing(object) || missing(object2))
+    stop("both 'object' and 'object2' should be provided (single-object anova not yet implemented).")
+  if(!inherits(object,  'joint')) stop("Only usable with object of class 'joint'.")
+  if(!inherits(object2, 'joint')) stop("Only usable with object of class 'joint'.")
+  
+  if(deparse(object$ModelInfo$surv.formulas)!=deparse(object2$ModelInfo$surv.formulas))
+    stop("Can't compare joint models with different survival sub-models.\n")
+  
+  # Ensure all constituent families are the same (?)
+  K0 <- length(object$ModelInfo$family); K1 <- length(object2$ModelInfo$family)
+  if(K0 != K1)
+    warning("Comparison between two models of different dimension.")
+  if(K0 == K1){
+    F0 <- unlist(object$ModelInfo$family); F1 <- unlist(object2$ModelInfo$family)
+    check <- all(F0 == F1)
+    if(!check) stop("Family mismatch in model specifications for '", deparse(substitute(object)), "' and '",
+                    deparse(substitute(object)), "'.")
+  }
+  
+  # Check models were fit to same data
+  if(object$ModelInfo$nobs!=object2$ModelInfo$nobs) stop("Models were not fit to same data.")
+  
+  # Extract lls
+  l0 <- logLik(object); l1 <- logLik(object2)
+  # Extract dfs and ensure object2 more complex.
+  df0 <- attr(l0, 'df'); df1 <- attr(l1, 'df')
+  xdf <- df1 - df0
+  if(xdf < 0)
+    stop("'", deparse(substitute(object)), "' should be nested in '", deparse(substitute(object2)), "' (i.e. '",
+         deparse(substitute(object2)), "' more complex).")
+  
+  LRT <- -2 * (c(l0) - c(l1))
+  p <- pchisq(LRT, xdf, lower.tail = F)
+  
+  out <- list(
+    mod0 = deparse(substitute(object)),
+    l0   = c(l0), AIC0 = AIC(object), BIC0 = attr(l0, 'BIC'), df0 = df0,
+    mod1 = deparse(substitute(object2)),
+    l1   = c(l1), AIC1 = AIC(object2), BIC1 = attr(l1, 'BIC'), df1 = df1,
+    LRT = LRT, p = p
+  )
+  class(out) <- 'anova.joint'
+  out
+}
 
+#' @method print anova.joint
+#' @keywords internal
+#' @export
+print.anova.joint <- function(x, ...){
+  if(!inherits(x, 'anova.joint')) stop("Only usable with objects of class 'anova.joint'.")
+  p <- x$p
+  if(p < 1e-3) p <- '< 0.001' else p <- as.character(round(p, 3))
+  df <- setNames(data.frame(logLik = c(x$l0, x$l1), df = c(x$df0, x$df1),
+                 AIC = c(x$AIC0, x$AIC1), BIC = c(x$BIC0, x$BIC1),
+                 lrt = c("", as.character(round(x$LRT, 3))),
+                 p = c("", p)),
+                 c("logLik", "df", "AIC", "BIC", "Likelihood ratio test", "p-value"))
+  row.names(df) <- c(x$mod0, x$mod1)
+  cat("\n")
+  print(df)
+  cat("\n")
+}
 
