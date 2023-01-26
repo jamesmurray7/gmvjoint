@@ -13,12 +13,17 @@ extract.surv.process <- function(ph){
 }
 
 #' Parsing the survival formula and constructing all survival-related data objects.
-#' @param surv.formula A formula readable by `coxph`.#'
+#' 
+#' @description Creates a set of survival data and fits a \code{coxph} model
+#' using a survival formula and a data set.
+#' 
+#' @param surv.formula A formula readable by `coxph`.
 #' @param data a set of data containing covariate information for variables
 #'   named by `surv.formula`. Can be of any 'completeness', as the function 
 #'   returns a reduced set.
 #'
-#' @returns A list containing \description{
+#' @returns A list containing: \describe{
+#' 
 #'   \item{\code{survdata}}{reduced version of \code{data}, with only one row per subject, with 
 #'   covariates specified by \code{surv.formula} along with survival time and failure status.}
 #'   \item{\code{ph}}{the model fit from \code{coxph}.}
@@ -26,11 +31,11 @@ extract.surv.process <- function(ph){
 #'   \item{\code{Delta}}{list of failure indicators for each of the unique subjects.}
 #'   \item{\code{survtime}}{the name of the \code{time} variable in \code{surv.formula}.}
 #'   \item{\code{status}}{the name of the \code{event} variable in \code{surv.formula}.}
+#'   
 #' }
 #' 
 #' @export
 #' @examples 
-#' 
 #' data = simData()$data
 #' parseCoxph(Surv(survtime, status) ~ bin, data = data)
 parseCoxph <- function(surv.formula, data){
