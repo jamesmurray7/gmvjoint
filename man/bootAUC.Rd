@@ -45,7 +45,7 @@ defaults to \code{nsim=0} which results in first-order estimates being used.}
 \item{progress}{logical, should a progress bar showing the percentage of completed
 bootstrapped estimates? Defauts to \code{progress=TRUE}.}
 
-\item{DP.control}{list of control arguments to pass to \code{\link{dynPred}} via 
+\item{control}{list of control arguments to pass to \code{\link{dynPred}} via 
 \code{\link{ROC}}, these largely control the MC simulation scheme. Note the user
 shouldn't specify the number of  simulations here as well, as this is covered 
 by the argument \code{nsim}.}

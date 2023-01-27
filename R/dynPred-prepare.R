@@ -52,7 +52,7 @@ prepareSurvData <- function(data, fit, u = NULL){
   if(nrow(Fu)){ # Code-in a failsafe.
     haz <- l0u[1:nrow(Fu)]
   }else{
-    Fu <- matrix(0, nr = 1, nc = ncol(Fu.all))
+    Fu <- matrix(0, nrow = 1, ncol = ncol(Fu.all))
     haz <- c(0)
   }
   

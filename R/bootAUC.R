@@ -19,7 +19,7 @@
 #' defaults to \code{nsim=0} which results in first-order estimates being used.
 #' @param progress logical, should a progress bar showing the percentage of completed
 #'  bootstrapped estimates? Defauts to \code{progress=TRUE}.
-#' @param DP.control list of control arguments to pass to \code{\link{dynPred}} via 
+#' @param control list of control arguments to pass to \code{\link{dynPred}} via 
 #' \code{\link{ROC}}, these largely control the MC simulation scheme. Note the user
 #' shouldn't specify the number of  simulations here as well, as this is covered 
 #' by the argument \code{nsim}.
@@ -37,7 +37,7 @@
 #' long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 #' surv.formula <- Surv(survtime, status) ~ drug
 #' family <- list('gaussian')
-#' fit <- joint(long.formulas, surv.formula, PBC, family, control = list(verbose=F))
+#' fit <- joint(long.formulas, surv.formula, PBC, family)
 #' # 100 first order estimates in window (8, 9]
 #' AUCs <- bootAUC(fit, PBC, Tstart = 8, delta = 1)
 #' AUCs
@@ -152,7 +152,7 @@ print.bootAUC.joint <- function(x, ...){
 #' defaults to \code{nsim=0} which results in first-order estimates being used.
 #' @param progress logical, should a progress bar showing the percentage of completed
 #'  bootstrapped estimates? Defauts to \code{progress=TRUE}.
-#' @param DP.control list of control arguments to pass to \code{\link{dynPred}} via 
+#' @param control list of control arguments to pass to \code{\link{dynPred}} via 
 #' \code{\link{ROC}}, these largely control the MC simulation scheme. Note the user
 #' shouldn't specify the number of  simulations here as well, as this is covered 
 #' by the argument \code{nsim}.
@@ -173,8 +173,8 @@ print.bootAUC.joint <- function(x, ...){
 #' surv.formula <- Surv(survtime, status) ~ drug
 #' family <- list('gaussian')
 #' # Fit two separate models ----------------------------------------------
-#' fit1 <- joint(long.formulas1, surv.formula, PBC, family, control = list(verbose=F))
-#' fit2 <- joint(long.formulas2, surv.formula, PBC, family, control = list(verbose=F))
+#' fit1 <- joint(long.formulas1, surv.formula, PBC, family)
+#' fit2 <- joint(long.formulas2, surv.formula, PBC, family)
 #' # Cast to list, where more saturated/complex is second entry.
 #' fits <- list(fit1, fit2)
 #' # 50 (x2) first order estimates in window (8, 9] ---------------------------
