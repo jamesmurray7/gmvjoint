@@ -237,9 +237,9 @@ bootAUCdiff <- function(fits, data, Tstart, delta,
   
   # Create output list
   lb <- (1 - ci)/2; ub <- 1 - lb
-  AUCsumm <- lapply(AUCs, quantile, probs = c(lb, .5, ub))
+  AUCsumm <- lapply(AUCs, quantile, probs = c(lb, .5, ub), na.rm = TRUE)
   AUCdiff <- apply(do.call(cbind, AUCs), 1, function(x) x[2] - x[1]) # 2nd fit - 1st fit
-  AUCdiffsumm <- quantile(AUCdiff, probs = c(lb, .5, ub))
+  AUCdiffsumm <- quantile(AUCdiff, probs = c(lb, .5, ub), na.rm = TRUE)
   out <- list(
     AUCs = AUCs,
     info = info,
