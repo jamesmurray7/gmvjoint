@@ -127,7 +127,7 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   gammazeta.new <- c(gamma, zeta) - solve(Reduce('+', Hgz), rowSums(Sgz))
   
   # The baseline hazard and related objects
-  lambda.update <- lambdaUpdate(sv$surv.times, do.call(cbind, sv$ft.mat), gamma, gamma.rep, zeta, S, SigmaSplit, b.hat, w, v, b.inds2, K, q)
+  lambda.update <- lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, gamma.rep, zeta, S, SigmaSplit, b.hat, w, v, b.inds2, K, q)
   l0.new <- sv$nev/rowSums(lambda.update)
   l0u.new <- lapply(l0u, function(ll){
     l0.new[1:length(ll)]

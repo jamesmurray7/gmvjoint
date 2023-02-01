@@ -42,7 +42,7 @@ long.formulas <- list(
 surv.formula <- Surv(survtime, status) ~ drug
 
 fit <- joint(long.formulas, surv.formula, PBC, 
-family = list('gaussian', 'poisson', 'binomial'))
+             family = list('gaussian', 'poisson', 'binomial'))
 R <- residuals(fit, type = 'pearson')
 plot(R)
 }

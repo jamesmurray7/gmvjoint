@@ -70,8 +70,8 @@ long.formulas2 <- list(serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time
 surv.formula <- Surv(survtime, status) ~ drug
 family <- list('gaussian')
 # Fit two separate models ----------------------------------------------
-fit1 <- joint(long.formulas1, surv.formula, PBC, family, control = list(verbose=F))
-fit2 <- joint(long.formulas2, surv.formula, PBC, family, control = list(verbose=F))
+fit1 <- joint(long.formulas1, surv.formula, PBC, family)
+fit2 <- joint(long.formulas2, surv.formula, PBC, family)
 # Cast to list, where more saturated/complex is second entry.
 fits <- list(fit1, fit2)
 # 50 (x2) first order estimates in window (8, 9] ---------------------------

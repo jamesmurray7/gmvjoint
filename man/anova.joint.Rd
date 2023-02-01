@@ -45,12 +45,13 @@ long.formulas2 <- list(serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time
 surv.formula <- Surv(survtime, status) ~ drug
 family <- list('gaussian')
 # Fit the two competing models (fit is nested in fit2) ------------------------
-fit <- joint(long.formulas1, surv.formula, PBC, family, control = list(verbose=F))
-fit2 <- joint(long.formulas2, surv.formula, PBC, family, control = list(verbose=F))
+fit <- joint(long.formulas1, surv.formula, PBC, family, 
+             control = list(verbose = FALSE))
+fit2 <- joint(long.formulas2, surv.formula, PBC, family, control = list(verbose = FALSE))
 anova(fit, fit2)
 # Quadratic terms improve fit significantly. Now try cubic spline -------------
 long.formulas3 <- list(serBilir ~ drug * splines::ns(time, 3) + (1 + splines::ns(time, 3))|id)
-fit3 <- joint(long.formulas3, surv.formula, PBC, family, control = list(verbose=F))
+fit3 <- joint(long.formulas3, surv.formula, PBC, family, control = list(verbose = FALSE))
 anova(fit2, fit3)
 # Spline terms do _not_ improve fit -------------------------------------------
 }

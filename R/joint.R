@@ -42,6 +42,8 @@
 #'   \item{\code{return.dmats}}{Logical: Should data matrices be returned? Defaults to 
 #'   \code{return.dmats=TRUE}. Note that some S3 methods for \code{\link{joint.object}}s
 #'   greatly benefit from inclusion of these data matrices.}
+#'   \item{\code{center.ph}}{Should the survival covariates be mean-centered? Defaults
+#'   to \code{center.ph=TRUE}.}
 #' 
 #' }
 #' 
@@ -172,7 +174,8 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   
   # Initial parsing ----
   formulas <- lapply(long.formulas, parseFormula)
-  surv <- parseCoxph(surv.formula, data)
+  center.ph <- if(!is.null(control$center.ph)) control$center.ph else TRUE
+  surv <- parseCoxph(surv.formula, data, center.ph)
   n <- surv$n; K <- length(family)
   if(K!=length(long.formulas)) stop('Mismatched lengths of "family" and "long.formulas".')
   
@@ -189,7 +192,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   })
   q <- length(do.call(c, b.inds))
   
-  inits.surv <- TimeVarCox(data, inits.long$b, surv$ph, formulas, b.inds)
+  inits.surv <- TimeVarCox(data, inits.long$b, surv, formulas, b.inds)
   
   # Longitudinal parameters
   beta <- inits.long$beta.init
@@ -197,13 +200,13 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   sigma <- inits.long$sigma.init # dispersion / resid. variance / 0 otherwise.
   b <- lapply(1:n, function(i) inits.long$b[i, ])
   # Survival parameters
-  zeta <- inits.surv$inits[match(colnames(surv$ph$x), names(inits.surv$inits))]
+  zeta <- inits.surv$inits[match(names(surv$ph$assign), names(inits.surv$inits))]
   names(zeta) <- paste0('zeta_', names(zeta))
   gamma <- inits.surv$inits[grepl('gamma\\_', names(inits.surv$inits))]
   
   # Longitudinal and survival data objects ----
   dmats <- createDataMatrices(data, formulas)
-  sv <- surv.mod(surv$ph, surv$survdata, formulas, inits.surv$l0.init)
+  sv <- surv.mod(surv, formulas, inits.surv$l0.init)
   
   X <- dmats$X; Y <- dmats$Y; Z <- dmats$Z # Longitudinal data matrices
   m <- lapply(Y, function(y) sapply(y, length))

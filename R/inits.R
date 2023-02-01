@@ -102,11 +102,15 @@ Longit.inits <- function(long.formula, data, family){
   uids <- unique(data$id)
   for(i in uids){
     i.dat <- data[data$id == i, c('id', 'time', Tvar)]
-    this.subj[[i]] <- cbind(
+    l <- nrow(i.dat)
+    this.one <- cbind(
       id = i.dat$id,
       time1 = i.dat$time,
       time2 = c(i.dat$time[-1], unique(i.dat[, Tvar]))
     )
+    if(this.one[l, 2] != unique(i.dat[, Tvar]))
+      rbind(this.one, c(this.one[l, 'id'], this.one[l, 3] + 1e-3, unique(i.dat[, Tvar])))
+    this.subj[[i]] <- this.one
   }
   as.data.frame(do.call(rbind, this.subj))
 }
@@ -122,14 +126,15 @@ Longit.inits <- function(long.formula, data, family){
 }
 
 #' @keywords internal
-TimeVarCox <- function(data, b, ph, formulas, b.inds){
+TimeVarCox <- function(data, b, surv, formulas, b.inds){
   # Prepare data
-  surv.call <- extract.surv.process(ph)
-  Tvar <- surv.call$Time; Dvar <- surv.call$Status
+  Tvar <- surv$survtime; Dvar <- surv$status
   ss <- .ToStartStop(data, Tvar); q <- ncol(b) # send to Start-Stop (ss) format
   REs <- as.data.frame(b); REs$id <- 1:nrow(b); K <- length(b.inds)
   ss2 <- merge(ss, REs, 'id')
-  ss3 <- merge(ss2, data[, c('id', colnames(ph$x), Tvar, Dvar)], 'id')
+  invarSurv <- cbind(merge(data[, 'id', drop = F], data.frame(id = 1:surv$n, surv$Smat), 'id'),
+                     data[,c(Tvar, Dvar)])
+  ss3 <- merge(ss2, invarSurv, 'id')
   ss3 <- ss3[!duplicated.matrix(ss3), ]
   
   # Create gamma variable
@@ -148,7 +153,7 @@ TimeVarCox <- function(data, b, ph, formulas, b.inds){
   # Time Varying coxph
   # Formula
   timevar.formula <- as.formula(
-    paste0('Surv(time1, time2, status2) ~ ', paste0(colnames(ph$x), collapse = ' + '), ' + ', paste0('gamma_', 1:K, collapse = ' + '))
+    paste0('Surv(time1, time2, status2) ~ ', paste0(names(surv$ph$assign), collapse = ' + '), ' + ', paste0('gamma_', 1:K, collapse = ' + '))
   )
   ph <- coxph(timevar.formula, data = ss3)
   

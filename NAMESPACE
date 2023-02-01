@@ -15,6 +15,7 @@ importFrom("mvtnorm", "dmvnorm")
 import(glmmTMB)
 import(survival)
 
+S3method(print, parseCoxph)
 S3method(print, joint)
 S3method(summary, joint)
 S3method(print, summary.joint)

@@ -61,6 +61,8 @@ log-likelihood? Defaults to \code{TRUE}.}
   \item{\code{return.dmats}}{Logical: Should data matrices be returned? Defaults to 
   \code{return.dmats=TRUE}. Note that some S3 methods for \code{\link{joint.object}}s
   greatly benefit from inclusion of these data matrices.}
+  \item{\code{center.ph}}{Should the survival covariates be mean-centered? Defaults
+  to \code{center.ph=TRUE}.}
 
 }}
 }

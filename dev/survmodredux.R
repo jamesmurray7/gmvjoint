@@ -1,49 +1,5 @@
-# Survival objects
-
-# Extract Surv(Time, Status) from coxph object.
-#' @keywords internal
-extract.surv.process <- function(ph){
-  if(!inherits(ph, 'coxph')) stop("ph must be object of class 'coxph'.")
-  call <- deparse(ph$formula)
-  call <- gsub('\\(|\\)', '',
-               regmatches(call, regexpr("\\(.*\\)", call)))
-  splitcall <- trimws(el(strsplit(call, '\\,')))
-  Time <- splitcall[1]; Status <- splitcall[2]
-  return(list(Time = Time, Status = Status))
-}
-
-#' Parsing the survival formula and constructing all survival-related data objects.
-#' 
-#' @description Creates a set of survival data and fits a \code{coxph} model
-#' using a survival formula and a data set.
-#' 
-#' @param surv.formula A formula readable by `coxph`.
-#' @param data a set of data containing covariate information for variables
-#'   named by `surv.formula`. Can be of any 'completeness', as the function 
-#'   returns a reduced set.
-#' @param center Should the covariate matrices be mean-centered before being returned?
-#' defaults to \code{center = TRUE}.
-#'
-#' @returns A list with class \code{parseCoxph} containing: \describe{
-#' 
-#'   \item{\code{survdata}}{reduced version of \code{data}, with only one row per subject, with 
-#'   covariates specified by \code{surv.formula} along with survival time and failure status.}
-#'   \item{\code{Smat}}{matrix containing all requisite survival covariates (one row per subject).}
-#'   \item{\code{ph}}{the model fit from \code{coxph}.}
-#'   \item{\code{Delta}}{list of failure indicators for each of the unique subjects.}
-#'   \item{\code{n}}{number of unique subjects.}
-#'   \item{\code{ft}}{vector of unique failure times.}
-#'   \item{\code{nev}}{vector containing number of failures at each failure time \code{ft}.}
-#'   \item{\code{survtime}}{the name of the \code{time} variable in \code{surv.formula}.}
-#'   \item{\code{status}}{the name of the \code{event} variable in \code{surv.formula}.}
-#'   
-#' }
-#' 
-#' @export
-#' @examples 
-#' data = simData()$data
-#' parseCoxph(Surv(survtime, status) ~ bin, data = data)
-parseCoxph <- function(surv.formula, data, center = TRUE){
+# Updated version of parseCoxph
+parseCoxph2 <- function(surv.formula, data, center = TRUE){
   survdata <- data[!duplicated(data[, 'id']), ]; n <- nrow(survdata)
   ph <- coxph(surv.formula, survdata, x = T)
   
@@ -80,20 +36,13 @@ parseCoxph <- function(surv.formula, data, center = TRUE){
   
 }
 
-#' @keywords internal
-#' @method print parseCoxph
-#' @importFrom survival print.coxph
-#' @export
 print.parseCoxph <- function(x, ...){
   if(!inherits(x, 'parseCoxph')) stop("Only for use with objects of class 'parseCoxph'.\n")
-  print.coxph(x$ph)
+  print(x$ph)
   invisible(x)
 }
 
-# Create survival data objects based on random effects formula(e), a ph fit,
-# the survival data and an initial estimation of \eqn{\lambda_0}.
-#' @keywords internal
-surv.mod <- function(surv, formulas, l0.init){
+surv.mod2 <- function(surv, formulas, l0.init){
   # unpack parseCoxph object
   n <- surv$n; K <- length(formulas); l0 <- l0.init
   ft <- surv$ft; survtime.name <- surv$survtime; status.name <- surv$status

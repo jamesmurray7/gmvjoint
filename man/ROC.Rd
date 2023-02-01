@@ -61,9 +61,8 @@ PBC$serBilir <- log(PBC$serBilir)
 long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 surv.formula <- Surv(survtime, status) ~ drug
 family <- list('gaussian')
-fit <- joint(long.formulas, surv.formula, PBC, family, control = list(verbose=F))
-roc <- ROC(fit, PBC, Tstart = 8, delta = 2, control = list(nsim = 25))
-roc
+fit <- joint(long.formulas, surv.formula, PBC, family)
+(roc <- ROC(fit, PBC, Tstart = 8, delta = 2, control = list(nsim = 25)))
 plot(roc)
 }
 }

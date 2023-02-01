@@ -65,7 +65,7 @@ PBC$serBilir <- log(PBC$serBilir)
 long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 surv.formula <- Surv(survtime, status) ~ drug
 family <- list('gaussian')
-fit <- joint(long.formulas, surv.formula, PBC, family, control = list(verbose=F))
+fit <- joint(long.formulas, surv.formula, PBC, family)
 # 100 first order estimates in window (8, 9]
 AUCs <- bootAUC(fit, PBC, Tstart = 8, delta = 1)
 AUCs

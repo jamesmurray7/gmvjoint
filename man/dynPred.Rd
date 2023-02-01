@@ -104,7 +104,8 @@ PBC$serBilir <- log(PBC$serBilir)
 long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 surv.formula <- Surv(survtime, status) ~ drug
 family <- list('gaussian')
-fit <- joint(long.formulas, surv.formula, PBC, family, control = list(verbose=T))
+fit <- joint(long.formulas, surv.formula, PBC, family, 
+             control = list(verbose = TRUE))
 preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
                  scale = 0.33)
 preds
@@ -115,8 +116,7 @@ long.formulas <- list(
   albumin ~ drug * time + (1 + time|id)
 )
 # Does introduction of albumin affect conditional survival probability?
-fit <- joint(long.formulas, surv.formula, data = PBC, family = list("gaussian", "gaussian"),
-              control = list(verbose = F))
+fit <- joint(long.formulas, surv.formula, data = PBC, family = list("gaussian", "gaussian"))
 bi.preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
                     scale = 0.50)
 bi.preds
