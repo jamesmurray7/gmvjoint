@@ -7,7 +7,7 @@ importFrom("stats", "Gamma", "as.formula", "binomial", "coef", "cov",
            "rbinom", "rexp", "rgamma", "rnorm", "rpois", "runif",
            "setNames", "pnorm", "qnorm", "cov2cor", "fitted",
            "median", "vcov", "quantile", "pchisq", "AIC", "logLik", "sd")
-importFrom("graphics", "plot", "par", "abline", "lines", "axis", "legend", "arrows")
+importFrom("graphics", "plot", "par", "abline", "lines", "axis", "legend", "arrows", "curve")
 importFrom("utils", "head")
 importFrom("statmod", "gauss.quad.prob")
 importFrom('pracma', 'grad', 'hessian')

@@ -4,14 +4,25 @@
 \alias{residuals.joint}
 \title{Obtain joint model residuals}
 \usage{
-\method{residuals}{joint}(object, data = NULL, type = c("response", "pearson"), ...)
+\method{residuals}{joint}(
+  object,
+  data = NULL,
+  what = c("longit", "surv"),
+  type = c("response", "pearson"),
+  ...
+)
 }
 \arguments{
 \item{object}{a joint model fit by \code{\link{joint}} function.}
 
 \item{data}{the \emph{original} data set (i.e. that used in the \code{joint} call).}
 
-\item{type}{character. The residual type}
+\item{what}{character string. Should the \code{"long"}itudinal process(es) be extracted,
+or the \code{"surv"}ival ones?}
+
+\item{type}{character. The residual type for \code{what = "long"} residuals only. Choices are
+on the \code{"response"} scale or \code{"pearson"} residuals. Cox-Snell residuals are 
+returend if \code{what = "surv"}.}
 
 \item{...}{Additional arguments (none used).}
 }
@@ -45,6 +56,7 @@ fit <- joint(long.formulas, surv.formula, PBC,
              family = list('gaussian', 'poisson', 'binomial'))
 R <- residuals(fit, type = 'pearson')
 plot(R)
+plot(residuals(fit, what = "surv"))
 }
 }
 \seealso{
