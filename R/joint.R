@@ -43,7 +43,7 @@
 #'   \code{return.dmats=TRUE}. Note that some S3 methods for \code{\link{joint.object}}s
 #'   greatly benefit from inclusion of these data matrices.}
 #'   \item{\code{center.ph}}{Should the survival covariates be mean-centered? Defaults
-#'   to \code{center.ph=TRUE}.}
+#'   to \code{center.ph=FALSE}.}
 #' 
 #' }
 #' 
@@ -56,7 +56,7 @@
 #' multivariate joint model in Murray and Philipson (2022). Each longitudinal response is 
 #' modelled by 
 #' 
-#' \deqn{h(E[Y_{ik}|b_{ik};\Omega]) = X_{ik}\beta_k + Z_{ik}b_{ik}} 
+#' \deqn{h_k(E[Y_{ik}|b_{ik};\Omega]) = X_{ik}\beta_k + Z_{ik}b_{ik}} 
 #' 
 #' where \eqn{h} is a known, monotonic link function. An association is induced between the 
 #' \eqn{K}th response and the hazard \eqn{\lambda_i(t)} by: 
@@ -173,8 +173,9 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   start.time <- proc.time()[3]
   
   # Initial parsing ----
+  if("factor"%in%class(data$id)) data$id <- as.numeric(as.character(data$id))
   formulas <- lapply(long.formulas, parseFormula)
-  center.ph <- if(!is.null(control$center.ph)) control$center.ph else TRUE
+  center.ph <- if(!is.null(control$center.ph)) control$center.ph else FALSE
   surv <- parseCoxph(surv.formula, data, center.ph)
   n <- surv$n; K <- length(family)
   if(K!=length(long.formulas)) stop('Mismatched lengths of "family" and "long.formulas".')

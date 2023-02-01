@@ -62,7 +62,7 @@ log-likelihood? Defaults to \code{TRUE}.}
   \code{return.dmats=TRUE}. Note that some S3 methods for \code{\link{joint.object}}s
   greatly benefit from inclusion of these data matrices.}
   \item{\code{center.ph}}{Should the survival covariates be mean-centered? Defaults
-  to \code{center.ph=TRUE}.}
+  to \code{center.ph=FALSE}.}
 
 }}
 }
@@ -80,7 +80,7 @@ EM algorithm first proposed in Bernhardt et al. (2015), and later used in the 'c
 multivariate joint model in Murray and Philipson (2022). Each longitudinal response is 
 modelled by 
 
-\deqn{h(E[Y_{ik}|b_{ik};\Omega]) = X_{ik}\beta_k + Z_{ik}b_{ik}} 
+\deqn{h_k(E[Y_{ik}|b_{ik};\Omega]) = X_{ik}\beta_k + Z_{ik}b_{ik}} 
 
 where \eqn{h} is a known, monotonic link function. An association is induced between the 
 \eqn{K}th response and the hazard \eqn{\lambda_i(t)} by: 

@@ -82,11 +82,10 @@ parseCoxph <- function(surv.formula, data, center = TRUE){
 
 #' @keywords internal
 #' @method print parseCoxph
-#' @importFrom survival print.coxph
 #' @export
 print.parseCoxph <- function(x, ...){
   if(!inherits(x, 'parseCoxph')) stop("Only for use with objects of class 'parseCoxph'.\n")
-  print.coxph(x$ph)
+  print(x$ph)
   invisible(x)
 }
 
