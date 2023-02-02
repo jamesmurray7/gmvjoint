@@ -227,27 +227,26 @@ print.residuals.joint <- function(x, ...){
   }else{
     object <- attr(x, 'object')
     attr(x, 'type') <- NULL; attr(x, 'what') <- NULL; attr(x, "object") <- NULL
-    # KM estimate
-    sf.null <- survfit(Surv(x, unlist(object$dmats$ph$Delta)) ~ 1)
-    # Stratified by call to `joint`.
-    ff <- as.formula(gsub(object$ModelInfo$survtime, 'x', deparse(object$ModelInfo$surv.formulas)))
-    sf.fitd <- survfit(ff, data = object$dmats$ph$survdata)
-    sort.Ti <- sort(object$dmats$surv$Tis)
+    Tis <- object$dmats$surv$Tis
     # Difference in residuals and expected
-    diff.null <- sf.null$surv - exp(-sort.Ti)
-    diff.strata <- sf.fitd$surv - exp(-sort.Ti)
-    cat("Cox-Snell residuals:\nNULL:\n")
-    print(round(summary(diff.null), 3))
-    cat("\nStratified by ", paste0(colnames(object$dmats$ph$Smat), collapse = ', '), ':\n', sep = '')
-    print(round(summary(diff.strata), 3))
+    cat("Cox-Snell residuals:\n")
+    print(round(summary(x), 3))
+    # cat("\Martingales by ", paste0(colnames(object$dmats$ph$Smat), collapse = ', '), ':\n', sep = '')
+    cat("\nMartingale residuals: \n")
+    print(round(summary(Tis-x), 3))
+    cat("\n")
   }
   invisible(x)
 }
 
 #' Plot joint model residuals 
 #' 
-#' @description Produces a simple (panelled) plot of the residuals obtained by a
-#' joint model (obtained by \code{\link{joint}}) of the same type as the original response.
+#' @description Plot residuals obtained by a joint model (obtained by \code{\link{joint}}). 
+#' If the \code{residuals.joint} object represents the longitudinal process, a simple (panelled)
+#' plot is produced (one for each response). If the residual object contains the Cox-Snell 
+#' resdiuals then a 1x2 panel is produced with the KM estimate of survival function of these
+#' residuals in the left-hand plot, and the same estimate mimicing the survival formula used in
+#' the original call to \code{joint}.
 #'
 #' @param x an object with class \code{residuals.joint}.
 #' @param ... additional arguments (none used).
