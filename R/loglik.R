@@ -226,9 +226,7 @@ anova.joint <- function(object, object2, ...){
   if(!inherits(object,  'joint')) stop("Only usable with object of class 'joint'.")
   if(!inherits(object2, 'joint')) stop("Only usable with object of class 'joint'.")
   
-  if(deparse(object$ModelInfo$surv.formulas)!=deparse(object2$ModelInfo$surv.formulas))
-    stop("Can't compare joint models with different survival sub-models.\n")
-  
+
   # Ensure all constituent families are the same (?)
   K0 <- length(object$ModelInfo$family); K1 <- length(object2$ModelInfo$family)
   if(K0 != K1)
