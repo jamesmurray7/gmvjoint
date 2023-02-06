@@ -6,23 +6,13 @@ all.sims <- expand.grid(mi = c(5,10,15),
 family <- list("gaussian", "poisson", "binomial")
 
 # VarCorr matrix for REs
-D <- diag(c(0.25, 0.04, 0.25, 0.04, 0.25))
-D[lower.tri(D, )] <- c(0.05, 0.04, -0.01, 0.0,  # Gaussian (Intercept) and others.
-                       0.00, -0.03, 0.0,        # Gaussian (slope) and others.
-                       -0.02, 0.1,              # Poisson (Intercept) and others.
-                       0)                       # Poisson slope and binomial intercept
+D <- diag(c(0.16, 0.04, 0.25, 0.05, 0.25))
+D[lower.tri(D, )] <- c(0.03, 0.02, 0.04, 0.0,  # Gaussian (Intercept) and others.
+                       0.03, 0.00, -0.06,        # Gaussian (slope) and others.
+                       0.08, 0.05,              # Poisson (Intercept) and others.
+                       0.04)                       # Poisson slope and binomial intercept
 
 D[upper.tri(D)] <- t(D)[upper.tri(D)]
-
-
-D <- diag(5)
-D[1, 1] <- D[3, 3] <- D[5, 5] <- 0.5^2
-D[2, 2] <- D[4, 4] <- 0.2^2
-D[1, 3] <- D[3, 1] <- -0.5 * 0.5 * 0.5
-D[1, 5] <- D[5, 1] <- 0.5^3
-D[3, 5] <- D[5, 3] <- -0.5*(0.5^2)
-
-
 
 # Check this ok
 isSymmetric(D) && all(eigen(D)$val>0) && det(D) > 0
@@ -34,22 +24,17 @@ beta <- rbind(
   c(1, -1, 1, -1)
 )
 
-
-beta <- rbind(c(0, 1, 1, 1),
-              c(0, -1, 0, 0.5),
-              c(0, 0.1, 0.5, -0.5))
-
 # Dispersion (only needed for sigma)
 sigma <- c(0.16, 0, 0)
 
 # gamma & zeta
-gamma <- c(-0.5, 0.75, -0.50)
+gamma <- c(-0.5, 0.25, 0.40)
 zeta <- c(-0.0, 0.3)
 
 # Specify random effects formulae (W_k)
 random.formula <- list(~time, ~time, ~1)
 
-test <- simData(family = family, sigma = sigma, ntms = 15, n = 100,
+test <- simData(family = family, sigma = sigma, ntms = 15, n = 250,
                 beta = beta, D = D, gamma = gamma, zeta = zeta, random.formula = random.formula,
                 theta = c(-2.5, 0.1))
 
@@ -61,20 +46,25 @@ fitfn <- function(d, ...){
         Surv(survtime, status) ~ bin,
         d, family = list("gaussian", "poisson", "binomial"), ...)
 }
-a <- fitfn(test$data,control = list(correlated=F))
+a <- fitfn(test$data,control = list(verbose=T))
 
 
+# Fit same using JMbayes2
+data <- test$data
+survdata <- test$surv.data
+ph <- coxph(Surv(survtime, status) ~ bin, survdata)
+
+gs <- lme(fixed=Y.1 ~ time + cont + bin,
+          random = ~time|id, data = data, method = 'ML')
+ps <- mixed_model(Y.2~time+cont+bin, data = data,
+                  random = ~time|id, family = poisson())
+bs <- mixed_model(Y.3~time+cont+bin, data = data,
+                  random = ~1|id, family = binomial())
 
 
+M <- list(gs, ps, bs)
 
-
-
-
-
-
-
-
-
+jmb <- jm(ph, M, time_var = 'time')
 
 
 
