@@ -268,6 +268,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// Sgammazeta2
+arma::vec Sgammazeta2(arma::vec& gammazeta, arma::vec& b, arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi, arma::vec& haz, int Delta, arma::vec& w, arma::vec& v, Rcpp::List Sigma, Rcpp::List b_inds);
+RcppExport SEXP _gmvjoint_Sgammazeta2(SEXP gammazetaSEXP, SEXP bSEXP, SEXP SSEXP, SEXP SSSEXP, SEXP FuSEXP, SEXP FiSEXP, SEXP hazSEXP, SEXP DeltaSEXP, SEXP wSEXP, SEXP vSEXP, SEXP SigmaSEXP, SEXP b_indsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type gammazeta(gammazetaSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type b(bSEXP);
+    Rcpp::traits::input_parameter< arma::rowvec& >::type S(SSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type SS(SSSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type Fu(FuSEXP);
+    Rcpp::traits::input_parameter< arma::rowvec& >::type Fi(FiSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type haz(hazSEXP);
+    Rcpp::traits::input_parameter< int >::type Delta(DeltaSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type v(vSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type Sigma(SigmaSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type b_inds(b_indsSEXP);
+    rcpp_result_gen = Rcpp::wrap(Sgammazeta2(gammazeta, b, S, SS, Fu, Fi, haz, Delta, w, v, Sigma, b_inds));
+    return rcpp_result_gen;
+END_RCPP
+}
 // Sgammazeta
 arma::vec Sgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma, arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi, arma::vec& haz, int Delta, arma::vec& w, arma::vec& v, List b_inds, int K, int q, long double eps);
 RcppExport SEXP _gmvjoint_Sgammazeta(SEXP gammazetaSEXP, SEXP bSEXP, SEXP SigmaSEXP, SEXP SSEXP, SEXP SSSEXP, SEXP FuSEXP, SEXP FiSEXP, SEXP hazSEXP, SEXP DeltaSEXP, SEXP wSEXP, SEXP vSEXP, SEXP b_indsSEXP, SEXP KSEXP, SEXP qSEXP, SEXP epsSEXP) {
