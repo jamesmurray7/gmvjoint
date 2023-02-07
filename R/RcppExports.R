@@ -72,6 +72,11 @@ phi_update <- function(b, X, Y, Z, beta, phi, w, v, tau) {
 }
 
 #' @keywords internal
+Sgammazeta2 <- function(gammazeta, b, S, SS, Fu, Fi, haz, Delta, w, v, Sigma, b_inds) {
+    .Call(`_gmvjoint_Sgammazeta2`, gammazeta, b, S, SS, Fu, Fi, haz, Delta, w, v, Sigma, b_inds)
+}
+
+#' @keywords internal
 Sgammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q, eps) {
     .Call(`_gmvjoint_Sgammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q, eps)
 }

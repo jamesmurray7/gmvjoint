@@ -552,6 +552,58 @@ double Egammazeta(vec& gammazeta, vec& b, List Sigma,
 
 //' @keywords internal
 // [[Rcpp::export]]
+arma::vec Sgammazeta2(arma::vec& gammazeta, arma::vec& b, arma::rowvec& S, arma::mat& SS,
+		      arma::mat& Fu, arma::rowvec& Fi, arma::vec& haz, int Delta,
+		      arma::vec& w, arma::vec& v, Rcpp::List Sigma, Rcpp::List b_inds){
+	int K = b_inds.size(), gh = w.size();
+	int ui = Fu.n_rows;
+	vec gamma = gammazeta.head(K);
+	vec zeta = gammazeta.subvec(K, gammazeta.size() - 1);
+  vec lhs_zeta = Delta * S;
+	vec mu = vec(ui), lhs_gamma = vec(K);
+	mat gammataus = mat(ui, K), Fub = mat(ui, K), tauk = mat(ui, K);
+	// Rcout << "Starting first loop" << std::endl;
+	for(int k = 0; k < K; k++){
+		uvec b_inds_k = b_inds[k];
+		double gk = gamma.at(k);
+		vec bk = b.elem(b_inds_k);
+		mat Fu_k = Fu.cols(b_inds_k);
+		rowvec Fi_k = Fi.cols(b_inds_k);
+		// Fi_k.print();
+		mat Sigma_k = Sigma[k];
+		vec tk = diagvec(Fu_k * Sigma_k * Fu_k.t());
+		mu += Fu_k * (gk * bk);
+		gammataus.col(k) = pow(gk, 2.) * tk;
+		Fub.col(k) = Fu_k * bk;
+		tauk.col(k) = tk;
+		lhs_gamma.at(k) = (double)Delta * as_scalar(Fi_k * bk);
+	}
+	// Rcout << "Finished Loop" << std::endl;
+	// mu.print();
+	mu += SS * zeta;
+	vec sumgammataus = sum(gammataus,1);
+
+	// d/dgamma and d/dzeta RHS
+	vec rhs_gamma = vec(K), rhs_zeta = vec(zeta.size());;
+	// Rcout << "Starting quadrature loop" << std::endl;
+	for(int l = 0; l < gh; l++){
+		for(int k = 0; k < K; k++){
+			rhs_gamma.at(k) += as_scalar(w[l] * (
+				(haz % exp(mu + sqrt(sumgammataus) * v[l])).t() * Fub.col(k) + 
+				gamma[k] * v[l] * (haz % exp(mu + sqrt(sumgammataus) * v[l]) % 
+					pow(gammataus.col(k), -0.5)).t() * tauk.col(k)
+			));
+		  // rhs_gamma.print();
+		}
+	rhs_zeta += w[l] * SS.t() * (haz % exp(mu + v[l] * sqrt(sumgammataus)));	
+	}
+	
+
+	return join_cols(lhs_gamma - rhs_gamma, lhs_zeta - rhs_zeta);
+}	
+
+//' @keywords internal
+// [[Rcpp::export]]
 arma::vec Sgammazeta(arma::vec& gammazeta, arma::vec& b, List Sigma,
                      arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi, arma::vec& haz, 
                      int Delta, arma::vec& w, arma::vec& v,

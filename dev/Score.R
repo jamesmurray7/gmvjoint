@@ -9,6 +9,7 @@ Score <- function(params, dmats, surv, sv, family){
   
   # betas
   betas <- params[(lD + 1):(lD + sum(dmats$P))]
+  print(betas)
   # dispersions
   sigmas <- params[(lD + sum(dmats$P) + 1):
                      (lD + sum(dmats$P) + sum(unlist(family) %in% c("gaussian", "Gamma", 'genpois')))]
@@ -25,53 +26,66 @@ Score <- function(params, dmats, surv, sv, family){
   # Scores ------------------------------------------------------------------
   # The RE covariance matrix, D
   Dinv <- solve(D)
-  vech.indices <- which(lower.tri(D, diag = T), arr.ind = T)
-  dimnames(vech.indices) <- NULL
-  delta.D <- lapply(1:nrow(vech.indices), function(d){
-    out <- matrix(0, nrow(D), ncol(D))
-    ind <- vech.indices[d, 2:1]
-    out[ind[1], ind[2]] <- out[ind[2], ind[1]] <- 1 # dD/dvech(d)_i
-    out
-  })
+  # vech.indices <- which(lower.tri(D, diag = T), arr.ind = T)
+  # dimnames(vech.indices) <- NULL
+  # delta.D <- lapply(1:nrow(vech.indices), function(d){
+  #   out <- matrix(0, nrow(D), ncol(D))
+  #   ind <- vech.indices[d, 2:1]
+  #   out[ind[1], ind[2]] <- out[ind[2], ind[1]] <- 1 # dD/dvech(d)_i
+  #   out
+  # })
+  # 
+  # lhs <- sapply(delta.D, function(d) {
+  #   -0.5 * sum(diag(Dinv %*% d))
+  # })
+
+  # sDi <- function(i) {
+  #   mapply(function(b, S) {
+  #     out <- 0.5 * tcrossprod(b) %*% (S %*% delta.D[[i]] %*% Dinv)
+  #     lhs[i] + sum(diag(out))
+  #   },
+  #   b = b, S = Sigma,
+  #   SIMPLIFY = T)
+  # }
   
-  lhs <- sapply(delta.D, function(d) {
-    -0.5 * sum(diag(Dinv %*% d))
-  })
+  # sDi <- function(i) {
+  #   mapply(function(b, S) {
+  #     out <- 0.5 * (tcrossprod(b) + S) %*% (Dinv %*% delta.D[[i]] %*% Dinv)
+  #     lhs[i] + sum(diag(out))
+  #   },
+  #   b = b, S = Sigma,
+  #   SIMPLIFY = T)
+  # }
+  # 
+  # sD <- (sapply(1:nrow(vech.indices), sDi))
   
-  sDi <- function(i) {
-    mapply(function(b, S) {
-      out <- 0.5 * tcrossprod(b) %*% (Dinv %*% delta.D[[i]] %*% Dinv)   
-      lhs[i] + sum(diag(out))
-    },
-    b = b, S = Sigma,
-    SIMPLIFY = T)
-  }
   
-  sD <- colMeans(sapply(1:nrow(vech.indices), sDi))
+  # T0 <- Dinv
+  # T1 <- .5 * T0
+  # test1 <- mapply(function(b){
+  #   t2 <- T0 %*% b
+  #   a <- t(T1) + T1 - 0.5 * t(T0) %*% b %*% t(t2) - 0.5 * t2 %*% crossprod(b, T0)
+  #   -0.5 * vech(a)
+  # },b = b, SIMPLIFY = F)
   
-  T0 <- Dinv
-  T1 <- .5 * T0
-  
+  postmult <- diag(1, nrow = nrow(Dinv), ncol = ncol(Dinv))
+  postmult[postmult == 0] <- 2
   test1 <- mapply(function(b){
-    t2 <- T0 %*% b
-    a <- t(T1) + T1 - 0.5 * t(T0) %*% b %*% t(t2) - 0.5 * t2 %*% crossprod(b, T0)
-    -0.5 * vech(a)
-  },b = b, SIMPLIFY = F)
-  
-  test1b <- mapply(function(b){
-    -(t(0.5 * T0) - 0.5 * t(T0) %*% b %*% t(T0 %*% b))
+    vech(-(t(0.5 * Dinv) - 0.5 * t(Dinv) %*% b %*% t(Dinv %*% b))) * vech(postmult)
   }, b = b, SIMPLIFY = F)
+  test2 <- mapply(function(b, S){ # This one is correct, corresponds to what was done above, but quicker.
+    vech(t(0.5 * (Dinv %*% (S + tcrossprod(b)) %*% Dinv) - 0.5 * Dinv)) * vech(postmult)
+  }, b = b, S = Sigma, SIMPLIFY = F)
   
-  ScoreD <- function(vD, b){
-    Dmat <- matrix(0, nrow = sum(dmats$q), ncol = sum(dmats$q))
-    Dmat[lower.tri(Dmat, T)] <- vD
-    Dmat[upper.tri(Dmat)] <- t(Dmat)[upper.tri(Dmat)]
-    
-    
-    mvtnorm::dmvnorm(b, sigma = Dmat, log = T)
-  }
-  
-  test2 <- lapply(1:n, function(i) pracma::grad(ScoreD, vD, b = b[[i]]))
+  # ScoreD <- function(vD, b){
+  #   Dmat <- matrix(0, nrow = sum(dmats$q), ncol = sum(dmats$q))
+  #   Dmat[lower.tri(Dmat, T)] <- vD
+  #   Dmat[upper.tri(Dmat)] <- t(Dmat)[upper.tri(Dmat)]
+  #   
+  #   mvtnorm::dmvnorm(b, sigma = Dmat, log = T)
+  # }
+  # 
+  # test2 <- lapply(1:n, function(i) pracma::grad(ScoreD, vech(D), b = b[[i]], heps = 1e-3))
   
   
   # The fixed effects, \beta 
@@ -122,37 +136,23 @@ Score <- function(params, dmats, surv, sv, family){
   }
   
   # Survival parameters (\gamma, \zeta)
+  # Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
+  #   Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, q, .Machine$double.eps^(1/3))
+  # }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
+
   Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, q, .Machine$double.eps^(1/3))
+    Sgammazeta2(c(gamma, zeta), b, S, SS, Fu, Fi, l0u, Delta, w, v, Sigma, b.inds2)
   }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
   
-  Sgz2 <- mapply(function(b, S, SS, Fu, Fi, l0u, Delta, SigmaSplit){
-    lhs.zeta <- Delta * S
-    mu <- lapply(1:K, function(k) Fu[,b.inds[[k]],drop=F] %*% (gamma[k] * b[b.inds[[k]]]))
-    mu <- Reduce('+', mu)
-    temp <- sapply(1:K, function(k) crossprod(b[b.inds[[k]]]))
-    Var <- lapply(1:K, function(k) sqrt(diag(gamma[k]^2 * tcrossprod(Fu[,b.inds[[k]]] %*% SigmaSplit[[k]], Fu[,b.inds[[k]]]))))
-    tau <- Reduce('+', lapply(1:K, function(k) gamma[k]^2 * tcrossprod(Fu[,b.inds[[k]]] %*% SigmaSplit[[k]], Fu[,b.inds[[k]]])))
-    tau <- sqrt(diag(tau))
-    rhs.gamma <- matrix(0, nrow = gh, ncol = length(gamma))
-    rhs.zeta <- matrix(0, nrow = gh, ncol = length(zeta))
-    lhs.gamma <- Delta * sapply(1:K, function(k) Fi[,b.inds[[k]],drop=F] %*% b[b.inds[[k]]]); 
-    for(g in 1:length(gamma)){
-      for(l in 1:gh){
-        rhs.gamma[l,g] <- w[l] * crossprod(l0u * exp(SS %*% zeta + gamma[g] * Fu %*% b + Var[[g]] * v[l]), Fu %*% b)
-      }
-    }
-    
-    for(l in 1:gh){
-      rhs.zeta[l,] <- w[l] * crossprod(SS, l0u * exp(SS %*% zeta + Fu %*% (gamma.rep * b) + tau * v[l]))
-    }
-    
-    
-    c(lhs.gamma - c(colSums(rhs.gamma)), lhs.zeta - c(colSums(rhs.zeta)))
-  }, b = b, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SigmaSplit = SigmaSplit,
-     SIMPLIFY = F)
-  
-  Sg <- function()
+  Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
+    Hgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, q, .Machine$double.eps^(1/4))
+  }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
+  # 
+  Hgz2 <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
+    GLMMadaptive:::cd_vec(c(gamma, zeta), Sgammazeta2,
+                          b=b, S=S, SS=SS, Fu = Fu, Fi = Fi, haz = l0u, Delta = Delta,
+                          w = w, v = v, Sigma = Sigma, b_inds = b.inds2)
+  }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
   
   
   # Collate and form information --------------------------------------------
@@ -162,13 +162,18 @@ Score <- function(params, dmats, surv, sv, family){
     }))
   })
   
-  S <- mapply(function(sD, Sb, Ss, Sgz){
+  Scores <- mapply(function(sD, Sb, Ss, Sgz){
     c(sD, Sb, Ss, c(Sgz))
   }, sD = test2, Sb = Sb, Ss = Ss2, Sgz = Sgz)
   
-  SS <- rowMeans(S)
-  I <- Reduce('+', lapply(1:n, function(i) tcrossprod(S[,i]))) - SS
-  
+  rM.Scores <- rowMeans(Scores)
+  I <- Reduce('+', lapply(1:n, function(i) tcrossprod(Scores[,i]))) - rM.Scores
   sqrt(diag(solve(I)))
   
 }
+
+Score(params, dmats, surv, sv, family)
+Hess <- GLMMadaptive:::fd_vec(params, Score, dmats = dmats, surv = surv, sv = sv, family = family,
+                              eps = 1e-6)
+sqrt(diag(solve(-Hess[1:length(vech(D)),1:length(vech(D))])))
+sqrt(diag(solve(-Hess[29:32, 29:32])))

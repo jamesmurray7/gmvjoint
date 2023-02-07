@@ -25,6 +25,7 @@ extern SEXP _gmvjoint_phi_update(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP,
 extern SEXP _gmvjoint_S_(SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_Sbeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_Sgammazeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP _gmvjoint_Sgammazeta2(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_vare_update(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
@@ -45,6 +46,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_gmvjoint_S_",                (DL_FUNC) &_gmvjoint_S_,                 4},
     {"_gmvjoint_Sbeta",             (DL_FUNC) &_gmvjoint_Sbeta,             13},
     {"_gmvjoint_Sgammazeta",        (DL_FUNC) &_gmvjoint_Sgammazeta,        15},
+    {"_gmvjoint_Sgammazeta2",       (DL_FUNC) &_gmvjoint_Sgammazeta2,       12},
     {"_gmvjoint_vare_update",       (DL_FUNC) &_gmvjoint_vare_update,        8},
     {NULL, NULL, 0}
 };
