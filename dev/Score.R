@@ -139,41 +139,11 @@ Score <- function(params, dmats, surv, sv, family){
   # Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
   #   Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, q, .Machine$double.eps^(1/3))
   # }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
+  
 
-  Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    Sgammazeta2(c(gamma, zeta), b, S, SS, Fu, Fi, l0u, Delta, w, v, Sigma, b.inds2)
-  }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
-  
-<<<<<<< HEAD
-  Hgz3 <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    cendiff(c(gamma, zeta), Sgammazeta2,
-                          b = b, S = S, SS = SS, Fu = Fu, Fi = Fi, haz = l0u,
-                          Delta = Delta, w = w, v = v, Sigma =  Sigma, b_inds = b.inds2)
-  }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
-  
-  # dum <- numeric(length(sv$ft))
-  # bh <- mapply(function(b, Fu, SigmaSplit, Delta, SS, surv.times, Ti){
-  #   lhs <- as.numeric(sv$ft == Ti)/sv$l0
-  #   out <- dum
-  #   gammatau <- Reduce('+', lapply(1:K, function(k) gamma[k]^2 * diag(tcrossprod(Fu[,b.inds[[k]]] %*% SigmaSplit[[k]], Fu[,b.inds[[k]]]))))
-  #   mu <- SS %*% zeta + Fu %*% (gamma.rep * b)
-  #   rhs <- matrix(0, nrow = nrow(mu), ncol = gh)
-  #   for(l in 1:gh) rhs[,l] <- w[l] * exp(mu + sqrt(gammatau) * v[l])
-  #   out[surv.times] <- lhs[surv.times] - rowSums(rhs)
-  #   out
-  # }, b = b, Fu = Fu, SigmaSplit = SigmaSplit, Delta = Delta, SS = SS, surv.times = sv$surv.times, Ti = as.list(sv$Ti), SIMPLIFY = F)
-=======
   Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
     Hgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, q, .Machine$double.eps^(1/4))
   }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
-  # 
-  Hgz2 <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    GLMMadaptive:::cd_vec(c(gamma, zeta), Sgammazeta2,
-                          b=b, S=S, SS=SS, Fu = Fu, Fi = Fi, haz = l0u, Delta = Delta,
-                          w = w, v = v, Sigma = Sigma, b_inds = b.inds2)
-  }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
->>>>>>> b1e284e81daf499724d2ed9c4a62da4b75744c89
-  
   
   # Collate and form information --------------------------------------------
   Ss2 <- lapply(1:n, function(i){
@@ -186,19 +156,10 @@ Score <- function(params, dmats, surv, sv, family){
     c(sD, Sb, Ss, c(Sgz))
   }, sD = test2, Sb = Sb, Ss = Ss2, Sgz = Sgz)
   
-<<<<<<< HEAD
   # rM.Scores <- tcrossprod(rowSums(Scores))/ncol(Scores)
   # I <- Reduce('+', lapply(1:n, function(i) tcrossprod(Scores[,i]))) - rM.Scores
   # sqrt(diag(qr.solve(I)))
   Scores
-}
-
-Scores <- Score(params, dmats, surv, sv, family)
-=======
-  rM.Scores <- rowMeans(Scores)
-  I <- Reduce('+', lapply(1:n, function(i) tcrossprod(Scores[,i]))) - rM.Scores
-  sqrt(diag(solve(I)))
-  
 }
 
 Score(params, dmats, surv, sv, family)
@@ -206,4 +167,4 @@ Hess <- GLMMadaptive:::fd_vec(params, Score, dmats = dmats, surv = surv, sv = sv
                               eps = 1e-6)
 sqrt(diag(solve(-Hess[1:length(vech(D)),1:length(vech(D))])))
 sqrt(diag(solve(-Hess[29:32, 29:32])))
->>>>>>> b1e284e81daf499724d2ed9c4a62da4b75744c89
+
