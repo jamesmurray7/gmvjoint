@@ -540,7 +540,7 @@ double Egammazeta(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
 		uvec bk = b_inds[k];
 		gammas.elem(bk) += gk;
 	}
-	rowvec gammas2 = gammas.t();//square(gammas).t();
+	rowvec gammas2 = gammas.t();
 	mat Fugamma2 = Fu.each_row() % gammas2;
 	mat A = Fugamma2 * Sigma * Fugamma2.t();
 	vec mu = SS * z + Fu * (b % gammas);
@@ -551,6 +551,7 @@ double Egammazeta(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
 	}
 	return as_scalar(Delta * (S * z + Fi * (b % gammas))) - rhs;
 }
+
 
 //' @keywords internal
 // [[Rcpp::export]]

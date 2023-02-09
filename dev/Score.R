@@ -9,6 +9,7 @@ Score <- function(params, dmats, surv, sv, family){
   
   # betas
   betas <- params[(lD + 1):(lD + sum(dmats$P))]
+  print(betas)
   # dispersions
   sigmas <- params[(lD + sum(dmats$P) + 1):
                      (lD + sum(dmats$P) + sum(unlist(family) %in% c("gaussian", "Gamma", 'genpois')))]
@@ -143,6 +144,7 @@ Score <- function(params, dmats, surv, sv, family){
     Sgammazeta2(c(gamma, zeta), b, S, SS, Fu, Fi, l0u, Delta, w, v, Sigma, b.inds2)
   }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
   
+<<<<<<< HEAD
   Hgz3 <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
     cendiff(c(gamma, zeta), Sgammazeta2,
                           b = b, S = S, SS = SS, Fu = Fu, Fi = Fi, haz = l0u,
@@ -160,6 +162,17 @@ Score <- function(params, dmats, surv, sv, family){
   #   out[surv.times] <- lhs[surv.times] - rowSums(rhs)
   #   out
   # }, b = b, Fu = Fu, SigmaSplit = SigmaSplit, Delta = Delta, SS = SS, surv.times = sv$surv.times, Ti = as.list(sv$Ti), SIMPLIFY = F)
+=======
+  Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
+    Hgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, q, .Machine$double.eps^(1/4))
+  }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
+  # 
+  Hgz2 <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
+    GLMMadaptive:::cd_vec(c(gamma, zeta), Sgammazeta2,
+                          b=b, S=S, SS=SS, Fu = Fu, Fi = Fi, haz = l0u, Delta = Delta,
+                          w = w, v = v, Sigma = Sigma, b_inds = b.inds2)
+  }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
+>>>>>>> b1e284e81daf499724d2ed9c4a62da4b75744c89
   
   
   # Collate and form information --------------------------------------------
@@ -173,6 +186,7 @@ Score <- function(params, dmats, surv, sv, family){
     c(sD, Sb, Ss, c(Sgz))
   }, sD = test2, Sb = Sb, Ss = Ss2, Sgz = Sgz)
   
+<<<<<<< HEAD
   # rM.Scores <- tcrossprod(rowSums(Scores))/ncol(Scores)
   # I <- Reduce('+', lapply(1:n, function(i) tcrossprod(Scores[,i]))) - rM.Scores
   # sqrt(diag(qr.solve(I)))
@@ -180,3 +194,16 @@ Score <- function(params, dmats, surv, sv, family){
 }
 
 Scores <- Score(params, dmats, surv, sv, family)
+=======
+  rM.Scores <- rowMeans(Scores)
+  I <- Reduce('+', lapply(1:n, function(i) tcrossprod(Scores[,i]))) - rM.Scores
+  sqrt(diag(solve(I)))
+  
+}
+
+Score(params, dmats, surv, sv, family)
+Hess <- GLMMadaptive:::fd_vec(params, Score, dmats = dmats, surv = surv, sv = sv, family = family,
+                              eps = 1e-6)
+sqrt(diag(solve(-Hess[1:length(vech(D)),1:length(vech(D))])))
+sqrt(diag(solve(-Hess[29:32, 29:32])))
+>>>>>>> b1e284e81daf499724d2ed9c4a62da4b75744c89
