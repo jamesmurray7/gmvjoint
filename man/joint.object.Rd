@@ -43,6 +43,8 @@ A list with the following components. \describe{
  Only returned if \code{post.process=TRUE}.}
  \item{\code{vcov}}{The full variance-covariance matrix between parameters. Only returned if 
  \code{post.process=TRUE}.}
+ \item{\code{Itilde}}{the approximated observed empirical information matrix 
+ (see \link{vcov.joint}).}
  \item{\code{logLik}}{log-likelihood evaluated at parameter estimates. Only returned if 
  \code{post.process=TRUE}.}
  \item{\code{REs}}{The random effects, with variance attributed.}

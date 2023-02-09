@@ -245,7 +245,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   if(!conv%in%c('absolute', 'relative')) stop('Only "absolute" and "relative" difference convergence criteria implemented.')
   if(!is.null(control$verbose)) verbose <- control$verbose else verbose <- F
   if(!is.null(control$hessian)) hessian <- control$hessian else hessian <- 'auto'
-  if(!hessian %in% c('auto', 'manual')) stop("Argument 'hessian' needs to be either 'auto' (i.e. from optim) or 'manual' (i.e. from _sdb, the defualt).")
+  if(!hessian %in% c('auto', 'manual')) stop("Argument 'hessian' needs to be either 'auto' (i.e. from optim) or 'manual' (i.e. from _sdb, the default).")
   if(!is.null(control$return.inits)) return.inits <- control$return.inits else return.inits <- F
   if(!is.null(control$return.dmats)) return.dmats <- control$return.dmats else return.dmats <- T
   if(!is.null(control$beta.quad)) beta.quad <- control$beta.quad else beta.quad <- F
@@ -322,15 +322,20 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     SigmaSplit <- lapply(Sigma, function(x) lapply(b.inds, function(y) as.matrix(x[y,y])))
     bsplit <- lapply(b, function(x) lapply(b.inds, function(y) x[y])) # Needed for updates to beta.
     # The Information matrix
-    I <- structure(obs.emp.I(coeffs, dmats, surv, sv, 
-                             Sigma, SigmaSplit, b, bsplit, 
-                             l0u, w, v, n, family, K, q, beta.inds, b.inds, beta.quad),
+    II <- obs.emp.I(coeffs, dmats, surv, sv, 
+                    Sigma, SigmaSplit, b, bsplit, 
+                    l0u, w, v, n, family, K, q, beta.inds, b.inds, beta.quad)
+    I <- structure(II$Iobs,
                    dimnames = list(names(params), names(params)))
+    gzs <- match(c(names(Omega$gamma), names(Omega$zeta)), names(params))
+    I[gzs,gzs] <- II$Igz # This appx. the same for K < 2!
 
     I.inv <- tryCatch(solve(I), error = function(e) e)
     if(inherits(I.inv, 'error')) I.inv <- structure(MASS::ginv(I),
                                                     dimnames = dimnames(I))
     out$SE <- sqrt(diag(I.inv))
+    out$Itilde <- structure(II$Iobs,
+                            dimnames = list(names(params), names(params)))
     out$vcov <- I.inv
     
     postprocess.time <- round(proc.time()[3]-pp.start.time, 2)

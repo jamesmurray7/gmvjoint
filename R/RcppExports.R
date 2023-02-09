@@ -72,23 +72,23 @@ phi_update <- function(b, X, Y, Z, beta, phi, w, v, tau) {
 }
 
 #' @keywords internal
-Sgammazeta2 <- function(gammazeta, b, S, SS, Fu, Fi, haz, Delta, w, v, Sigma, b_inds) {
-    .Call(`_gmvjoint_Sgammazeta2`, gammazeta, b, S, SS, Fu, Fi, haz, Delta, w, v, Sigma, b_inds)
+Egammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K) {
+    .Call(`_gmvjoint_Egammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K)
 }
 
 #' @keywords internal
-Sgammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q, eps) {
-    .Call(`_gmvjoint_Sgammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q, eps)
+Sgammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps) {
+    .Call(`_gmvjoint_Sgammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps)
 }
 
 #' @keywords internal
-Hgammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q, eps) {
-    .Call(`_gmvjoint_Hgammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, q, eps)
+Hgammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, Seps, Heps) {
+    .Call(`_gmvjoint_Hgammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, Seps, Heps)
 }
 
 #' @keywords internal
-lambdaUpdate <- function(survtimes, ft, gamma, gamma_rep, zeta, S, Sigma, b, w, v, b_inds, K, q) {
-    .Call(`_gmvjoint_lambdaUpdate`, survtimes, ft, gamma, gamma_rep, zeta, S, Sigma, b, w, v, b_inds, K, q)
+lambdaUpdate <- function(survtimes, ft, gamma, zeta, S, Sigma, b, w, v, b_inds) {
+    .Call(`_gmvjoint_lambdaUpdate`, survtimes, ft, gamma, zeta, S, Sigma, b, w, v, b_inds)
 }
 
 #' @keywords internal

@@ -21,7 +21,7 @@ Extract the variance-covariance matrix from a \code{joint} fit.
 }
 \details{
 Uses the observed-empirical \strong{approximation} of information matrix 
-(Mclachlan & Krishnan, 2008). The estimates for the baseline hazard are not estimated.
+(Mclachlan & Krishnan, 2008). The standard errors for the baseline hazard are not estimated.
 }
 \examples{
 # Univariate fit on PBC data -------------------------------------------

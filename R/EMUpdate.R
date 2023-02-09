@@ -93,12 +93,14 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   
   # Survival parameters (\gamma, \zeta) =======
   Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, q, .Machine$double.eps^(1/3))
-  }, b = b.hat, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta)
+    Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, .Machine$double.eps^(1/3))
+  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta)
   
   Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    Hgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, q, .Machine$double.eps^(1/4))
-  }, b = b.hat, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
+    Hgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, 
+               .Machine$double.eps^(1/3), .Machine$double.eps^(1/4))
+  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
+  
   
   # #########
   # M-step ##
@@ -127,7 +129,7 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   gammazeta.new <- c(gamma, zeta) - solve(Reduce('+', Hgz), rowSums(Sgz))
   
   # The baseline hazard and related objects
-  lambda.update <- lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, gamma.rep, zeta, S, SigmaSplit, b.hat, w, v, b.inds2, K, q)
+  lambda.update <- lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, zeta, S, Sigma, b.hat, w, v, b.inds2)
   l0.new <- sv$nev/rowSums(lambda.update)
   l0u.new <- lapply(l0u, function(ll){
     l0.new[1:length(ll)]

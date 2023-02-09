@@ -61,7 +61,6 @@ ps <- mixed_model(Y.2~time+cont+bin, data = data,
 bs <- mixed_model(Y.3~time+cont+bin, data = data,
                   random = ~1|id, family = binomial())
 
-
 M <- list(gs, ps, bs)
 
 jmb <- jm(ph, M, time_var = 'time')

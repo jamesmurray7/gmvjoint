@@ -28,30 +28,11 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   # Scores ------------------------------------------------------------------
   # The RE covariance matrix, D
   Dinv <- solve(D)
-  vech.indices <- which(lower.tri(D, diag = T), arr.ind = T)
-  dimnames(vech.indices) <- NULL
-  delta.D <- lapply(1:nrow(vech.indices), function(d){
-    out <- matrix(0, nrow(D), ncol(D))
-    ind <- vech.indices[d, 2:1]
-    out[ind[1], ind[2]] <- out[ind[2], ind[1]] <- 1 # dD/dvech(d)_i
-    out
-  })
-  
-  lhs <- sapply(delta.D, function(d) {
-    -0.5 * sum(diag(Dinv %*% d))
-  })
-  
-  sDi <- function(i) {
-    mapply(function(b, S) {
-      out <- 0.5 * (S + tcrossprod(b)) %*% (Dinv %*% delta.D[[i]] %*% Dinv)   
-      lhs[i] + sum(diag(out))
-    },
-    b = b, S = Sigma,
-    SIMPLIFY = T)
-  }
-  
-  sD <- sapply(1:nrow(vech.indices), sDi)
-  sD <- lapply(1:nrow(sD), function(x) sD[x, ]) # Cast to list
+  postmult <- diag(1, nrow = nrow(Dinv), ncol = ncol(Dinv))
+  postmult[postmult == 0] <- 2 # off-diagonals have twice the contribution!
+  sD <- mapply(function(b, S){ 
+    vech(t(0.5 * (Dinv %*% (S + tcrossprod(b)) %*% Dinv) - 0.5 * Dinv)) * vech(postmult)
+  }, b = b, S = Sigma, SIMPLIFY = F)
   
   # The fixed effects, \beta 
   if(beta.quad){
@@ -102,8 +83,13 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
 
   # Survival parameters (\gamma, \zeta)
   Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, q, .Machine$double.eps^(1/3))
-  }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
+    Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, .Machine$double.eps^(1/3))
+  }, b = b, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
+  
+  Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
+     pracma::hessian(Egammazeta, c(gamma, zeta),
+                     b = b, Sigma = Sigma, S=S,SS= SS, Fu=Fu, Fi=Fi, haz=l0u, Delta=Delta, w=w, v=v, b_inds=b.inds2, K=K)
+  }, b = b, Sigma = Sigma, S = sv$S, SS = sv$SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
   
   # Collate and form information --------------------------------------------
   Ss2 <- lapply(1:n, function(i){
@@ -120,13 +106,13 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   #  observed empirical information matrix (Mclachlan and Krishnan, 2008).
   I <- Reduce('+', lapply(1:n, function(i) tcrossprod(S[, i]))) - tcrossprod(SS)/n
   
-  I
+  return(list(Iobs = I, Igz = -Reduce('+', Hgz)))
 }
 
 #' Extract the variance-covariance matrix from a \code{joint} fit.
 #' 
 #' @details Uses the observed-empirical \strong{approximation} of information matrix 
-#' (Mclachlan & Krishnan, 2008). The estimates for the baseline hazard are not estimated. 
+#' (Mclachlan & Krishnan, 2008). The standard errors for the baseline hazard are not estimated. 
 #' 
 #' @param object a joint model fit by the \code{joint} function.
 #' @param corr should the correlation matrix be returned instead of the variance-covariance?

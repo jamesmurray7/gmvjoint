@@ -88,15 +88,15 @@ Score <- function(params, dmats, surv, sv, family){
   
   
   # The fixed effects, \beta 
-  if(beta.quad){
+  # if(beta.quad){
     tau = mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
-  }else{
-    tau = list(0)
-  }
+  # }else{
+    # tau = list(0)
+  # }
   
   Sb <- mapply(function(X, Y, Z, b, tau){
     c(Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K,
-            beta.quad, tau, w, v))
+            TRUE, tau, w, v))
   }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau, SIMPLIFY = F)
   
   # The dispersion parameter, \sigma
@@ -143,8 +143,10 @@ Score <- function(params, dmats, surv, sv, family){
     Sgammazeta2(c(gamma, zeta), b, S, SS, Fu, Fi, l0u, Delta, w, v, Sigma, b.inds2)
   }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
   
-  Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    Hgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, q, .Machine$double.eps^(1/4))
+  Hgz3 <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
+    cendiff(c(gamma, zeta), Sgammazeta2,
+                          b = b, S = S, SS = SS, Fu = Fu, Fi = Fi, haz = l0u,
+                          Delta = Delta, w = w, v = v, Sigma =  Sigma, b_inds = b.inds2)
   }, b = b, Sigma = SigmaSplit, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
   
   # dum <- numeric(length(sv$ft))
@@ -171,15 +173,10 @@ Score <- function(params, dmats, surv, sv, family){
     c(sD, Sb, Ss, c(Sgz))
   }, sD = test2, Sb = Sb, Ss = Ss2, Sgz = Sgz)
   
-  
-  rM.Scores <- tcrossprod(rowSums(Scores))/ncol(Scores)
-  I <- Reduce('+', lapply(1:n, function(i) tcrossprod(Scores[,i]))) - rM.Scores
-  sqrt(diag(qr.solve(I)))
-  
+  # rM.Scores <- tcrossprod(rowSums(Scores))/ncol(Scores)
+  # I <- Reduce('+', lapply(1:n, function(i) tcrossprod(Scores[,i]))) - rM.Scores
+  # sqrt(diag(qr.solve(I)))
+  Scores
 }
 
-Score(params, dmats, surv, sv, family)
-Hess <- GLMMadaptive:::fd_vec(params, Score, dmats = dmats, surv = surv, sv = sv, family = family,
-                              eps = .Machine$double.eps^(1/4))
-sqrt(diag(solve(-Hess[1:length(vech(D)),1:length(vech(D))])))
-sqrt(diag(solve(-Hess[29:32, 29:32])))
+Scores <- Score(params, dmats, surv, sv, family)

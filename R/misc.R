@@ -71,3 +71,20 @@ bind.bs<- function(bsplit){
   step <- do.call(rbind, step); colnames(step) <- NULL
   as.matrix(step)
 }
+
+# Obtain hessian from a score vector using central difference
+#' @keywords internal
+cendiff <- function(x, f, ..., eps = .Machine$double.eps^(1/4)){
+  n <- length(x)
+  out <- matrix(0, nrow = n, ncol = n)
+  xi <- pmax(abs(x), 1) * eps
+  for(i in 1:n){
+    a <- b <- x
+    a[i] <- x[i] + xi[i]
+    b[i] <- x[i] - xi[i]
+    fdiff <- c(f(a, ...) - f(b, ...))
+    xdiff <- a[i] - b[i]
+    out[, i] <- fdiff/xdiff
+  }
+  (out + t(out)) * .5
+}
