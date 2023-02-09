@@ -48,16 +48,14 @@ difference <- function(params.old, params.new, type){
   if(type == 'absolute'){
     rtn <- abs(params.new - params.old)
   }else if(type == 'relative'){
-    rtn <- max(
-      (params.new - params.old)/(abs(params.old) + 1e-3)
-    )
+    rtn <- abs(params.new - params.old)/(abs(params.old) + 1e-3)
   }else{
     rtn <- NA
   }
   rtn
 }
 
-# Don't think this is ever used (?)
+# Don't think this is ever used  -- remove?
 # Create appropriately-dimensioned matrix of random effects.
 #' @keywords internal
 bind.bs<- function(bsplit){
@@ -73,6 +71,7 @@ bind.bs<- function(bsplit){
 }
 
 # Obtain hessian from a score vector using central difference
+# NB not used anywhere -- to remove.
 #' @keywords internal
 cendiff <- function(x, f, ..., eps = .Machine$double.eps^(1/4)){
   n <- length(x)
