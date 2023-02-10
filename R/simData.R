@@ -189,7 +189,7 @@ simData <- function(n = 250, ntms = 10, fup = 5,
   if(!is.null(random.formula)){
     q <- ncol(do.call(cbind, lapply(Z, head)))
     b <- MASS::mvrnorm(n, mu = rep(0, q), Sigma = D)
-    b.inds <- split(1:q, do.call(c, sapply(1:K, function(k) rep(k, ncol(Z[[k]])))))
+    b.inds <- split(1:q, do.call(c, sapply(1:K, function(k) rep(k, ncol(Z[[k]])), simplify = F)))
   }else{
     b <- MASS::mvrnorm(n, mu = rep(0, K * 2), Sigma = D)
     b.inds <- split(1:(2*K), rep(1:K, each = 2)) 
