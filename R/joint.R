@@ -327,8 +327,8 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
                     l0u, w, v, n, family, K, q, beta.inds, b.inds, beta.quad)
     I <- structure(II$Iobs,
                    dimnames = list(names(params), names(params)))
-    # gzs <- match(c(names(Omega$gamma), names(Omega$zeta)), names(params))
-    # I[gzs,gzs] <- II$Igz # This appx. the same for K < 2!
+    gzs <- match(c(names(Omega$gamma), names(Omega$zeta)), names(params))
+    I[gzs,gzs] <- II$Igz # This appx. the same for K < 2!
 
     I.inv <- tryCatch(solve(I), error = function(e) e)
     if(inherits(I.inv, 'error')) I.inv <- structure(MASS::ginv(I),
