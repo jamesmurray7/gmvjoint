@@ -308,6 +308,9 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     gamma.rep <- rep(gamma, sapply(b.inds, length))
     pp.start.time <- proc.time()[3]
     
+    l0 <- sv$nev/rowSums(lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, zeta, sv$S, update$Sigma, b, w, v, b.inds2))
+    sv.new <- surv.mod(surv, formulas, l0)
+    
     # b and Sigmai at MLEs
     b.update <- mapply(function(b, Y, X, Z, Delta, S, Fi, l0i, SS, Fu, l0u){
       optim(b, joint_density, joint_density_ddb,
@@ -315,8 +318,8 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
             Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS, Fu = Fu, haz = l0u, gamma_rep = gamma.rep, zeta = zeta,
             beta_inds = beta.inds2, b_inds = b.inds2, K = K,
             method = 'BFGS', hessian = T)
-    }, b = b, Y = Y, X = X, Z = Z, Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS,
-    Fu = Fu, l0u = l0u, SIMPLIFY = F)
+    }, b = b, Y = Y, X = X, Z = Z, Delta = Delta, S = S, Fi = Fi, l0i = sv.new$l0i, SS = SS,
+    Fu = Fu, l0u = sv.new$l0u, SIMPLIFY = F)
     Sigma <- lapply(b.update, function(x) solve(x$hessian))
     b <- lapply(b.update, function(x) x$par)
     SigmaSplit <- lapply(Sigma, function(x) lapply(b.inds, function(y) as.matrix(x[y,y])))
@@ -324,20 +327,20 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     # The Information matrix
     II <- obs.emp.I(coeffs, dmats, surv, sv, 
                     Sigma, SigmaSplit, b, bsplit, 
-                    l0u, w, v, n, family, K, q, beta.inds, b.inds, beta.quad)
-    I <- structure(II$Iobs,
+                    sv.new$l0u, w, v, n, family, K, q, beta.inds, b.inds, beta.quad)
+    H <- structure(II$Hessian,
                    dimnames = list(names(params), names(params)))
     gzs <- match(c(names(Omega$gamma), names(Omega$zeta)), names(params))
-    I[gzs,gzs] <- II$Igz # This appx. the same for K < 2!
+    H[gzs,gzs] <- II$Hgz # This appx. the same for K < 2!
 
-    I.inv <- tryCatch(solve(I), error = function(e) e)
-    if(inherits(I.inv, 'error')) I.inv <- structure(MASS::ginv(I),
-                                                    dimnames = dimnames(I))
-    out$SE <- sqrt(diag(I.inv))
-    out$Itilde <- structure(II$Iobs,
+    I <- tryCatch(solve(H), error = function(e) e)
+    if(inherits(I, 'error')) I <- structure(MASS::ginv(H), dimnames = dimnames(H))
+    out$Hessian <- H
+    out$vcov <- I
+    out$SE <- sqrt(diag(I))
+    out$Itilde <- structure(solve(II$Hess),
                             dimnames = list(names(params), names(params)))
-    out$vcov <- I.inv
-    
+
     postprocess.time <- round(proc.time()[3]-pp.start.time, 2)
     # Calculate log-likelihood. Done separately as EMtime + postprocess.time is for EM + SEs.
     out$logLik <- joint.log.lik(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.inds, b.inds, 

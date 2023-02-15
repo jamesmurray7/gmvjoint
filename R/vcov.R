@@ -27,13 +27,40 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   
   # Scores ------------------------------------------------------------------
   # The RE covariance matrix, D
-  Dinv <- solve(D)
-  postmult <- diag(1, nrow = nrow(Dinv), ncol = ncol(Dinv))
-  postmult[postmult == 0] <- 2 # off-diagonals have twice the contribution!
-  sD <- mapply(function(b, S){ 
-    vech(t(0.5 * (Dinv %*% (S + tcrossprod(b)) %*% Dinv) - 0.5 * Dinv)) * vech(postmult)
-  }, b = b, S = Sigma, SIMPLIFY = F)
+  # Dinv <- solve(D)
+  # postmult <- diag(1, nrow = nrow(Dinv), ncol = ncol(Dinv))
+  # postmult[postmult == 0] <- 2 # off-diagonals have twice the contribution!
+  # sD <- mapply(function(b, S){
+  #   vech(t(0.5 * (Dinv %*% (S + tcrossprod(b)) %*% Dinv) - 0.5 * Dinv)) * vech(postmult)
+  # }, b = b, S = Sigma, SIMPLIFY = F)
   
+  # NB this same as commented segment above, just done "properly".
+  Dinv <- solve(D)
+  vech.indices <- which(lower.tri(D, diag = T), arr.ind = T)
+  dimnames(vech.indices) <- NULL
+  delta.D <- lapply(1:nrow(vech.indices), function(d){
+    out <- matrix(0, nrow(D), ncol(D))
+    ind <- vech.indices[d, 2:1]
+    out[ind[1], ind[2]] <- out[ind[2], ind[1]] <- 1 # dD/dvech(d)_i d=1,...,length(vech(D))
+    out
+  })
+  
+  sDi <- function(i) {
+    mapply(function(b, S) {
+      EbbT <- S + tcrossprod(b)
+      dDEbbT <- delta.D[[i]] %*% EbbT
+      term <- 0.5 * Dinv - 0.5 * Dinv %*% dDEbbT %*% Dinv
+      out <- 0.5 * (t(-term) - term)
+      sum(diag(out))
+    },
+    b = b, S = Sigma,
+    SIMPLIFY = TRUE)
+  }
+  
+  sD <- sapply(1:nrow(vech.indices), sDi)
+  sD <- lapply(1:nrow(sD), function(x) sD[x, ]) # Cast to list
+  
+    
   # The fixed effects, \beta 
   if(beta.quad){
     tau = mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
@@ -80,11 +107,11 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
       Ss[[j]] <- as.list(rep(NULL, n))
     }
   }
-
+  
   # Survival parameters (\gamma, \zeta)
   Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
     Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, .Machine$double.eps^(1/3))
-  }, b = b, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
+  }, b = b, Sigma = Sigma, S = sv$S, SS = sv$SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
   
   Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
      pracma::hessian(Egammazeta, c(gamma, zeta),
@@ -104,9 +131,11 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   
   SS <- rowSums(S) # sum S
   #  observed empirical information matrix (Mclachlan and Krishnan, 2008).
-  I <- Reduce('+', lapply(1:n, function(i) tcrossprod(S[, i]))) - tcrossprod(SS)/n
+  SiSiT <- Reduce('+', lapply(1:n, function(i) tcrossprod(S[, i])))
+  H <- SiSiT - tcrossprod(SS)/n
   
-  return(list(Iobs = I, Igz = -Reduce('+', Hgz)))
+  return(list(Hessian = H, 
+              Hgz = -Reduce('+', Hgz)))
 }
 
 #' Extract the variance-covariance matrix from a \code{joint} fit.
