@@ -134,7 +134,8 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   SiSiT <- Reduce('+', lapply(1:n, function(i) tcrossprod(S[, i])))
   H <- SiSiT - tcrossprod(SS)/n
   
-  return(list(Hessian = H, 
+  return(list(Score = S,
+              Hessian = H, 
               Hgz = -Reduce('+', Hgz)))
 }
 
