@@ -349,13 +349,16 @@ arma::mat Hess_eta_poiss_quad(const arma::vec& eta, const arma::vec& Y, const ar
 
 mat Hess_eta_binom(const vec& eta, const vec& Y, const mat& design){
   int mi = design.n_rows, q = design.n_cols;
-  vec mu = exp(eta);
-  vec denom = square(mu);
+  //vec mu = exp(eta);
+  //vec denom = square(mu);
+  vec expeta = exp(eta);
+  vec cont = -1. * (expeta/(1. + expeta) - (expeta % expeta)/(square(1. + expeta)));
   mat H = zeros<mat>(q, q);
   for(int j = 0; j < mi; j++){
     rowvec xjT = design.row(j);
     vec xj = xjT.t();
-    H += (-mu[j]/(1. + denom[j])) * xj * xjT;
+//    H += (-mu[j]/(1. + denom[j])) * xj * xjT;
+    H += cont.at(j) * xj * xjT;
   }
   return H;
 }
