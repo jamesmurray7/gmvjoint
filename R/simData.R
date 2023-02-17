@@ -134,6 +134,7 @@ simData <- function(n = 250, ntms = 10, fup = 5,
                     beta = rbind(c(1, 0.10, 0.33, -0.50), c(1, 0.10, 0.33, -0.50)), D = NULL,
                     gamma = c(0.5, -0.5), zeta = c(0.05, -0.30),
                     theta = c(-4, 0.2), cens.rate = exp(-3.5),
+                    unif.times = TRUE,
                     random.formula = NULL,
                     return.ranefs = FALSE){
   
@@ -169,11 +170,18 @@ simData <- function(n = 250, ntms = 10, fup = 5,
   if(any(eigen(D)$value < 0) || det(D) <= 0) stop('D must be positive semi-definite')
   
   # Necessary parameters & data generation ----
-  time <- seq(0, fup, length.out = ntms); tau <- fup + 0.1
+  if(unif.times){
+    time <- seq(0, fup, length.out = ntms)
+    tau <- fup + 0.1
+  }else{
+    time <- c(replicate(n, c(0, sort(runif(ntms - 1, max = fup)))))
+    tau <- fup
+  }
+
   cont <- rnorm(n); bin <- rbinom(n, 1, 0.5)  # Continuous and binary covariates.
   
   df <- data.frame(id = rep(1:n, each = ntms),
-                   time = rep(time, n),
+                   time = if(unif.times) rep(time, n) else time,
                    cont = rep(cont, each = ntms),
                    bin = rep(bin, each = ntms))
   
