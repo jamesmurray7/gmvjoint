@@ -1,8 +1,7 @@
 # Obtain f(b|Y,T,Delta;Omega) at given joint model fit by Metropolis scheme.
-get.marg.b <- function(fit, burnin, N, tune){
+get.marg.b <- function(fit, burnin = 500L, N = 3500L, tune = 2.){
   if(!inherits(fit, "joint")) stop("Only usable with object of class 'joint'.")
   if(is.null(fit$dmats)) stop("Need dmats.")
-  if(missing(tune)) tune <- 1
   # Unpack dmats
   M <- fit$ModelInfo
   dm <- fit$dmats$long
@@ -101,6 +100,7 @@ get.marg.b <- function(fit, burnin, N, tune){
 #' @method print marginal.b.joint
 print.marginal.b.joint <- function(x, ...){
   if(!inherits(x, 'marginal.b.joint')) stop("x must be a 'marginal.b.joint' object.")
+  M <- x$M
   # Data information
   cat("Marginal distribution f(b_i|Y_i,T_i,Delta_i;Omega)\n")
   cat("------------------------------\n")
@@ -149,11 +149,17 @@ plot.marginal.b.joint <- function(x, D = NULL, nrow = NULL, ncol = NULL, title =
   par(mfrow = c(nrow, ncol))
   for(j in 1:num.plots){
     dj <- density(walks[,j])
-    plot(dj, xlab = '', main = x$qnames[j])
     if(!is.null(D)){
-      curve(dnorm(x, mean = 0, sd = sqrt(D[j,j])),
-            from = min(dj$x), to = max(dj$x), n = 1e3, add = T, lty = 3, col = 'red')
+      seqx <- seq(min(dj$x), max(dj$x), length.out = 1e3)
+      dn <- dnorm(seqx, mean = 0, sd = sqrt(D[j,j]))
+      ylims <- c(0, max(max(dj$y), max(dn)) + .1)
+    }else{
+      ylims <- c(min(dj$y), max(dj$y) + 0.1)
     }
+    plot(dj, xlab = '', main = x$qnames[j],
+         ylim = ylims)
+    if(!is.null(D))
+      lines(seqx, dn, lty = 3, col = 'red2')
   }
   if(!is.null(title))
     mtext(title, side - 3, line = -2, outer = TRUE)
