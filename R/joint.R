@@ -348,6 +348,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     # Collate RE and their variance
     REs <- do.call(rbind, b)
     attr(REs, 'Var') <- do.call(rbind, lapply(Sigma, diag))
+    attr(REs, 'vcov') <- do.call(rbind, lapply(Sigma, vech))
     out$REs <- REs
   }
   comp.time <- round(proc.time()[3] - start.time, 3)

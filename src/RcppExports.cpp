@@ -391,3 +391,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// vech2mat
+arma::mat vech2mat(const arma::vec& x, const int q);
+RcppExport SEXP _gmvjoint_vech2mat(SEXP xSEXP, SEXP qSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const int >::type q(qSEXP);
+    rcpp_result_gen = Rcpp::wrap(vech2mat(x, q));
+    return rcpp_result_gen;
+END_RCPP
+}

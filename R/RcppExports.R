@@ -96,3 +96,8 @@ joint_density_sdb <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, 
     .Call(`_gmvjoint_joint_density_sdb`, b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K, eps)
 }
 
+#' @keywords internal
+vech2mat <- function(x, q) {
+    .Call(`_gmvjoint_vech2mat`, x, q)
+}
+
