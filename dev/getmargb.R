@@ -36,35 +36,13 @@ get.marg.b <- function(fit, burnin = 500L, N = 3500L, tune = 2.){
   out <- vector('list', M$n)
   accepts <- numeric(M$n)
   pb <- utils::txtProgressBar(max = M$n, style = 3)
+  start.time <- proc.time()[3]
   for(i in 1:M$n){
-    store <- matrix(0, nrow = N, ncol = q)
+    store <- matrix(0, nrow = iters, ncol = q)
     b.current <- b[[i]]
-    # Burnin phase (if req.)
-    if(burnin > 0){
-      for(j in 1:burnin){
-        # b.prop <- MASS::mvrnorm(n = 1, mu = b.current, Sigma = D)
-        b.prop <- MASS::mvrnorm(n = 1, mu = b.current, Sigma = Sigmas[[i]] * tune)
-        fyTb.current <- exp(-joint_density(b.current, Y = Y[[i]], X = X[[i]], Z = Z[[i]],
-                                          beta = beta, D = D, sigma = sigma, family = ff, 
-                                          Delta = Del[[i]], S = S[[i]], Fi = Fi[[i]], l0i = l0i[[i]],
-                                          SS = SS[[i]], Fu = Fu[[i]],  haz = l0u[[i]], gamma_rep = gamma.rep,
-                                          zeta = zeta, beta_inds = beta.inds, b_inds = b.inds, K = K))
-        fyTb.proposl <- exp(-joint_density(b.prop, Y = Y[[i]], X = X[[i]], Z = Z[[i]],
-                                           beta = beta, D = D, sigma = sigma, family = ff, 
-                                           Delta = Del[[i]], S = S[[i]], Fi = Fi[[i]], l0i = l0i[[i]],
-                                           SS = SS[[i]], Fu = Fu[[i]],  haz = l0u[[i]], gamma_rep = gamma.rep,
-                                           zeta = zeta, beta_inds = beta.inds, b_inds = b.inds, K = K))
-        P <- min(fyTb.proposl/fyTb.current, 1)
-        U <- runif(1)
-        if(U <= P){
-          b.current <- b.prop
-        }
-      }
-    }
-    # Metropolis
-    accept <- 0
-    for(j in 1:N){
-      # b.prop <- MASS::mvrnorm(n = 1, mu = b.current, Sigma = D)
+    accept <- numeric(iters)
+    # Metropolis scheme
+    for(j in 1:iters){
       b.prop <- MASS::mvrnorm(n = 1, mu = b.current, Sigma = Sigmas[[i]] * tune)
       fyTb.current <- exp(-joint_density(b.current, Y = Y[[i]], X = X[[i]], Z = Z[[i]],
                                          beta = beta, D = D, sigma = sigma, family = ff, 
@@ -80,18 +58,21 @@ get.marg.b <- function(fit, burnin = 500L, N = 3500L, tune = 2.){
       U <- runif(1)
       if(U <= P){
         b.current <- b.prop
-        accept <- accept + 1
+        accept[j] <- 1
       }
       store[j,] <- b.current
     }
     utils::setTxtProgressBar(pb, i)
-    out[[i]] <- store
-    accepts[i] <- accept/N
+    out[[i]] <- store[-(1:burnin),]
+    accept <- accept[-(1:burnin)]
+    accepts[i] <- sum(accept)/N
   }
+  end.time <- proc.time()[3]
   close(pb)
   out <- list(walks = out, acceptance = accepts, M = M, bhats = do.call(rbind, b),
               q = q, K = K, qnames = colnames(fit$coeffs$D),
-              burnin = burnin, N = N, tune = tune, nobs = nobs)
+              burnin = burnin, N = N, tune = tune, nobs = nobs,
+              elapsed.time = end.time-start.time)
   class(out) <- 'marginal.b.joint'
   out
 }
@@ -166,3 +147,55 @@ plot.marginal.b.joint <- function(x, D = NULL, nrow = NULL, ncol = NULL, title =
   on.exit(par(.par))
 }
 
+get.marg.b.cpp <- function(fit, burnin = 500L, N = 3500L, tune = 2.){
+  if(!inherits(fit, "joint")) stop("Only usable with object of class 'joint'.")
+  if(is.null(fit$dmats)) stop("Need dmats.")
+  # Unpack dmats
+  M <- fit$ModelInfo
+  dm <- fit$dmats$long
+  sv <- fit$dmats$surv
+  surv <- fit$dmats$ph
+  q <- sv$q; K <- length(M$family)
+  
+  # Unpack parameter estimates
+  Omega <- fit$coeffs
+  gamma.rep <- rep(Omega$gamma, sapply(M$inds$b, length))
+  
+  # Model matrices
+  l0i <- sv$l0i; l0u <- sv$l0u
+  Del <- surv$Delta
+  Fu <- sv$Fu; Fi <- sv$Fi
+  S <- sv$S; SS <- sv$SS
+  X <- dm$X; Y <- dm$Y; Z <- dm$Z
+  # Other
+  beta.inds <- lapply(M$inds$beta, function(x) x-1)
+  b.inds <- lapply(M$inds$b, function(x) x-1)
+  ff <- M$family
+  nobs <- sapply(lapply(Y, el), length)
+  
+  # Inits + metropolis scheme inputs
+  b <- lapply(1:M$n, function(i) c(fit$REs[i,,drop=F]))
+  Sigmas <- lapply(1:M$n, function(i) attr(fit$REs, 'vcov')[i,])
+  Sigmas <- lapply(Sigmas, vech2mat, q)
+  iters <- burnin + N
+  out <- vector('list', M$n)
+  pb <- utils::txtProgressBar(max = M$n, style = 3)
+  start.time <- proc.time()[3]
+  for(i in 1:M$n){
+    this <- metropolis(b[[i]], Omega, Y[[i]], X[[i]], Z[[i]], ff, 
+               Del[[i]], S[[i]], Fi[[i]], l0i[[i]], SS[[i]], 
+               Fu[[i]], l0u[[i]], gamma.rep, beta.inds, b.inds, 
+               K, q, burnin, N, Sigmas[[i]], tune)
+    utils::setTxtProgressBar(pb, i)
+    out[[i]] <- t(this$walks)
+    accepts[i] <- this$AcceptanceRate
+  }
+  end.time <- proc.time()[3]
+  close(pb)
+  out <- list(walks = out, acceptance = accepts, M = M, bhats = do.call(rbind, b),
+              q = q, K = K, qnames = colnames(fit$coeffs$D),
+              burnin = burnin, N = N, tune = tune, nobs = nobs,
+              elapsed.time = end.time-start.time)
+  class(out) <- 'marginal.b.joint'
+  out
+}
