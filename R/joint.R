@@ -343,7 +343,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
 
     postprocess.time <- round(proc.time()[3]-pp.start.time, 2)
     # Calculate log-likelihood. Done separately as EMtime + postprocess.time is for EM + SEs.
-    out$logLik <- joint.log.lik(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.inds, b.inds, 
+    out$logLik <- joint.log.lik(coeffs, dmats, b, surv, sv, sv.new$l0u, sv.new$l0i, gamma.rep, beta.inds, b.inds, 
                                 K, q, family, Sigma)
     # Collate RE and their variance
     REs <- do.call(rbind, b)
@@ -357,7 +357,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
                         `Total Computation time` = unname(comp.time),
                         `iterations` = iter)
   
-  dmats <- list(long = dmats, surv = sv, ph = surv)
+  dmats <- list(long = dmats, surv = if(post.process) sv.new else sv, ph = surv)
   if(return.dmats) out$dmats <- dmats
   
   if(return.inits) out$inits = inits.long
