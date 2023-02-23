@@ -16,6 +16,7 @@ simData(
   zeta = c(0.05, -0.3),
   theta = c(-4, 0.2),
   cens.rate = exp(-3.5),
+  unif.times = TRUE,
   random.formula = NULL,
   return.ranefs = FALSE
 )
@@ -49,6 +50,11 @@ the survival sub-model, in the order of continuous and binary.}
 \item{theta}{parameters to control the failure rate, see \strong{baseline hazard}.}
 
 \item{cens.rate}{parameter for \code{rexp} to generate censoring times for each subject.}
+
+\item{unif.times}{logical, if \code{unif.times = TRUE} (the default), then \emph{every} subject
+will have the same follow-up times defined by \code{seq(0, fup, length.out = ntms)}. If 
+\code{unif.times = FALSE} then follow-up times are set as random draws from a uniform 
+distribution with maximum \code{fup}.}
 
 \item{random.formula}{allows user to specify if an intercept-and-slope (\code{~ time}) or 
 intercept-only (\code{~1}) random effects structure should be used. defaults to the former.}

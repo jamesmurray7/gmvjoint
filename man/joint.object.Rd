@@ -37,19 +37,20 @@ A list with the following components. \describe{
  \item{\code{n}}{Number of subjects.}
  \item{\code{nev}}{Number of events.}
  }}
- \item{\code{dmats}}{if requested, data matrices on each of the longitudinal and survival 
- processes for each subject.}
- \item{\code{SE}}{A named vector of approximated standard error for each estimated parameter.
- Only returned if \code{post.process=TRUE}.}
+ \item{\code{Hessian}}{The (approximated) Hessian found at MLEs.}
  \item{\code{vcov}}{The full variance-covariance matrix between parameters. Only returned if 
  \code{post.process=TRUE}.}
+ \item{\code{SE}}{A named vector of approximated standard error for each estimated parameter.
+ Only returned if \code{post.process=TRUE}.}
  \item{\code{Itilde}}{the approximated observed empirical information matrix 
  (see \link{vcov.joint}).}
  \item{\code{logLik}}{log-likelihood evaluated at parameter estimates. Only returned if 
  \code{post.process=TRUE}.}
- \item{\code{REs}}{The random effects, with variance attributed.}
+ \item{\code{REs}}{The random effects, with subject-specific variance matrices attributed.}
  \item{\code{elapsed.time}}{Named numeric containing breakdown of elapsed time for \code{joint}
  fit.}
+ \item{\code{dmats}}{if requested, data matrices on each of the longitudinal and survival 
+ processes for each subject.}
 }
 }
 \description{

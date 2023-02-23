@@ -55,6 +55,10 @@ rgenpois <- function(mu, phi){
 #' the survival sub-model, in the order of continuous and binary.
 #' @param theta parameters to control the failure rate, see \strong{baseline hazard}.
 #' @param cens.rate parameter for \code{rexp} to generate censoring times for each subject.
+#' @param unif.times logical, if \code{unif.times = TRUE} (the default), then \emph{every} subject
+#' will have the same follow-up times defined by \code{seq(0, fup, length.out = ntms)}. If 
+#' \code{unif.times = FALSE} then follow-up times are set as random draws from a uniform 
+#' distribution with maximum \code{fup}. 
 #' @param random.formula allows user to specify if an intercept-and-slope (\code{~ time}) or 
 #' intercept-only (\code{~1}) random effects structure should be used. defaults to the former.
 #' @param return.ranefs a logical determining whether the \emph{true} random effects should be 
