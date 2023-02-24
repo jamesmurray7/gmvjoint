@@ -178,7 +178,7 @@ get.marg.b.cpp <- function(fit, burnin = 500L, N = 3500L, tune = 2.){
   Sigmas <- lapply(1:M$n, function(i) attr(fit$REs, 'vcov')[i,])
   Sigmas <- lapply(Sigmas, vech2mat, q)
   iters <- burnin + N
-  out <- vector('list', M$n)
+  out <- vector('list', M$n); accepts <- numeric(M$n)
   pb <- utils::txtProgressBar(max = M$n, style = 3)
   start.time <- proc.time()[3]
   for(i in 1:M$n){
