@@ -43,7 +43,6 @@ parseFormula <- function(formula){
 }
 
 # Take and return difference between two vectors according to some criterion.
-#' @keywords internal
 difference <- function(params.old, params.new, type){
   if(type == 'absolute'){
     rtn <- abs(params.new - params.old)
@@ -55,6 +54,7 @@ difference <- function(params.old, params.new, type){
   rtn
 }
 
+#' @keywords internal
 converge.check <- function(params.old, params.new, criteria, iter, Omega, verbose){
   
   type <- criteria$type
@@ -74,7 +74,7 @@ converge.check <- function(params.old, params.new, criteria, iter, Omega, verbos
   }else if(type == "rel"){
     converged <- max(diffs.rel) < criteria$tol.rel
   }else if(type == "either"){
-    converged <- (max(diffs.abs) < criteria$tol.abs) | max(diffs.rel) < criteria$tol.rel
+    converged <- (max(diffs.abs) < criteria$tol.abs) | (max(diffs.rel) < criteria$tol.rel)
   }else if(type == "sas"){
     converged <- sas.conv
   }
@@ -84,14 +84,14 @@ converge.check <- function(params.old, params.new, criteria, iter, Omega, verbos
       cat(sprintf("Iteration %d:\n", iter))
       cat("vech(D):", round(vech(Omega$D), 4), "\n")
       cat("beta:", round(Omega$beta, 4), "\n")
-      if(any(unlist(Omega$sigma) != 0)) cat("sigma:", round(unlist(Omega$sigma)[unlist(Omega$sigma != 0)], 4), "\n")
+      if(any(unlist(Omega$sigma) != 0)) cat("sigma:", round(unlist(Omega$sigma)[unlist(Omega$sigma) != 0], 4), "\n")
       cat("gamma:", round(Omega$gamma, 4), "\n")
       cat("zeta:", round(Omega$zeta, 4), "\n")
       cat("\n")
       cat(paste0("Maximum absolute difference: ", round(max(diffs.abs), 4), " for ",
           names(params.new)[which.max(diffs.abs)], "\n"))
       cat(paste0("Maximum relative difference: ", round(max(diffs.rel), 4), " for ",
-                 names(params.new)[which.max(diffs.abs)], "\n"))
+                 names(params.new)[which.max(diffs.rel)], "\n"))
       if(converged) cat(paste0("Converged!\n\n"))
   }
   
