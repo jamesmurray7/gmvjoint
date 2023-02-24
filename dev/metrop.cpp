@@ -121,7 +121,7 @@ List metropolis(const arma::vec& b, const List Omega, const List Y, const List X
   // MC stuff
   int iters = burnin + N;
   mat out = mat(q, iters);
-  out.col(0) += b;
+  //out.col(0) += b;
   // Start
   int j = 1, num_accepts = 0;
   while(j < iters){
