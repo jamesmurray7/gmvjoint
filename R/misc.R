@@ -55,6 +55,50 @@ difference <- function(params.old, params.new, type){
   rtn
 }
 
+converge.check <- function(params.old, params.new, criteria, iter, Omega, verbose){
+  
+  type <- criteria$type
+  # Absolute difference
+  diffs.abs <- abs(params.new - params.old)
+  # Relative difference
+  diffs.rel <- abs(params.new - params.old)/(abs(params.old) + criteria$tol.den)
+  # SAS convergence criterion
+  sas.crit <- abs(params.old) >= criteria$threshold
+  sas.abs <- diffs.abs < criteria$tol.abs
+  sas.rel <- diffs.rel < criteria$tol.rel
+  sas.conv <- all(sas.abs[!sas.crit]) & all(sas.rel[sas.crit])
+  
+  # Check convergence based on user-supplied criterion
+  if(type == "abs"){
+    converged <- max(diffs.abs) < criteria$tol.abs
+  }else if(type == "rel"){
+    converged <- max(diffs.rel) < criteria$tol.rel
+  }else if(type == "either"){
+    converged <- (max(diffs.abs) < criteria$tol.abs) | max(diffs.rel) < criteria$tol.rel
+  }else if(type == "sas"){
+    converged <- sas.conv
+  }
+  
+  if(verbose){
+      cat("\n")
+      cat(sprintf("Iteration %d:\n", iter))
+      cat("vech(D):", round(vech(Omega$D), 4), "\n")
+      cat("beta:", round(Omega$beta, 4), "\n")
+      if(any(unlist(Omega$sigma) != 0)) cat("sigma:", round(unlist(Omega$sigma)[unlist(Omega$sigma != 0)], 4), "\n")
+      cat("gamma:", round(Omega$gamma, 4), "\n")
+      cat("zeta:", round(Omega$zeta, 4), "\n")
+      cat("\n")
+      cat(paste0("Maximum absolute difference: ", round(max(diffs.abs), 4), " for ",
+          names(params.new)[which.max(diffs.abs)], "\n"))
+      cat(paste0("Maximum relative difference: ", round(max(diffs.rel), 4), " for ",
+                 names(params.new)[which.max(diffs.abs)], "\n"))
+      if(converged) cat(paste0("Converged!\n\n"))
+  }
+  
+  list(converged = converged,
+       diffs.abs = diffs.abs, diffs.rel = diffs.rel)
+}
+
 # Don't think this is ever used  -- remove?
 # Create appropriately-dimensioned matrix of random effects.
 #' @keywords internal

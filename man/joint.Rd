@@ -33,11 +33,15 @@ log-likelihood? Defaults to \code{TRUE}.}
 
   \item{\code{verbose}}{Logical: If \code{TRUE}, at each iteration parameter information will 
   be printed to console. Default is \code{verbose=FALSE}.}
-  \item{\code{conv}}{Character: Either \code{"absolute"} or \code{"relative"} to invoke 
-  absolute or relative difference as the convergence criterion. Default is 
-  \code{conv="relative"}.}
-  \item{\code{tol}}{Numeric: Tolerance value used to assess convergence. 
-  Default is \code{tol=1e-2}.}
+  \item{\code{conv}}{Character: Convergence criterion, see \strong{details}.}
+  \item{\code{tol.abs}}{Numeric: Tolerance value used to assess convergence, see 
+  \strong{details}. Default is \code{tol.abs=1e-3}.}
+  \item{\code{tol.rel}}{Numeric: Tolerance value used to assess convergence, see 
+  \strong{details}. Default is \code{tol.abs=1e-2}.}
+  \item{\code{tol.den}}{Numeric: Tolerance value used to assess convergence, see 
+  \strong{details}. Default is \code{tol.abs=1e-3}.}
+  \item{\code{tol.thr}}{Numeric: Threshold used when \code{conv = 'sas'}, see 
+  \strong{details}. Default is \code{tol.thr=1e-1}.}
   \item{\code{correlated}}{Logical: Should covariance parameters \strong{between} responses 
   be estimated and used in determination of model convergence? Default is 
   \code{correlated=TRUE}. A choice of \code{correlated=FALSE} is equivalent to imposing the 
@@ -122,6 +126,23 @@ time imposed on the \eqn{K}th random effects structure (i.e. intercept-and-slope
   These are only calculated if \code{post.process=TRUE}. Generally, these SEs are well-behaved,
   but their reliability will depend on multiple factors: Sample size; number of events; 
   collinearity of REs of responses; number of observed times, and so on.
+}
+
+\section{Convergence of the algorithm}{
+
+A few convergence criteria (specified by \code{conv} in \code{control}) are available: \describe{
+  \item{\code{abs}}{Convergence reached when maximum absolute change in parameter estimates
+  is \code{<tol.abs}.}
+  \item{\code{rel}}{Convergence reached when maximum absolute relative change in parameter
+  estimates is \code{<tol.rel}. \code{tol.den} is added to the denominator to eschew numerical
+  issues if parameters are nearly zero.}
+  \item{\code{either}}{Convergence is reached when either \code{abs} or \code{rel} are met.}
+  \item{\code{sas}}{Assess convergence for parameters \eqn{|\Omega_a|}\code{<tol.thr} by the
+  \code{abs} criterion, else \code{rel}. This is the default.}
+
+}
+Note that the baseline hazard is updated at each EM iteration, but is not monitored for 
+convergence.
 }
 
 \examples{

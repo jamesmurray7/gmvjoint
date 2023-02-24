@@ -24,6 +24,7 @@
 #'  \item{\code{long.formulas}}{A list of \code{long.formulas} (i.e. from \code{joint} call).}
 #'  \item{\code{surv.formulas}}{Formula object from \code{joint} call.}
 #'  \item{\code{control}}{List of control parameters used, if none then this is \code{NULL}.}
+#'  \item{\code{convergence.criteria}}{List of parameters relating to the stopping rule.}
 #'  \item{\code{inds}}{A list of length two, containing: \describe{
 #'  \item{\code{beta}}{The indices in \eqn{\beta} for each response.}
 #'  \item{\code{b}}{The indices in random effects \eqn{b} for each response.}

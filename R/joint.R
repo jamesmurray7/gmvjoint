@@ -14,11 +14,15 @@
 #' 
 #'   \item{\code{verbose}}{Logical: If \code{TRUE}, at each iteration parameter information will 
 #'   be printed to console. Default is \code{verbose=FALSE}.}
-#'   \item{\code{conv}}{Character: Either \code{"absolute"} or \code{"relative"} to invoke 
-#'   absolute or relative difference as the convergence criterion. Default is 
-#'   \code{conv="relative"}.}
-#'   \item{\code{tol}}{Numeric: Tolerance value used to assess convergence. 
-#'   Default is \code{tol=1e-2}.}
+#'   \item{\code{conv}}{Character: Convergence criterion, see \strong{details}.}
+#'   \item{\code{tol.abs}}{Numeric: Tolerance value used to assess convergence, see 
+#'   \strong{details}. Default is \code{tol.abs=1e-3}.}
+#'   \item{\code{tol.rel}}{Numeric: Tolerance value used to assess convergence, see 
+#'   \strong{details}. Default is \code{tol.abs=1e-2}.}
+#'   \item{\code{tol.den}}{Numeric: Tolerance value used to assess convergence, see 
+#'   \strong{details}. Default is \code{tol.abs=1e-3}.}
+#'   \item{\code{tol.thr}}{Numeric: Threshold used when \code{conv = 'sas'}, see 
+#'   \strong{details}. Default is \code{tol.thr=1e-1}.}
 #'   \item{\code{correlated}}{Logical: Should covariance parameters \strong{between} responses 
 #'   be estimated and used in determination of model convergence? Default is 
 #'   \code{correlated=TRUE}. A choice of \code{correlated=FALSE} is equivalent to imposing the 
@@ -95,6 +99,21 @@
 #'   These are only calculated if \code{post.process=TRUE}. Generally, these SEs are well-behaved,
 #'   but their reliability will depend on multiple factors: Sample size; number of events; 
 #'   collinearity of REs of responses; number of observed times, and so on.
+#'   
+#' @section Convergence of the algorithm:
+#' A few convergence criteria (specified by \code{conv} in \code{control}) are available: \describe{
+#'   \item{\code{abs}}{Convergence reached when maximum absolute change in parameter estimates
+#'   is \code{<tol.abs}.}
+#'   \item{\code{rel}}{Convergence reached when maximum absolute relative change in parameter
+#'   estimates is \code{<tol.rel}. \code{tol.den} is added to the denominator to eschew numerical
+#'   issues if parameters are nearly zero.}
+#'   \item{\code{either}}{Convergence is reached when either \code{abs} or \code{rel} are met.}
+#'   \item{\code{sas}}{Assess convergence for parameters \eqn{|\Omega_a|}\code{<tol.thr} by the
+#'   \code{abs} criterion, else \code{rel}. This is the default.}
+#' 
+#' }
+#' Note that the baseline hazard is updated at each EM iteration, but is not monitored for 
+#' convergence.
 #' 
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #'
@@ -239,10 +258,18 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   
   # Begin EM ----
   diff <- 100; iter <- 0;
-  if(!is.null(control$tol)) tol <- control$tol else tol <- 1e-2
+  # Convergence criteria setup
+  if(!is.null(control$tol.abs)) tol.abs <- control$tol.abs else tol.abs <- 1e-3
+  if(!is.null(control$tol.rel)) tol.rel <- control$tol.rel else tol.rel <- 1e-2
+  if(!is.null(control$tol.den)) tol.den <- control$tol.den else tol.den <- 1e-3
+  if(!is.null(control$tol.thr)) tol.thr <- control$tol.thr else tol.thr <- 1e-1
   if(!is.null(control$maxit)) maxit <- control$maxit else maxit <- 200
-  if(!is.null(control$conv)) conv <- control$conv else conv <- "relative"
-  if(!conv%in%c('absolute', 'relative')) stop('Only "absolute" and "relative" difference convergence criteria implemented.')
+  if(!is.null(control$conv)) conv <- control$conv else conv <- "sas"
+  if(!conv%in%c('absolute', 'relative', 'either', 'sas'))
+    stop('Convergence criteria must be one of "absolute", "relative", "either" or "sas".')
+  convergence.criteria <- list(type = conv, tol.abs = tol.abs, tol.rel = tol.rel, tol.den = tol.den,
+                               threshold = tol.thr)
+  
   if(!is.null(control$verbose)) verbose <- control$verbose else verbose <- F
   if(!is.null(control$hessian)) hessian <- control$hessian else hessian <- 'auto'
   if(!hessian %in% c('auto', 'manual')) stop("Argument 'hessian' needs to be either 'auto' (i.e. from optim) or 'manual' (i.e. from _sdb, the default).")
@@ -250,8 +277,10 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   if(!is.null(control$return.dmats)) return.dmats <- control$return.dmats else return.dmats <- T
   if(!is.null(control$beta.quad)) beta.quad <- control$beta.quad else beta.quad <- F
   
+  if(verbose) cat("Starting EM algorithm...\n")
+  converged <- FALSE
   EMstart <- proc.time()[3]
-  while(diff > tol && iter < maxit){
+  while((!converged) && iter < maxit){
     update <- EMupdate(Omega, family, X, Y, Z, b, 
                        S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv, 
                        w, v, n, m, hessian, beta.inds, b.inds, K, q, beta.quad)
@@ -260,15 +289,6 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
                     update$gamma, update$zeta)
     names(params.new) <- names(params)
     
-    # Check (& print) convergence.
-    diffs <- difference(params, params.new, conv)
-    diff <- max(diffs)
-    if(verbose){
-      print(sapply(params.new, round, 4))
-      message("Iteration ", iter + 1, ' maximum ', conv, ' difference: ', round(diff, 4), ' for parameter ', names(params.new)[which.max(diffs)])
-      message("Largest RE relative difference: ", round(max(difference(do.call(cbind, update$b), do.call(cbind, b), conv)), 4))
-    }
-    
     # Set new estimates as current
     b <- update$b
     D <- update$D; beta <- update$beta; sigma <- update$sigma
@@ -276,6 +296,9 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     l0 <- update$l0; l0u <- update$l0u; l0i <- update$l0i
     iter <- iter + 1
     Omega <- list(D = D, beta = beta, sigma = sigma, gamma = gamma, zeta = zeta)
+    
+    convcheck <- converge.check(params, params.new, convergence.criteria, iter, Omega, verbose)
+    converged <- convcheck$converged
     params <- params.new
   }
   
@@ -295,6 +318,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   ModelInfo$survtime <- surv$survtime
   ModelInfo$status <- surv$status
   ModelInfo$control <- if(!is.null(control)) control else NULL
+  ModelInfo$convergence.criteria <- convergence.criteria
   ModelInfo$inds <- list(beta = beta.inds, b = b.inds)
   ModelInfo$nobs <- colSums(do.call(rbind, m))
   ModelInfo$n <- n
@@ -303,7 +327,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   
   # Post processing ----
   if(post.process){
-    if(verbose) message('\nCalculating SEs...')
+    if(verbose) cat('Calculating SEs\n')
     beta.inds2 <- lapply(beta.inds, function(x) x - 1); b.inds2 <- lapply(b.inds, function(x) x - 1) 
     gamma.rep <- rep(gamma, sapply(b.inds, length))
     pp.start.time <- proc.time()[3]
