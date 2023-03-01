@@ -42,18 +42,6 @@ parseFormula <- function(formula){
   ))
 }
 
-# Take and return difference between two vectors according to some criterion.
-difference <- function(params.old, params.new, type){
-  if(type == 'absolute'){
-    rtn <- abs(params.new - params.old)
-  }else if(type == 'relative'){
-    rtn <- abs(params.new - params.old)/(abs(params.old) + 1e-3)
-  }else{
-    rtn <- NA
-  }
-  rtn
-}
-
 #' @keywords internal
 converge.check <- function(params.old, params.new, criteria, iter, Omega, verbose){
   
@@ -61,7 +49,7 @@ converge.check <- function(params.old, params.new, criteria, iter, Omega, verbos
   # Absolute difference
   diffs.abs <- abs(params.new - params.old)
   # Relative difference
-  diffs.rel <- abs(params.new - params.old)/(abs(params.old) + criteria$tol.den)
+  diffs.rel <- diffs.abs/(abs(params.old) + criteria$tol.den)
   # SAS convergence criterion
   sas.crit <- abs(params.old) >= criteria$threshold
   sas.abs <- diffs.abs < criteria$tol.abs
@@ -88,11 +76,11 @@ converge.check <- function(params.old, params.new, criteria, iter, Omega, verbos
       cat("gamma:", round(Omega$gamma, 4), "\n")
       cat("zeta:", round(Omega$zeta, 4), "\n")
       cat("\n")
-      cat(paste0("Maximum absolute difference: ", round(max(diffs.abs), 4), " for ",
-          names(params.new)[which.max(diffs.abs)], "\n"))
-      cat(paste0("Maximum relative difference: ", round(max(diffs.rel), 4), " for ",
-                 names(params.new)[which.max(diffs.rel)], "\n"))
-      if(converged) cat(paste0("Converged!\n\n"))
+      cat("Maximum absolute difference:", round(max(diffs.abs), 4), "for",
+          names(params.new)[which.max(diffs.abs)], "\n")
+      cat("Maximum relative difference:", round(max(diffs.rel), 4), "for",
+                 names(params.new)[which.max(diffs.rel)], "\n")
+      if(converged) cat("Converged! (Criteria:", type, ").\n\n")
   }
   
   list(converged = converged,
@@ -114,20 +102,32 @@ bind.bs<- function(bsplit){
   as.matrix(step)
 }
 
-# Obtain hessian from a score vector using central difference
-# NB not used anywhere -- to remove.
+# Obtain hessian from a score vector using some differencing method.
 #' @keywords internal
-cendiff <- function(x, f, ..., eps = .Machine$double.eps^(1/4)){
+numDiff <- function(x, f, ..., method = 'central', heps = 1e-4){
+  method <- match.arg(method, c('central', 'forward', 'Richardson'))
   n <- length(x)
   out <- matrix(0, nrow = n, ncol = n)
-  xi <- pmax(abs(x), 1) * eps
-  for(i in 1:n){
-    a <- b <- x
-    a[i] <- x[i] + xi[i]
-    b[i] <- x[i] - xi[i]
-    fdiff <- c(f(a, ...) - f(b, ...))
-    xdiff <- a[i] - b[i]
-    out[, i] <- fdiff/xdiff
+  hepsmat <- diag(pmax(abs(x), 1) * heps, nrow = n)
+  if(method == "central"){
+    for(i in 1:n){
+      hi <- hepsmat[,i]
+      fdiff <- c(f(x + hi, ...) - f(x - hi, ...))
+      out[, i] <- fdiff/(2 * hi[i])
+    }
+  }else if(method == "Richardson"){
+    for(i in 1:n){
+      hi <- hepsmat[,i]
+      fdiff <- c(f(x - 2 * hi, ...) - 8 * f(x - hi, ...) + 8 * f(x + hi, ...) - f(x + 2 * hi, ...))
+      out[,i] <- fdiff/(12*hi[i])
+    }
+  }else{
+    f0 <- f(x, ...)
+    for(i in 1:n){
+      hi <- hepsmat[,i]
+      fdiff <- c(f(x + hi, ...) - f0)
+      out[,i] <- fdiff/hi[i]
+    }
   }
   (out + t(out)) * .5
 }
