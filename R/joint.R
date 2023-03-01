@@ -283,7 +283,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   if(verbose) cat("Starting EM algorithm...\n")
   converged <- FALSE
   EMstart <- proc.time()[3]
-  while((!converged) && (iter < 4L && iter < maxit)){
+  while((!converged) && (iter >= 4L || iter < maxit)){
     update <- EMupdate(Omega, family, X, Y, Z, b, 
                        S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv, 
                        w, v, n, m, hessian, beta.inds, b.inds, K, q, beta.quad)
