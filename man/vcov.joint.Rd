@@ -23,6 +23,17 @@ Extract the variance-covariance matrix from a \code{joint} fit.
 Uses the observed-empirical \strong{approximation} of information matrix 
 (Mclachlan & Krishnan, 2008). The standard errors for the baseline hazard are not estimated.
 }
+\section{Methodology}{
+ 
+
+Many competing ways exist for obtaining the observed information matrix in an EM algorithm. 
+In the context of joint modelling, the observed empirical approximation of the information 
+matrix has been used previously (\code{joineRML}, Hickey et al. 2018). Elsewhere,
+estimation of the observed information in a semi-parametric setting is outlined neatly in
+Xu et al. (2014). Here, they advocate for approximation of this information matrix by 
+numerical differentiation of the profile Fisher Score vector.
+}
+
 \examples{
 # Univariate fit on PBC data -------------------------------------------
 data(PBC)
@@ -43,8 +54,15 @@ fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian'))
 vcov(fit)
 }
 \references{
+Hickey GL, Philipson P, Jorgensen A, Kolamunnage-Dona R. \code{joineRML}: a joint model and
+software package for time-to-event and multivariate longitudinal outcomes.
+\emph{BMC Med. Res. Methodol.} 2018; \strong{50}
+
 McLachlan GJ, Krishnan T. \emph{The EM Algorithm and Extensions.} Second Edition. 
 Wiley-Interscience; 2008.
+
+Xu C, Baines PD, Wang J. Standard error estimation using the EM algorithm for the joint 
+modeling of survival and longitudinal data. \emph{Biostatistics} 2014; \strong{15}(4).
 }
 \author{
 James Murray \email{j.murray7@ncl.ac.uk}

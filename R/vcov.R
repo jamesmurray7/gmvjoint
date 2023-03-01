@@ -60,7 +60,7 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   sD <- sapply(1:nrow(vech.indices), sDi)
   sD <- lapply(1:nrow(sD), function(x) sD[x, ]) # Cast to list
   
-    
+  
   # The fixed effects, \beta 
   if(beta.quad){
     tau = mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
@@ -114,8 +114,8 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   }, b = b, Sigma = Sigma, S = sv$S, SS = sv$SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
   
   Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-     pracma::hessian(Egammazeta, c(gamma, zeta),
-                     b = b, Sigma = Sigma, S=S,SS= SS, Fu=Fu, Fi=Fi, haz=l0u, Delta=Delta, w=w, v=v, b_inds=b.inds2, K=K)
+    pracma::hessian(Egammazeta, c(gamma, zeta),
+                    b = b, Sigma = Sigma, S=S,SS= SS, Fu=Fu, Fi=Fi, haz=l0u, Delta=Delta, w=w, v=v, b_inds=b.inds2, K=K)
   }, b = b, Sigma = Sigma, S = sv$S, SS = sv$SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
   
   # Collate and form information --------------------------------------------
@@ -151,10 +151,27 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
 #' @return A variance-covariance matrix for the joint model object.
 #'
 #' @author James Murray \email{j.murray7@@ncl.ac.uk}
+#' 
+#' @section Methodology: 
+#' 
+#' Many competing ways exist for obtaining the observed information matrix in an EM algorithm. 
+#' In the context of joint modelling, the observed empirical approximation of the information 
+#' matrix has been used previously (\code{joineRML}, Hickey et al. 2018). Elsewhere,
+#' estimation of the observed information in a semi-parametric setting is outlined neatly in
+#' Xu et al. (2014). Here, they advocate for approximation of this information matrix by 
+#' numerical differentiation of the profile Fisher Score vector. 
+#' 
 #' @references 
+#' 
+#' Hickey GL, Philipson P, Jorgensen A, Kolamunnage-Dona R. \code{joineRML}: a joint model and
+#' software package for time-to-event and multivariate longitudinal outcomes.
+#' \emph{BMC Med. Res. Methodol.} 2018; \strong{50}
 #' 
 #' McLachlan GJ, Krishnan T. \emph{The EM Algorithm and Extensions.} Second Edition. 
 #' Wiley-Interscience; 2008.
+#' 
+#' Xu C, Baines PD, Wang J. Standard error estimation using the EM algorithm for the joint 
+#' modeling of survival and longitudinal data. \emph{Biostatistics} 2014; \strong{15}(4).
 #' 
 #' @method vcov joint
 #' @export
