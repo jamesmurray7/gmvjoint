@@ -2,8 +2,8 @@
 #'
 #' @param long.formulas A list of formula objects specifying the \eqn{K} responses. Each must be 
 #'        usable by \code{\link[glmmTMB]{glmmTMB}}. A restriction is that unique identifiers must 
-#'        be named `id`, and increment in intervals of at exactly one. The variable for time
-#'        must be named `time`.
+#'        be named \code{id}, and increment in intervals of at exactly one. The variable for time
+#'        must be named \code{time}.
 #' @param surv.formula A formula specifying the time-to-event sub-model. Must be usable by 
 #'   \code{\link[survival]{coxph}}.
 #' @param data A \code{data.frame} containing all covariates and responses.
@@ -18,16 +18,16 @@
 #'   \item{\code{tol.abs}}{Numeric: Tolerance value used to assess convergence, see 
 #'   \strong{details}. Default is \code{tol.abs=1e-3}.}
 #'   \item{\code{tol.rel}}{Numeric: Tolerance value used to assess convergence, see 
-#'   \strong{details}. Default is \code{tol.abs=1e-2}.}
+#'   \strong{details}. Default is \code{tol.rel=1e-2}.}
 #'   \item{\code{tol.den}}{Numeric: Tolerance value used to assess convergence, see 
-#'   \strong{details}. Default is \code{tol.abs=1e-3}.}
+#'   \strong{details}. Default is \code{tol.den=1e-3}.}
 #'   \item{\code{tol.thr}}{Numeric: Threshold used when \code{conv = 'sas'}, see 
 #'   \strong{details}. Default is \code{tol.thr=1e-1}.}
 #'   \item{\code{correlated}}{Logical: Should covariance parameters \strong{between} responses 
 #'   be estimated and used in determination of model convergence? Default is 
 #'   \code{correlated=TRUE}. A choice of \code{correlated=FALSE} is equivalent to imposing the 
 #'   belief that deviations in longitudinal trajectories are not correlated across responses, but
-#'    can \strong{greatly decrease} computation time.}
+#'   can \strong{greatly decrease} computation time.}
 #'   \item{\code{gh.nodes}}{Integer: Number of weights and abscissae to use in gauss-hermite 
 #'   quadrature. Defaults to \code{gh.nodes=3}, which is usually sufficient.}
 #'   \item{\code{gh.sigma}}{Numeric: Standard deviation for gauss-hermite approximation of normal
@@ -37,6 +37,9 @@
 #'   in minimising the negative log-likelihood, or calculated post-hoc using forward differencing.
 #'   Default is \code{hessian="auto"} for the former, with \code{hessian="manual"} the 
 #'   option for the latter.}
+#'   \item{\code{SE.method}}{Method to obtain standard errors from at \eqn{\hat{\Omega}}. See
+#'   \link{vcov.joint} for more information. Default is \code{SE.method = 'appx'}, which works
+#'   well for lower-dimensioned problems.}
 #'   \item{\code{return.inits}}{Logical: Should lists containing the initial conditions for the 
 #'   longitudinal and survival sub-models be returned? Defaults to \code{return.inits=FALSE}.}
 #'   \item{\code{beta.quad}}{Logical: Should gauss-hermite quadrature be used to appraise
@@ -47,7 +50,7 @@
 #'   \code{return.dmats=TRUE}. Note that some S3 methods for \code{\link{joint.object}}s
 #'   greatly benefit from inclusion of these data matrices.}
 #'   \item{\code{center.ph}}{Should the survival covariates be mean-centered? Defaults
-#'   to \code{center.ph=FALSE}.}
+#'   to \code{center.ph=TRUE}.}
 #' 
 #' }
 #' 
@@ -105,8 +108,8 @@
 #'   \item{\code{abs}}{Convergence reached when maximum absolute change in parameter estimates
 #'   is \code{<tol.abs}.}
 #'   \item{\code{rel}}{Convergence reached when maximum absolute relative change in parameter
-#'   estimates is \code{<tol.rel}. \code{tol.den} is added to the denominator to eschew numerical
-#'   issues if parameters are nearly zero.}
+#'   estimates is \code{<tol.rel}. A small amount (\code{tol.den}) is added to the denominator 
+#'   to eschew numerical issues if parameters are nearly zero.}
 #'   \item{\code{either}}{Convergence is reached when either \code{abs} or \code{rel} are met.}
 #'   \item{\code{sas}}{Assess convergence for parameters \eqn{|\Omega_a|}\code{<tol.thr} by the
 #'   \code{abs} criterion, else \code{rel}. This is the default.}
@@ -194,7 +197,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   # Initial parsing ----
   if("factor"%in%class(data$id)) data$id <- as.numeric(as.character(data$id))
   formulas <- lapply(long.formulas, parseFormula)
-  center.ph <- if(!is.null(control$center.ph)) control$center.ph else FALSE
+  center.ph <- if(!is.null(control$center.ph)) control$center.ph else TRUE
   surv <- parseCoxph(surv.formula, data, center.ph)
   n <- surv$n; K <- length(family)
   if(K!=length(long.formulas)) stop('Mismatched lengths of "family" and "long.formulas".')
@@ -280,7 +283,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   if(verbose) cat("Starting EM algorithm...\n")
   converged <- FALSE
   EMstart <- proc.time()[3]
-  while((!converged) && iter < maxit){
+  while((!converged) && (iter < 4L && iter < maxit)){
     update <- EMupdate(Omega, family, X, Y, Z, b, 
                        S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv, 
                        w, v, n, m, hessian, beta.inds, b.inds, K, q, beta.quad)
@@ -332,6 +335,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     gamma.rep <- rep(gamma, sapply(b.inds, length))
     pp.start.time <- proc.time()[3]
     
+    # Evaluate l0 at final parameter estimates and obtain l0u from surv.mod.
     l0 <- sv$nev/rowSums(lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, zeta, sv$S, update$Sigma, b, w, v, b.inds2))
     sv.new <- surv.mod(surv, formulas, l0)
     
