@@ -29,7 +29,8 @@ Longit.inits <- function(long.formula, data, family){
   fits <- lapply(1:K, function(k){
     fit <- glmmTMB(long.formula[[k]],
                    family = family.form[[k]], data = data, dispformula = ~ 1,
-                   control = glmmTMBControl(optCtrl = list(rel.tol = 1e-3)))
+                   # control = glmmTMBControl(optCtrl = list(rel.tol = 1e-3))
+                   )
     fit
   })
   
