@@ -41,7 +41,7 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   delta.D <- lapply(1:nrow(vech.indices), function(d){
     out <- matrix(0, nrow(D), ncol(D))
     ind <- vech.indices[d, 2:1]
-    out[ind[1], ind[2]] <- out[ind[2], ind[1]] <- 1 # dD/dvech(d)_i d=1,...,length(vech(D))
+    out[ind[1], ind[2]] <- out[ind[2], ind[1]] <- 1 # dD/dvech(d)_i i=1,...,length(vech(D))
     out
   })
   
@@ -113,11 +113,6 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
     Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, .Machine$double.eps^(1/3))
   }, b = b, Sigma = Sigma, S = sv$S, SS = sv$SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
   
-  Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    pracma::hessian(Egammazeta, c(gamma, zeta),
-                    b = b, Sigma = Sigma, S=S,SS= SS, Fu=Fu, Fi=Fi, haz=l0u, Delta=Delta, w=w, v=v, b_inds=b.inds2, K=K)
-  }, b = b, Sigma = Sigma, S = sv$S, SS = sv$SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
-  
   # Collate and form information --------------------------------------------
   Ss2 <- lapply(1:n, function(i){
     do.call(c, lapply(disps, function(j){
@@ -135,8 +130,7 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   H <- SiSiT - tcrossprod(SS)/n
   
   return(list(Score = S,
-              Hessian = H, 
-              Hgz = -Reduce('+', Hgz)))
+              Hessian = H))
 }
 
 #' Extract the variance-covariance matrix from a \code{joint} fit.
@@ -159,7 +153,10 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
 #' matrix has been used previously (\code{joineRML}, Hickey et al. 2018). Elsewhere,
 #' estimation of the observed information in a semi-parametric setting is outlined neatly in
 #' Xu et al. (2014). Here, they advocate for approximation of this information matrix by 
-#' numerical differentiation of the profile Fisher Score vector. 
+#' numerical differentiation of the profile Fisher Score vector. We do not consider this 
+#' methodology owing to its computational expense. That is, for each element of \eqn{\Omega} 
+#' which is perturbed by some small amount \eqn{\tilde{\Omega}^{p}}, we must re-calculate
+#' \eqn{\hat{\b}_i} and \eqn{\hat{\Sigma}_i}.
 #' 
 #' @references 
 #' 

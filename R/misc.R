@@ -102,6 +102,7 @@ bind.bs<- function(bsplit){
   as.matrix(step)
 }
 
+# Not used, keeping anyway.
 # Obtain hessian from a score vector using some differencing method.
 #' @keywords internal
 numDiff <- function(x, f, ..., method = 'central', heps = 1e-4){

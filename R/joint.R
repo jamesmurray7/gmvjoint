@@ -37,11 +37,6 @@
 #'   in minimising the negative log-likelihood, or calculated post-hoc using forward differencing.
 #'   Default is \code{hessian="auto"} for the former, with \code{hessian="manual"} the 
 #'   option for the latter.}
-#'   \item{\code{SE.method}}{Method to obtain standard errors from at \eqn{\hat{\Omega}}. See
-#'   \link{vcov.joint} for more information. Default is \code{SE.method = 'appx'}, which works
-#'   well for lower-dimensioned problems.}
-#'   \item{\code{return.inits}}{Logical: Should lists containing the initial conditions for the 
-#'   longitudinal and survival sub-models be returned? Defaults to \code{return.inits=FALSE}.}
 #'   \item{\code{beta.quad}}{Logical: Should gauss-hermite quadrature be used to appraise
 #'   calculation of score and Hessian in updates to fixed effects \eqn{\beta}? Default is 
 #'   \code{beta.quad=FALSE} which works very well in most situations. Dispersion parameters
@@ -101,10 +96,11 @@
 #'   Mclachlan and Krishnan (2008), and later used in \code{joineRML} (Hickey et al., 2018).
 #'   These are only calculated if \code{post.process=TRUE}. Generally, these SEs are well-behaved,
 #'   but their reliability will depend on multiple factors: Sample size; number of events; 
-#'   collinearity of REs of responses; number of observed times, and so on.
+#'   collinearity of REs of responses; number of observed times, and so on. Some more discussion/
+#'   references are given in \code{\link{vcov.joint}}.
 #'   
 #' @section Convergence of the algorithm:
-#' A few convergence criteria (specified by \code{conv} in \code{control}) are available: \describe{
+#' A few convergence criteria (specified by \code{control$conv}) are available: \describe{
 #'   \item{\code{abs}}{Convergence reached when maximum absolute change in parameter estimates
 #'   is \code{<tol.abs}.}
 #'   \item{\code{rel}}{Convergence reached when maximum absolute relative change in parameter
@@ -283,7 +279,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   if(verbose) cat("Starting EM algorithm...\n")
   converged <- FALSE
   EMstart <- proc.time()[3]
-  while((!converged) && (iter >= 4L || iter < maxit)){
+  while((!converged) && (iter < maxit)){
     update <- EMupdate(Omega, family, X, Y, Z, b, 
                        S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv, 
                        w, v, n, m, hessian, beta.inds, b.inds, K, q, beta.quad)
@@ -301,7 +297,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     Omega <- list(D = D, beta = beta, sigma = sigma, gamma = gamma, zeta = zeta)
     
     convcheck <- converge.check(params, params.new, convergence.criteria, iter, Omega, verbose)
-    converged <- convcheck$converged
+    if(iter >= 4) converged <- convcheck$converged # Allow to converge after 3 iterations
     params <- params.new
   }
   
@@ -351,24 +347,25 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     Sigma <- lapply(b.update, function(x) solve(x$hessian))
     b <- lapply(b.update, function(x) x$par)
     SigmaSplit <- lapply(Sigma, function(x) lapply(b.inds, function(y) as.matrix(x[y,y])))
-    bsplit <- lapply(b, function(x) lapply(b.inds, function(y) x[y])) # Needed for updates to beta.
+    bsplit <- lapply(b, function(x) lapply(b.inds, function(y) x[y]))
+    
+    # Obtain profile estimate (again) at final b.hat and Sigma.hat
+    l0 <- sv$nev/rowSums(lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, zeta, sv$S, Sigma, b, w, n, b.inds2))
+    sv.new <- surv.mod(surv, formulas, l0)
+
     # The Information matrix
     II <- obs.emp.I(coeffs, dmats, surv, sv, 
                     Sigma, SigmaSplit, b, bsplit, 
                     sv.new$l0u, w, v, n, family, K, q, beta.inds, b.inds, beta.quad)
     H <- structure(II$Hessian,
                    dimnames = list(names(params), names(params)))
-    gzs <- match(c(names(Omega$gamma), names(Omega$zeta)), names(params))
-    H[gzs,gzs] <- II$Hgz # This appx. the same for K < 2!
-
+    
     I <- tryCatch(solve(H), error = function(e) e)
     if(inherits(I, 'error')) I <- structure(MASS::ginv(H), dimnames = dimnames(H))
     out$Hessian <- H
     out$vcov <- I
     out$SE <- sqrt(diag(I))
-    out$Itilde <- structure(solve(II$Hess),
-                            dimnames = list(names(params), names(params)))
-
+   
     postprocess.time <- round(proc.time()[3]-pp.start.time, 2)
     # Calculate log-likelihood. Done separately as EMtime + postprocess.time is for EM + SEs.
     out$logLik <- joint.log.lik(coeffs, dmats, b, surv, sv, sv.new$l0u, sv.new$l0i, gamma.rep, beta.inds, b.inds, 
