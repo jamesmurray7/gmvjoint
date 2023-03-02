@@ -51,26 +51,25 @@ getlambdahat(sv.new$l0, b, sv$S, sv$SS, sv$Fi, sv$Fu, surv$Delta, rep(gamma, sap
   Fu <- sv$Fu
   Delta <- surv$Delta
   
-  # TEMP --> Consternation wrt if b should be re-maximised at Omega.tilde.
-  # b.update <- mapply(function(b, Y, X, Z, Delta, S, Fi, l0i, SS, Fu, l0u){
-  #     optim(b, joint_density, joint_density_ddb,
-  #           Y = Y, X = X, Z = Z, beta = beta, D = D, sigma = sigma, family = family,
-  #           Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS, Fu = Fu, haz = l0u, gamma_rep = gamma.rep, zeta = zeta,
-  #           beta_inds = beta.inds2, b_inds = b.inds2, K = K,
-  #           method = 'BFGS', hessian = TRUE #lower = -Inf, upper = Inf,
-  #           , control = list(reltol=1e-4)
-  #           )
-  #   }, b = b, Y = dmats$Y, X = dmats$X, Z = dmats$Z, Delta = surv$Delta, S = sv$S, Fi = sv$Fi, l0i = sv$l0i, SS = sv$SS,
-  # Fu = sv$Fu, l0u = sv$l0u, SIMPLIFY = F)
-  # b <- lapply(b.update, el, 1)
-  # Sigma <- lapply(b.update, function(x) solve(x$hess))
-  # SigmaSplit <- lapply(Sigma, function(x) lapply(b.inds, function(y) as.matrix(x[y, y])))
   lambda.tilde <- sv$nev/rowSums(lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, zeta, sv$S, 
                                               Sigma, b, w, v, b.inds2) )
-  l0u <- lapply(sv$l0u, function(ll){
-    lambda.tilde[1:length(ll)]
-  })
+  sv <- surv.mod(surv, formulas, lambda.tilde)
   
+  # TEMP --> Consternation wrt if b should be re-maximised at Omega.tilde.
+  b.update <- mapply(function(b, Y, X, Z, Delta, S, Fi, l0i, SS, Fu, l0u){
+      optim(b, joint_density, joint_density_ddb,
+            Y = Y, X = X, Z = Z, beta = beta, D = D, sigma = sigma, family = family,
+            Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS, Fu = Fu, haz = l0u, gamma_rep = gamma.rep, zeta = zeta,
+            beta_inds = beta.inds2, b_inds = b.inds2, K = K,
+            method = 'BFGS', hessian = TRUE #lower = -Inf, upper = Inf,
+            , control = list(reltol=1e-4)
+            )
+    }, b = b, Y = dmats$Y, X = dmats$X, Z = dmats$Z, Delta = surv$Delta, S = sv$S, Fi = sv$Fi, l0i = sv$l0i, SS = sv$SS,
+  Fu = sv$Fu, l0u = sv$l0u, SIMPLIFY = F)
+  b <- lapply(b.update, el, 1)
+  Sigma <- lapply(b.update, function(x) solve(x$hess))
+  SigmaSplit <- lapply(Sigma, function(x) lapply(b.inds, function(y) as.matrix(x[y, y])))
+ 
   # Scores ------------------------------------------------------------------
   # The RE covariance matrix, D
   Dinv <- solve(D)
@@ -182,8 +181,9 @@ J <- pracma::jacobian(.Score, params, heps = max(abs(params), 1) * 1e-4)
 J <- 0.5 * (J + t(J))
 qq(J)
 J2c <- numDiff(params, .Score, method = 'central', heps = 1e-4)
-J2f <- numDiff(params, .Score, method = 'forward', heps = 1e-3)
+J2f <- numDiff(params, .Score, method = 'forward', heps = 1e-2)
+J2fb <- numDiff(params, .Score, method = 'forward', heps = 1e-5)
 J2R <- numDiff(params, .Score, method = 'Richardson', heps = 1e-4)
 
-qq(J2f)
+qq(J2f);qq(J2fb)
 qq(J2R)
