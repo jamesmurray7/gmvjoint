@@ -119,8 +119,8 @@ to.apply <- function(x){ # x is a ROW from to.sim
       width = 140, height = 75, units = 'mm', pointsize = 9, res = 2000)
   par(mfrow = c(1,2))
   for(j in 1:2){
-    ddL <- density(.SAMPLE$long[,j]); ddLx <- ddL$x; ddLy <- ddL$y
-    ddF <- density(.SAMPLE$full[,j]); ddFx <- ddF$x; ddFy <- ddF$y
+    ddL <- density(.SAMPLE$long[,j], na.rm = TRUE); ddLx <- ddL$x; ddLy <- ddL$y
+    ddF <- density(.SAMPLE$full[,j], na.rm = TRUE); ddFx <- ddF$x; ddFy <- ddF$y
     xs <- seq(min(pmin(ddLx, ddFx)), max(pmax(ddLx, ddFx)), length.out = 1000)
     DN <- dnorm(xs, 0, sqrt(c(.25, .05)[j]))
     ylims <- c(min(pmin(ddLy, ddFy), min(DN)), max(pmax(ddLy, ddFy), max(DN)))
