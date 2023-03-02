@@ -60,7 +60,7 @@
 #' 
 #' \deqn{h_k(E[Y_{ik}|b_{ik};\Omega]) = X_{ik}\beta_k + Z_{ik}b_{ik}} 
 #' 
-#' where \eqn{h} is a known, monotonic link function. An association is induced between the 
+#' where \eqn{h_k} is a known, monotonic link function. An association is induced between the 
 #' \eqn{K}th response and the hazard \eqn{\lambda_i(t)} by: 
 #' 
 #' \deqn{\lambda_i(t)=\lambda_0(t)\exp\{S_i^T\zeta + \sum_{k=1}^K\gamma_kW_k(t)^Tb_{ik}\}} 
