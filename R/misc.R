@@ -80,7 +80,7 @@ converge.check <- function(params.old, params.new, criteria, iter, Omega, verbos
           names(params.new)[which.max(diffs.abs)], "\n")
       cat("Maximum relative difference:", round(max(diffs.rel), 4), "for",
                  names(params.new)[which.max(diffs.rel)], "\n")
-      if(converged) cat("Converged! (Criteria:", type, ").\n\n")
+      if(converged) cat(paste0("Converged! (Criteria: ", type, ")."), "\n\n")
   }
   
   list(converged = converged,
