@@ -36,7 +36,7 @@ family <- list("gaussian",
 
 # Set out things that vary across simulations.
 N <- 100
-to.sim <- expand.grid(n = c(250, 500), mi = c(5, 10, 15), failure = c('30%', '50%'))
+to.sim <- expand.grid(n = c(250), mi = c(5, 10, 15), failure = c('30%', '50%'))
 nms <- apply(to.sim, 1, function(x) paste0("n = ", as.numeric(x[1]), ", mi = ", as.numeric(x[2]), ", failure = ", x[3]))
 sim.sets <- setNames(apply(to.sim, 1, function(x){
   n <- as.numeric(x[1]); mi <- as.numeric(x[2]); failure <- x[3]
