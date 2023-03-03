@@ -56,10 +56,6 @@ log-likelihood? Defaults to \code{TRUE}.}
   in minimising the negative log-likelihood, or calculated post-hoc using forward differencing.
   Default is \code{hessian="auto"} for the former, with \code{hessian="manual"} the 
   option for the latter.}
-  \item{\code{beta.quad}}{Logical: Should gauss-hermite quadrature be used to appraise
-  calculation of score and Hessian in updates to fixed effects \eqn{\beta}? Default is 
-  \code{beta.quad=FALSE} which works very well in most situations. Dispersion parameters
-  and survival pair are always calculated with quadrature.}
   \item{\code{return.dmats}}{Logical: Should data matrices be returned? Defaults to 
   \code{return.dmats=TRUE}. Note that some S3 methods for \code{\link{joint.object}}s
   greatly benefit from inclusion of these data matrices.}
@@ -174,9 +170,9 @@ PBC <- subset(PBC, select = c('id', 'survtime', 'status', 'drug', 'time',
                               'serBilir', 'albumin', 'spiders', 'platelets'))
 PBC <- na.omit(PBC) 
 
-# Specify GLMM sub-models, including interaction and natural spline terms
+# Specify GLMM sub-models, including interaction and quadratic time terms
 long.formulas <- list(
-  serBilir ~ drug * (splines::ns(time, df = 3)) + (1 + splines::ns(time, df = 3)|id),
+  serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
   albumin ~ drug * time + (1 + time|id),
   platelets ~ drug * time + (1 + time|id),
   spiders ~ drug * time + (1|id)

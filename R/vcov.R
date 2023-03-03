@@ -1,7 +1,7 @@
 #' @keywords internal
 obs.emp.I <- function(Omega, dmats, surv, sv,
                       Sigma, SigmaSplit, b, bsplit, 
-                      l0u, w, v, n, family, K, q, beta.inds, b.inds, beta.quad){
+                      l0u, w, v, n, family, K, q, beta.inds, b.inds){
   # Unpack Omega ----
   D <- Omega$D
   beta <- c(Omega$beta)
@@ -61,16 +61,11 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   sD <- lapply(1:nrow(sD), function(x) sD[x, ]) # Cast to list
   
   
-  # The fixed effects, \beta 
-  if(beta.quad){
-    tau = mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
-  }else{
-    tau = list(0)
-  }
+  tau = mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
   
   Sb <- mapply(function(X, Y, Z, b, tau){
     c(Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K,
-            beta.quad, tau, w, v))
+            FALSE, tau, w, v))
   }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau, SIMPLIFY = F)
   
   # The dispersion parameter, \sigma
@@ -78,10 +73,7 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   funlist <- unlist(family)
   disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma'))
   for(j in disps){
-    if(beta.quad)
-      tau <- lapply(tau, el, j)
-    else
-      tau <- mapply(function(Z, S) unname(sqrt(diag(tcrossprod(Z[[j]] %*% S[[j]], Z[[j]])))), Z = Z, S = SigmaSplit)
+    tau <- lapply(tau, el, j)
     
     # Create score accordingly.
     if(funlist[j] == 'gaussian'){

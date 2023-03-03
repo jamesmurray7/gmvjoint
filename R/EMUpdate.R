@@ -2,7 +2,7 @@
 EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
                      S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv,   # Survival
                      w, v, n, m, hessian,                      # Quadrature + additional info.
-                     beta.inds, b.inds, K, q, beta.quad){
+                     beta.inds, b.inds, K, q){
   
   # Unpack Omega, the parameter vector
   D <- Omega$D; beta <- Omega$beta; sigma <- Omega$sigma; gamma <- Omega$gamma; zeta <- Omega$zeta
@@ -46,19 +46,19 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   D.update <- mapply(function(Sigma, b) Sigma + tcrossprod(b), Sigma = Sigma, b = b.hat, SIMPLIFY = F)
   
   # \beta =====================================
-  if(beta.quad){
+  # if(beta.quad){
     tau = mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
-  }else{
-    tau = list(0)
-  }
+  # }else{
+  #   tau = list(0)
+  # }
   
   Sb <- mapply(function(X, Y, Z, b, tau){
     Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K, 
-          beta.quad, tau, w, v)
+          FALSE, tau, w, v)
   }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau, SIMPLIFY = F)
   Hb <- mapply(function(X, Y, Z, b, tau){
     Hbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K,
-          beta.quad, tau, w, v)
+          FALSE, tau, w, v)
   }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau, SIMPLIFY = F)
   
   # Dispersion ('\sigma') =====================
@@ -66,10 +66,7 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma'))
   sigma.update <- sigma.update2 <- replicate(K, list(), simplify = F)
   for(j in disps){
-    if(beta.quad)
-      tau <- lapply(tau, el, j)
-    else
-      tau <- mapply(function(Z, S) unname(sqrt(diag(tcrossprod(Z[[j]] %*% S[[j]], Z[[j]])))), Z = Z, S = SigmaSplit)
+    tau <- lapply(tau, el, j)
     
     # Update accordingly.
     if(funlist[j] == 'gaussian'){

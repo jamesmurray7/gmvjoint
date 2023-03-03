@@ -37,10 +37,6 @@
 #'   in minimising the negative log-likelihood, or calculated post-hoc using forward differencing.
 #'   Default is \code{hessian="auto"} for the former, with \code{hessian="manual"} the 
 #'   option for the latter.}
-#'   \item{\code{beta.quad}}{Logical: Should gauss-hermite quadrature be used to appraise
-#'   calculation of score and Hessian in updates to fixed effects \eqn{\beta}? Default is 
-#'   \code{beta.quad=FALSE} which works very well in most situations. Dispersion parameters
-#'   and survival pair are always calculated with quadrature.}
 #'   \item{\code{return.dmats}}{Logical: Should data matrices be returned? Defaults to 
 #'   \code{return.dmats=TRUE}. Note that some S3 methods for \code{\link{joint.object}}s
 #'   greatly benefit from inclusion of these data matrices.}
@@ -172,9 +168,9 @@
 #'                               'serBilir', 'albumin', 'spiders', 'platelets'))
 #' PBC <- na.omit(PBC) 
 #' 
-#' # Specify GLMM sub-models, including interaction and natural spline terms
+#' # Specify GLMM sub-models, including interaction and quadratic time terms
 #' long.formulas <- list(
-#'   serBilir ~ drug * (splines::ns(time, df = 3)) + (1 + splines::ns(time, df = 3)|id),
+#'   serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
 #'   albumin ~ drug * time + (1 + time|id),
 #'   platelets ~ drug * time + (1 + time|id),
 #'   spiders ~ drug * time + (1|id)
@@ -274,7 +270,6 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   if(!hessian %in% c('auto', 'manual')) stop("Argument 'hessian' needs to be either 'auto' (i.e. from optim) or 'manual' (i.e. from _sdb, the default).")
   if(!is.null(control$return.inits)) return.inits <- control$return.inits else return.inits <- F
   if(!is.null(control$return.dmats)) return.dmats <- control$return.dmats else return.dmats <- T
-  if(!is.null(control$beta.quad)) beta.quad <- control$beta.quad else beta.quad <- F
   
   if(verbose) cat("Starting EM algorithm...\n")
   converged <- FALSE
@@ -282,7 +277,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   while((!converged) && (iter < maxit)){
     update <- EMupdate(Omega, family, X, Y, Z, b, 
                        S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv, 
-                       w, v, n, m, hessian, beta.inds, b.inds, K, q, beta.quad)
+                       w, v, n, m, hessian, beta.inds, b.inds, K, q)
     if(!correlated) update$D[inits.long$off.inds] <- 0
     params.new <- c(vech(update$D), update$beta, unlist(update$sigma)[inits.long$sigma.include], 
                     update$gamma, update$zeta)
@@ -356,7 +351,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     # The Information matrix
     II <- obs.emp.I(coeffs, dmats, surv, sv, 
                     Sigma, SigmaSplit, b, bsplit, 
-                    sv.new$l0u, w, v, n, family, K, q, beta.inds, b.inds, beta.quad)
+                    sv.new$l0u, w, v, n, family, K, q, beta.inds, b.inds)
     H <- structure(II$Hessian,
                    dimnames = list(names(params), names(params)))
     

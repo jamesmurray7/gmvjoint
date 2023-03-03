@@ -297,7 +297,8 @@ arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     vec b_k = b[k];
     vec eta = Xk * beta_k + Zk * b_k;
     double sigmak = sigma[k];
-    if(f == "gaussian" || !quad){ // gaussian is the same, so do it here.
+//    if(f == "gaussian" || !quad || f != "binomial"){ // gaussian is the same, so do it here.
+    if(f!="binomial"){
       Score.elem(beta_k_inds) += get_long_score(eta, Yk, f, sigmak, Xk);
     }else{
       vec tauk = tau[k]; // This is tau^2/2 (fron e.g. make tau2).
@@ -365,19 +366,20 @@ mat Hess_eta_binom(const vec& eta, const vec& Y, const mat& design){
 
 // Binomial d2/d{eta}^2 taken with quadrature
 mat Hess_eta_binom_quad(const arma::vec& eta, const arma::vec& Y, const arma::mat& design,
-                        const arma::vec& tau, const arma::vec& w, const arma::vec v){
+                        const arma::vec& tau, const arma::vec& w, const arma::vec& v){
   int mi = design.n_rows, q = design.n_cols, gh = w.size();
   mat H = zeros<mat>(q, q);
-  vec exp_part = vec(mi);
+  vec exp_part = vec(mi), ones = vec(mi, fill::ones);
   for(int l = 0; l < gh; l++){
-    exp_part += w[l] * exp(eta + tau * v[l])/square(exp(eta + tau * v[l]) + 1.);
+      vec exp_part_l = exp(eta + tau * v[l]);
+      exp_part += w[l] * (exp_part_l/(ones + exp_part_l) % (ones - exp_part_l/(ones + exp_part_l)));
   }
   for(int j = 0; j < mi; j ++){
     rowvec xjT = design.row(j);
     vec xj = xjT.t();
-    H += exp_part.at(j) * xj * xjT;
+    H -= exp_part.at(j) * xj * xjT;
   }
-  return -H;
+  return H;
 }
 
 arma::mat Hess_eta_genpois(const arma::vec& eta, const arma::vec& Y, const double phi, const arma::mat& design){
@@ -478,7 +480,8 @@ arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     vec beta_k = beta.elem(beta_k_inds); // Ensure indexing from zero!!
     vec b_k = b[k];
     vec eta = Xk * beta_k + Zk * b_k;
-    if(f == "gaussian" || !quad){
+//    if(f == "gaussian" || !quad || f != "binomial"){
+    if(f != "binomial"){
       H(span(start, end), span(start, end)) = get_long_hess(eta, Yk, f, sigmak, Xk);
     }else{
       vec tauk = tau[k];
