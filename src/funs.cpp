@@ -163,14 +163,10 @@ vec Score_eta_poiss(const vec& eta, const vec& Y){
 }
 
 // Poisson d/d{eta} taken with quadrature
-vec Score_eta_poiss_quad(const vec& eta, const vec& Y, const vec& tau,
-				                 const vec& w, const vec& v){
-  int mi = Y.size(), gh = w.size();
-  mat exp_part = mat(mi, gh);
-  for(int l = 0; l < gh; l++){
-    exp_part.col(l) = w[l] * exp(eta + tau * v[l]);
-  }
-  return Y - sum(exp_part, 1);
+vec Score_eta_poiss_quad(const vec& eta, const vec& Y, const vec& tau){
+  int mi = Y.size();
+  vec Eexpmu = exp(eta + square(tau) * .5);
+  return Y - Eexpmu;
 }
 
 vec Score_eta_genpois(const vec& eta, const vec& Y, const double phi, const mat& design){
@@ -240,7 +236,7 @@ vec get_long_score_quad(const vec& eta, const vec& Y, const std::string family, 
   int p = design.n_cols;
   vec Score = vec(p);
   if(family == "poisson"){
-    Score += design.t() * Score_eta_poiss_quad(eta, Y, tau, w, v);
+    Score += design.t() * Score_eta_poiss_quad(eta, Y, tau);
   }else if(family == "binomial"){
     Score += design.t() * Score_eta_binom_quad(eta, Y, tau, w, v);
   }else if(family == "genpois"){
@@ -298,12 +294,13 @@ arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     vec eta = Xk * beta_k + Zk * b_k;
     double sigmak = sigma[k];
 //    if(f == "gaussian" || !quad || f != "binomial"){ // gaussian is the same, so do it here.
-    if(f!="binomial"){
-      Score.elem(beta_k_inds) += get_long_score(eta, Yk, f, sigmak, Xk);
-    }else{
+    if(f!="gaussian"){
       vec tauk = tau[k]; // This is tau^2/2 (fron e.g. make tau2).
       Score.elem(beta_k_inds) += get_long_score_quad(eta, Yk, f, sigmak, Xk,
-                                                     tauk, w, v);
+                 tauk, w, v);
+      
+    }else{
+      Score.elem(beta_k_inds) += get_long_score(eta, Yk, f, sigmak, Xk);
     }
   }
   return Score;
@@ -333,19 +330,16 @@ mat Hess_eta_poiss(const vec& eta, const vec& Y, const mat& design){
 
 // Poisson d2/d{eta}2 taken with quadrature
 arma::mat Hess_eta_poiss_quad(const arma::vec& eta, const arma::vec& Y, const arma::mat& design,
-                              const arma::vec& tau, const arma::vec& w, const arma::vec v){
-  int mi = design.n_rows, q = design.n_cols, gh = w.size();
+                              const arma::vec& tau){
+  int mi = design.n_rows, q = design.n_cols;
   mat H = zeros<mat>(q, q);
-  vec exp_part = vec(mi);
-  for(int l = 0; l< gh; l++){
-    exp_part += exp(eta + tau * v[l]) * w[l];
-  }
+  vec Eexpmu = exp(eta + square(tau) * .5);
   for(int j = 0; j < mi; j ++){
     rowvec xjT = design.row(j);
     vec xj = xjT.t();
-    H += exp_part.at(j) * xj * xjT;
+    H -= Eexpmu.at(j) * xj * xjT;
   }
-  return -H;
+  return H;
 }
 
 mat Hess_eta_binom(const vec& eta, const vec& Y, const mat& design){
@@ -451,7 +445,7 @@ mat get_long_hess_quad(const vec& eta, const vec& Y, const std::string family, c
   int p = design.n_cols;
   mat H = zeros<mat>(p, p);
   if(family == "poisson"){
-    H += Hess_eta_poiss_quad(eta, Y, design, tau, w, v);
+    H += Hess_eta_poiss_quad(eta, Y, design, tau);
   }else if(family == "binomial"){
     H += Hess_eta_binom_quad(eta, Y, design, tau, w, v);
   }else if(family == "genpois"){
@@ -481,12 +475,12 @@ arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     vec b_k = b[k];
     vec eta = Xk * beta_k + Zk * b_k;
 //    if(f == "gaussian" || !quad || f != "binomial"){
-    if(f != "binomial"){
-      H(span(start, end), span(start, end)) = get_long_hess(eta, Yk, f, sigmak, Xk);
-    }else{
+    if(f != "gaussian"){
       vec tauk = tau[k];
       H(span(start, end), span(start, end)) = get_long_hess_quad(eta, Yk, f, sigmak, Xk,
-                                                                 tauk, w, v);
+        tauk, w, v);
+    }else{
+      H(span(start, end), span(start, end)) = get_long_hess(eta, Yk, f, sigmak, Xk);
     }
   } // Return the (psuedo-) block diagonal.
   return H;
