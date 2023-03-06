@@ -8,7 +8,7 @@ n <- 500
     D <- matrix(.5, 1, 1)
     random.formula <- list(~1)
   }else{
-    D <- diag(c(0.5, 0.09))
+    D <- diag(c(0.15, 0.02))
     random.formula <- NULL
   }
   a <- simData(n = n, ntms = ntms, theta = theta,
@@ -138,23 +138,31 @@ to.apply <- function(x){ # x is a ROW from to.sim
     theta <- theta70ish
   }
   
+  if(family == "poisson")
+    D <- diag(c(0.15, 0.02))
+  else if(family == "gaussian")
+    D <- diag(c(0.25, 0.09))
+  else
+    D <- matrix(.5,1,1)
+  
   .sim.sets.lookup <- trimws(paste0(mi,',',fr,',',family))
   X <- sim.sets[[.sim.sets.lookup]][[1]]
   data <- X[[1]]
+  btrue <- X[[2]]
   
-  .SAMPLE <- Sample(data, theta, family)
+  .SAMPLE <- Sample(data, btrue, theta, family)
   message(.sim.sets.lookup, " done!")
   
   # Save an image of the plot
   png(filename = paste0('paper-sims/MVNjustification/output/',
-                        gsub('\\,','_',.sim.sets.lookup), '.png'),
+                        gsub('\\,','_',.sim.sets.lookup), '_new.png'),
       width = 140, height = 75, units = 'mm', pointsize = 9, res = 2000)
-  par(mfrow = c(1,2))
-  for(j in 1:2){
-    ddL <- density(.SAMPLE$long[,j], na.rm = TRUE); ddLx <- ddL$x; ddLy <- ddL$y
-    ddF <- density(.SAMPLE$full[,j], na.rm = TRUE); ddFx <- ddF$x; ddFy <- ddF$y
+  par(mfrow = c(1,ncol(D)))
+  for(j in 1:ncol(D)){
+    ddL <- density(.SAMPLE$LongWalks[,j], na.rm = TRUE); ddLx <- ddL$x; ddLy <- ddL$y
+    ddF <- density(.SAMPLE$FullWalks[,j], na.rm = TRUE); ddFx <- ddF$x; ddFy <- ddF$y
     xs <- seq(min(pmin(ddLx, ddFx)), max(pmax(ddLx, ddFx)), length.out = 1000)
-    DN <- dnorm(xs, 0, sqrt(c(.25, .05)[j]))
+    DN <- dnorm(xs, 0, sqrt(D[j,j]))
     ylims <- c(min(pmin(ddLy, ddFy), min(DN)), max(pmax(ddLy, ddFy), max(DN)))
     plot(ddL, xlim = c(min(xs), max(xs)), ylim = ylims,
          xlab = bquote(b[.(j-1)]), main = '')
