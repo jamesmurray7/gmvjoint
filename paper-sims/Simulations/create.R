@@ -36,12 +36,14 @@ family <- list("gaussian",
 
 # Set out things that vary across simulations.
 N <- 100
-to.sim <- expand.grid(n = c(250), mi = c(5, 10, 15), failure = c('30%', '50%'))
+to.sim <- expand.grid(n = c(250), mi = c(5, 10, 15), failure = c('10%','30%', '50%'))
 nms <- apply(to.sim, 1, function(x) paste0("n = ", as.numeric(x[1]), ", mi = ", as.numeric(x[2]), ", failure = ", x[3]))
 sim.sets <- setNames(apply(to.sim, 1, function(x){
   n <- as.numeric(x[1]); mi <- as.numeric(x[2]); failure <- x[3]
   if(failure == '30%'){
     theta <- c(-2.9,.1)    # appx. 30%
+  }else if(failure == "10%"){
+    theta <- c(-4, .1) 
   }else{
     theta <- c(-2.15, 0.1) # 48-54%ish
   }
@@ -50,7 +52,7 @@ sim.sets <- setNames(apply(to.sim, 1, function(x){
                        random.formula = list(~time, ~time, ~1))$data, simplify = F)
 }), nms)
 
-save(sim.sets, file = paste0(save.dir, 'simsets_', gsub('\\s','_',.Internal(date())), '.RData')) # About 50MB
+save(sim.sets, file = paste0(save.dir, 'simsets_', gsub('\\s|\\:','_',.Internal(date())), '.RData')) # About 25MB
 
 # Five-variate ------------------------------------------------------------
 
