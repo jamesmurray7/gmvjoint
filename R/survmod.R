@@ -105,15 +105,35 @@ surv.mod <- function(surv, formulas, l0.init){
   
   # Fu, design matrix of _all_ failure times.
   ft.df <- data.frame(time = ft)
-  Fu.all <- do.call(cbind, lapply(Wk, function(f) model.matrix(as.formula(paste0("~", f)), ft.df)))
+  spline.fts <- setNames(vector('list', K), Wk)
+  Fu.all <- do.call(cbind, lapply(Wk, function(f){
+    spec <- attr(f, "special")
+    if(spec == "spline"){
+      form <- gsub("1\\s\\+\\s", "", f)
+      form <- gsub("time", "ft.df$time", form)
+      spline.fts[[f]] <<- eval(parse(text = form))  # Save for later use.
+    }
+    model.matrix(as.formula(paste0("~", f)), ft.df)
+  }))
   
   # Failure times and status list for each id = i,...,n.
   TiDi <- lapply(1:n, function(x) surv$survdata[surv$survdata$id == x, c('survtime', 'status')])
-  
   # Create Fi,
   Fi <- lapply(1:n, function(i){
     T.df <- data.frame(time = TiDi[[i]]$survtime)
-    do.call(cbind, lapply(Wk, function(f) model.matrix(as.formula(paste0("~", f)), T.df)))
+    return(do.call(cbind, lapply(Wk, function(f){
+      out <- model.matrix(as.formula(paste0("~", f)), T.df)
+      spec <- attr(f, "special")
+      if(spec!="spline")
+        return(model.matrix(as.formula(paste0("~", f)), T.df))
+      else{
+        sfts <- spline.fts[[f]]
+        lhs <- out
+        rhs <- predict(sfts, T.df)
+        out[,-1] <- rhs
+        return(out)
+      }
+    })))
   })
   
   # Populate other items

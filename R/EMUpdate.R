@@ -66,23 +66,23 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma'))
   sigma.update <- sigma.update2 <- replicate(K, list(), simplify = F)
   for(j in disps){
-    tau <- lapply(tau, el, j)
+    tauj <- lapply(tau, el, j)
     
     # Update accordingly.
     if(funlist[j] == 'gaussian'){
-      sigma.update[[j]] <- sum(mapply(function(X, Y, Z, b, tau){
-        vare_update(X[[j]], Y[[j]], Z[[j]], b[[j]], beta[beta.inds[[j]]], tau, w, v)
-      }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau))
+      sigma.update[[j]] <- sum(mapply(function(X, Y, Z, b, tauj){
+        vare_update(X[[j]], Y[[j]], Z[[j]], b[[j]], beta[beta.inds[[j]]], tauj, w, v)
+      }, X = X, Y = Y, Z = Z, b = bsplit, tauj = tauj))
     }
     if(funlist[j] == 'genpois'){
-      sigma.update[[j]] <- rowSums(mapply(function(b, X, Y, Z, tau){
-      unlist(phi_update(b[[j]], X[[j]], Y[[j]], Z[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v, tau))
-      }, b = bsplit, X = X, Y = Y, Z = Z, tau = tau))
+      sigma.update[[j]] <- rowSums(mapply(function(b, X, Y, Z, tauj){
+      unlist(phi_update(b[[j]], X[[j]], Y[[j]], Z[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v, tauj))
+      }, b = bsplit, X = X, Y = Y, Z = Z, tauj = tauj))
     }
     if(funlist[j] == 'Gamma'){
-      sigma.update[[j]] <- rowSums(mapply(function(X, Y, Z, tau, b){
+      sigma.update[[j]] <- rowSums(mapply(function(X, Y, Z, tauj, b){
         unlist(shape_update(sigma[[j]], X[[j]], Y[[j]], Z[[j]], tau, beta[beta.inds[[j]]], b[[j]], w, v))
-      }, X = X, Y = Y, Z = Z, tau = tau, b = bsplit))
+      }, X = X, Y = Y, Z = Z, tauj = tauj, b = bsplit))
     }
   }
   

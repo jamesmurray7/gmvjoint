@@ -73,7 +73,7 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
   funlist <- unlist(family)
   disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma'))
   for(j in disps){
-    tau <- lapply(tau, el, j)
+    tauj <- lapply(tau, el, j)
     
     # Create score accordingly.
     if(funlist[j] == 'gaussian'){
@@ -81,20 +81,20 @@ obs.emp.I <- function(Omega, dmats, surv, sv,
       for(i in 1:n){
         rhs <- 0
         for(l in 1:length(w)){
-          rhs <- rhs + w[l] * crossprod(Y[[i]][[j]] - X[[i]][[j]] %*% beta[beta.inds[[j]]] - Z[[i]][[j]] %*% bsplit[[i]][[j]] - v[l] * tau[[i]])
+          rhs <- rhs + w[l] * crossprod(Y[[i]][[j]] - X[[i]][[j]] %*% beta[beta.inds[[j]]] - Z[[i]][[j]] %*% bsplit[[i]][[j]] - v[l] * tauj[[i]])
         }
         temp[i] <- -m[[i]][j]/(2 * unlist(sigma)[j]) + 1/(2 * unlist(sigma)[j]^2) * rhs
       }
       Ss[[j]] <- temp
     }else if(funlist[j] == 'genpois'){
-      Ss[[j]] <- mapply(function(b, X, Y, Z, tau){
-        phi_update(b[[j]], X[[j]], Y[[j]], Z[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v, tau)$Score
-      }, b = bsplit, X = X, Y = Y, Z = Z, tau = tau, SIMPLIFY = F)
+      Ss[[j]] <- mapply(function(b, X, Y, Z, tauj){
+        phi_update(b[[j]], X[[j]], Y[[j]], Z[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v, tauj)$Score
+      }, b = bsplit, X = X, Y = Y, Z = Z, tauj = tauj, SIMPLIFY = F)
     }else if(funlist[j] == 'Gamma'){
-      Ss[[j]] <- mapply(function(b, X, Y, Z, tau){
-        pracma::grad(E_shape.b, sigma[[j]], X = X[[j]], Y = Y[[j]], Z = Z[[j]], tau = tau, 
+      Ss[[j]] <- mapply(function(b, X, Y, Z, tauj){
+        pracma::grad(E_shape.b, sigma[[j]], X = X[[j]], Y = Y[[j]], Z = Z[[j]], tauj = tauj, 
                      beta = beta[beta.inds[[j]]], b = b[[j]], w = w, v = v)
-      }, b = bsplit, X = X, Y = Y, Z = Z, tau = tau, SIMPLIFY = F)
+      }, b = bsplit, X = X, Y = Y, Z = Z, tauj = tauj, SIMPLIFY = F)
     }else{
       Ss[[j]] <- as.list(rep(NULL, n))
     }
