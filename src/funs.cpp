@@ -294,7 +294,7 @@ arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     vec eta = Xk * beta_k + Zk * b_k;
     double sigmak = sigma[k];
 //    if(f == "gaussian" || !quad || f != "binomial"){ // gaussian is the same, so do it here.
-    if(f!="gaussian"){
+    if(f=="poisson"||f=="binomial"){
       vec tauk = tau[k]; // This is tau^2/2 (fron e.g. make tau2).
       Score.elem(beta_k_inds) += get_long_score_quad(eta, Yk, f, sigmak, Xk,
                  tauk, w, v);
@@ -475,7 +475,7 @@ arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     vec b_k = b[k];
     vec eta = Xk * beta_k + Zk * b_k;
 //    if(f == "gaussian" || !quad || f != "binomial"){
-    if(f != "gaussian"){
+    if(f == "poisson" || f == "binomial"){
       vec tauk = tau[k];
       H(span(start, end), span(start, end)) = get_long_hess_quad(eta, Yk, f, sigmak, Xk,
         tauk, w, v);
