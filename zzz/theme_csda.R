@@ -22,3 +22,5 @@ theme_csda_bw <- function(base_family = "Arial", base_size = 12){
       panel.grid.minor.x = element_blank()
     )
 }
+
+.nice.orange <- "#FEB24C"
