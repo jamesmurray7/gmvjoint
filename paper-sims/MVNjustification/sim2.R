@@ -5,7 +5,7 @@ n <- 500
     D <- diag(c(0.25, 0.09))
     random.formula <- NULL
   }else if(family == "binomial"){
-    D <- matrix(.5, 1, 1)
+    D <- matrix(.40, 1, 1)
     random.formula <- list(~1)
   }else{
     D <- diag(c(0.15, 0.02))
@@ -77,7 +77,7 @@ Sample <- function(data, btrue, theta, family){
   l0 <- exp(theta[1] + theta[2] * fts)
   if(family == "binomial"){
     sv <- surv.mod(surv, lapply(list(Y.1~time + cont + bin + (1|id)), parseFormula), l0)
-    D <- matrix(.5, 1, 1)
+    D <- matrix(.40, 1, 1)
     b.inds <- list(0)
     gamma.rep <- 0.5
   }else if(family == "gaussian"){
@@ -87,7 +87,7 @@ Sample <- function(data, btrue, theta, family){
     gamma.rep <- c(0.5, 0.5)
   }else{
     sv <- surv.mod(surv, lapply(list(Y.1~time + cont + bin + (1 + time|id)), parseFormula), l0)  
-    D <- diag(c(0.50, 0.09))
+    D <- diag(c(0.15, 0.02))
     b.inds <- list(0:1)
     gamma.rep <- c(0.5, 0.5)
   }
@@ -143,7 +143,7 @@ to.apply <- function(x){ # x is a ROW from to.sim
   else if(family == "gaussian")
     D <- diag(c(0.25, 0.09))
   else
-    D <- matrix(.5,1,1)
+    D <- matrix(.40,1,1)
   
   .sim.sets.lookup <- trimws(paste0(mi,',',fr,',',family))
   X <- sim.sets[[.sim.sets.lookup]][[1]]
