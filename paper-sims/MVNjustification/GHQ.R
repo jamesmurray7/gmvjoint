@@ -155,7 +155,7 @@ test <- Sample.and.tau(dat, btrue, theta50ish, 'binomial')
 # they correspond to log-likelihoods whose expectation we need to calculate.
 # Longitudinal bit only --->
 GH <- gauss.quad.prob(3, 'normal')
-plot(density(test$LongWalks[[1]]),
+plot(density(test$LongWalks[[1]]),  # f(b_i|Y_i;Omega{TRUE}).
      main = expression(f*"("*Y[i]*"|"*b[i]^{"TRUE"}*"; "*Omega^{"TRUE"}*")"),
      xlab = '') 
 # All nodes are same over time since just random intercept -->
@@ -175,7 +175,7 @@ legend('topleft', bty = 'n', col = c( 'magenta', 'brown'), lty = c(1, 1), lwd = 
 
 
 # Continue tomorrow.
-# a <- test$FullWalks[[1]]
+# a <- test$FullWalks[[1]]    # f(b_i|Y_i,T_i,Delta_i;Omega{TRUE}).
 # survbit <- apply(a, 1, function(b){
 #   -crossprod(test$sv$l0u[[1]], exp(test$sv$SS[[1]] %*% -0.2 + test$sv$Fu[[1]] %*% (b * 0.5)))
 # })
