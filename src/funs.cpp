@@ -164,8 +164,8 @@ vec Score_eta_poiss(const vec& eta, const vec& Y){
 
 // Poisson d/d{eta} taken with quadrature
 vec Score_eta_poiss_quad(const vec& eta, const vec& Y, const vec& tau){
-  int mi = Y.size();
-  vec Eexpmu = exp(eta + square(tau) * .5);
+  vec tau2 = vec(tau.size(), fill::zeros);
+  vec Eexpmu = exp(eta + tau2 * .5);
   return Y - Eexpmu;
 }
 
@@ -293,9 +293,8 @@ arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List&
     vec b_k = b[k];
     vec eta = Xk * beta_k + Zk * b_k;
     double sigmak = sigma[k];
-//    if(f == "gaussian" || !quad || f != "binomial"){ // gaussian is the same, so do it here.
     if(f=="poisson"||f=="binomial"){
-      vec tauk = tau[k]; // This is tau^2/2 (fron e.g. make tau2).
+      vec tauk = tau[k]; 
       Score.elem(beta_k_inds) += get_long_score_quad(eta, Yk, f, sigmak, Xk,
                  tauk, w, v);
       
@@ -331,14 +330,17 @@ mat Hess_eta_poiss(const vec& eta, const vec& Y, const mat& design){
 // Poisson d2/d{eta}2 taken with quadrature
 arma::mat Hess_eta_poiss_quad(const arma::vec& eta, const arma::vec& Y, const arma::mat& design,
                               const arma::vec& tau){
-  int mi = design.n_rows, q = design.n_cols;
-  mat H = zeros<mat>(q, q);
-  vec Eexpmu = exp(eta + square(tau) * .5);
-  for(int j = 0; j < mi; j ++){
-    rowvec xjT = design.row(j);
-    vec xj = xjT.t();
-    H -= Eexpmu.at(j) * xj * xjT;
-  }
+  //int mi = design.n_rows, q = design.n_cols;
+  //mat H = zeros<mat>(q, q);
+  vec tau2 = vec(tau.size(), fill::zeros);
+  vec Eexpmu = exp(eta + tau2 * .5);
+  //for(int j = 0; j < mi; j ++){
+  //  rowvec xjT = design.row(j);
+  //  vec xj = xjT.t();
+  //  H -= Eexpmu.at(j) * xj * xjT;
+  //}
+  mat diagpart = diagmat(Eexpmu);
+  mat H = -(diagpart * design).t() * design;	
   return H;
 }
 
