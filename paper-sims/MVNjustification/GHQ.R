@@ -126,15 +126,20 @@ Sample.and.tau <- function(data, btrue, theta, family){
   LongAcc <- unlist(lapply(long, function(x) x$Acc))
   LongWalks <- lapply(long, function(x) t(x$walks))
   
+  bhatLong = lapply(LongWalks, mean)
+  bhatFull = lapply(FullWalks, mean)
+  
   tau.full <- Map(function(Z, S) sqrt(diag(tcrossprod(Z[[1]] %*% S, Z[[1]]))), Z = Z, S = Sigma.full)
-  tau.full.surv <- Map(function(Fu, S) sqrt(diag(tcrossprod((0.5*Fu) %*% S, (0.5*Fu)))), Fu = sv$Fu, S = Sigma.full)
+  tau.full.surv <- Map(function(Fu, S) sqrt(diag(tcrossprod(.5^2 * Fu %*% S, Fu))), Fu = sv$Fu, S = Sigma.full)
   tau.long <- Map(function(Z, S) sqrt(diag(tcrossprod(Z[[1]] %*% S, Z[[1]]))), Z = Z, S = Sigma.long)
-  mu.long <- Map(function(X, Z, b) X[[1]] %*% c(2, -0.1, 0.1, -0.2) + Z[[1]] %*% b, X = X, Z = Z, b = b)
-  mu.surv <- Map(function(SS, Fu, b) SS %*% Omega$zeta + Fu %*% (gamma.rep * b), SS = sv$SS, Fu = sv$Fu, b = b)
+  mu.long <- Map(function(X, Z, b) X[[1]] %*% c(2, -0.1, 0.1, -0.2) + Z[[1]] %*% b, X = X, Z = Z, b = bhatLong)
+  mu.surv <- Map(function(SS, Fu, b) SS %*% Omega$zeta + Fu %*% (gamma.rep * b), SS = sv$SS, Fu = sv$Fu, b = bhatFull)
   
   list(
     FullWalks = FullWalks, FullAcc = FullAcc,
     LongWalks = LongWalks, LongAcc = LongAcc,
+    bhatLong = bhatLong,
+    bhatFull = bhatFull,
     tau.full = tau.full,
     tau.full.surv=tau.full.surv,
     tau.long = tau.long,
@@ -145,7 +150,7 @@ Sample.and.tau <- function(data, btrue, theta, family){
   )
 }
 
-X <- sim.sets$`5,medium,binomial`[[1]]
+X <- sim.sets$`15,high,binomial`[[1]]
 dat <- X[[1]]
 btrue <- X[[2]]
 
@@ -154,7 +159,7 @@ test <- Sample.and.tau(dat, btrue, theta50ish, 'binomial')
 # In EM, we only consider longitudinal part and survival densities as 
 # they correspond to log-likelihoods whose expectation we need to calculate.
 # Longitudinal bit only --->
-GH <- gauss.quad.prob(3, 'normal')
+GH <- gauss.quad.prob(9, 'normal')
 plot(density(test$LongWalks[[1]]),  # f(b_i|Y_i;Omega{TRUE}).
      main = expression(f*"("*Y[i]*"|"*b[i]^{"TRUE"}*"; "*Omega^{"TRUE"}*")"),
      xlab = '') 
@@ -162,10 +167,14 @@ plot(density(test$LongWalks[[1]]),  # f(b_i|Y_i;Omega{TRUE}).
 # points(test$tau.long[[1]][1] * GH$n, GH$w, col = 'red', pch = 'x')
 # Now 'scaling up' by b.hat
 for(j in 1:1){#length(test$mu.long[[1]])){
-  lines(btrue[1,] + test$tau.full[[1]][j] * GH$n, GH$w, col = 'brown', pch = 'x')
-  points(btrue[1,] + test$tau.full[[1]][j] * GH$n, GH$w, col = 'red', pch = 'x')
-  lines(btrue[1,] + test$tau.long[[1]][j] * GH$n, GH$w, col = 'magenta', pch = 'x')
-  points(btrue[1,] + test$tau.long[[1]][j] * GH$n, GH$w, col = 'blue', pch = 'x')
+  # lines(btrue[1,] + test$tau.full[[1]][j] * GH$n, GH$w, col = 'brown', pch = 'x')
+  # points(btrue[1,] + test$tau.full[[1]][j] * GH$n, GH$w, col = 'red', pch = 'x')
+  # lines(btrue[1,] + test$tau.long[[1]][j] * GH$n, GH$w, col = 'magenta', pch = 'x')
+  # points(btrue[1,] + test$tau.long[[1]][j] * GH$n, GH$w, col = 'blue', pch = 'x')
+  lines(test$bhatFull[[1]] + test$tau.full[[1]][j] * GH$n, GH$w, col = 'brown', pch = 'x')
+  points(test$bhatFull[[1]] + test$tau.full[[1]][j] * GH$n, GH$w, col = 'red', pch = 'x')
+  lines(test$bhatLong[[1]] + test$tau.long[[1]][j] * GH$n, GH$w, col = 'magenta', pch = 'x')
+  points(test$bhatLong[[1]] + test$tau.long[[1]][j] * GH$n, GH$w, col = 'blue', pch = 'x')
 }
 legend('topleft', bty = 'n', col = c( 'magenta', 'brown'), lty = c(1, 1), lwd = c(1.5,1.5),
        legend = c(
@@ -175,9 +184,7 @@ legend('topleft', bty = 'n', col = c( 'magenta', 'brown'), lty = c(1, 1), lwd = 
 
 
 # Continue tomorrow.
-# a <- test$FullWalks[[1]]    # f(b_i|Y_i,T_i,Delta_i;Omega{TRUE}).
-# survbit <- apply(a, 1, function(b){
-#   -crossprod(test$sv$l0u[[1]], exp(test$sv$SS[[1]] %*% -0.2 + test$sv$Fu[[1]] %*% (b * 0.5)))
-# })
-# plot(density((survbit)))
-# lines(test$mu.surv[[1]][1]+ test$tau.full.surv[[1]][1] * GH$nodes, GH$weights)
+a <- test$FullWalks[[1]]    # f(b_i|Y_i,T_i,Delta_i;Omega{TRUE}).
+plot(density(a))
+lines(test$bhatFull[[1]][1] + test$tau.full.surv[[1]][1] * GH$nodes, GH$weights, col = "brown")
+points(test$bhatFull[[1]][1] + test$tau.full.surv[[1]][1] * GH$nodes, GH$weights, col = "red", pch = 'x')
