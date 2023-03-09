@@ -150,7 +150,7 @@ Sample.and.tau <- function(data, btrue, theta, family){
   )
 }
 
-X <- sim.sets$`15,high,binomial`[[1]]
+X <- sim.sets$`5,high,binomial`[[1]]
 dat <- X[[1]]
 btrue <- X[[2]]
 
@@ -159,22 +159,19 @@ test <- Sample.and.tau(dat, btrue, theta50ish, 'binomial')
 # In EM, we only consider longitudinal part and survival densities as 
 # they correspond to log-likelihoods whose expectation we need to calculate.
 # Longitudinal bit only --->
-GH <- gauss.quad.prob(9, 'normal')
-plot(density(test$LongWalks[[1]]),  # f(b_i|Y_i;Omega{TRUE}).
+.GH <- gauss.quad.prob(9, 'normal')
+GH <- statmod::gauss.quad(9, 'hermite')
+plot(density(test$LongWalks[[2]]),  # f(b_i|Y_i;Omega{TRUE}).
      main = expression(f*"("*Y[i]*"|"*b[i]^{"TRUE"}*"; "*Omega^{"TRUE"}*")"),
      xlab = '') 
 # All nodes are same over time since just random intercept -->
 # points(test$tau.long[[1]][1] * GH$n, GH$w, col = 'red', pch = 'x')
 # Now 'scaling up' by b.hat
 for(j in 1:1){#length(test$mu.long[[1]])){
-  # lines(btrue[1,] + test$tau.full[[1]][j] * GH$n, GH$w, col = 'brown', pch = 'x')
-  # points(btrue[1,] + test$tau.full[[1]][j] * GH$n, GH$w, col = 'red', pch = 'x')
-  # lines(btrue[1,] + test$tau.long[[1]][j] * GH$n, GH$w, col = 'magenta', pch = 'x')
-  # points(btrue[1,] + test$tau.long[[1]][j] * GH$n, GH$w, col = 'blue', pch = 'x')
-  lines(test$bhatFull[[1]] + test$tau.full[[1]][j] * GH$n, GH$w, col = 'brown', pch = 'x')
-  points(test$bhatFull[[1]] + test$tau.full[[1]][j] * GH$n, GH$w, col = 'red', pch = 'x')
-  lines(test$bhatLong[[1]] + test$tau.long[[1]][j] * GH$n, GH$w, col = 'magenta', pch = 'x')
-  points(test$bhatLong[[1]] + test$tau.long[[1]][j] * GH$n, GH$w, col = 'blue', pch = 'x')
+  lines(test$bhatFull[[2]] + test$tau.full[[2]][j] * GH$n * sqrt(2), GH$w, col = 'brown', pch = 'x') 
+  points(test$bhatFull[[2]] + test$tau.full[[2]][j] * GH$n * sqrt(2), GH$w, col = 'red', pch = 'x')
+  lines(test$bhatLong[[2]] + test$tau.long[[2]][j] * GH$n * sqrt(2), GH$w, col = 'magenta', pch = 'x')
+  points(test$bhatLong[[2]] + test$tau.long[[2]][j] * GH$n * sqrt(2), GH$w, col = 'blue', pch = 'x')
 }
 legend('topleft', bty = 'n', col = c( 'magenta', 'brown'), lty = c(1, 1), lwd = c(1.5,1.5),
        legend = c(
@@ -184,7 +181,11 @@ legend('topleft', bty = 'n', col = c( 'magenta', 'brown'), lty = c(1, 1), lwd = 
 
 
 # Continue tomorrow.
-a <- test$FullWalks[[1]]    # f(b_i|Y_i,T_i,Delta_i;Omega{TRUE}).
+a <- test$FullWalks[[2]]    # f(b_i|Y_i,T_i,Delta_i;Omega{TRUE}).
 plot(density(a))
-lines(test$bhatFull[[1]][1] + test$tau.full.surv[[1]][1] * GH$nodes, GH$weights, col = "brown")
-points(test$bhatFull[[1]][1] + test$tau.full.surv[[1]][1] * GH$nodes, GH$weights, col = "red", pch = 'x')
+lines(test$mu.surv[[2]][1] + test$tau.full.surv[[2]][1] * GH$nodes * sqrt(2), GH$weights, col = "brown")
+points(test$mu.surv[[2]][1] + test$tau.full.surv[[2]][1] * GH$nodes * sqrt(2), GH$weights, col = "red", pch = 'x')
+
+# What is statmod::... based on?
+curve(dnorm, -3, 3, n = 1001)
+lines(GH$nodes*sqrt(2), GH$weights, col = 'magenta')
