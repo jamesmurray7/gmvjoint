@@ -55,6 +55,48 @@ sim.sets <- setNames(apply(to.sim, 1, function(x){
 save(sim.sets, file = paste0(save.dir, 'simsets_', gsub('\\s|\\:','_',.Internal(date())), '.RData')) # About 25MB
 
 # Five-variate ------------------------------------------------------------
+rm(list=ls())
+save.dir <- '~/Downloads/'     
+D <- diag(c(0.25, 0.09, 0.30, 0.06,       # Gaussian (1, 2)
+            0.20, 0.04, 0.50, 0.09,       # Count    (1, 2)
+            2.00))                        # Binary   (1)
+ints <- expand.grid(c(1,3,5,7,9), c(1,3,5,7,9))
+ints <- ints[ints$Var1!=ints$Var2,]
+D[cbind(ints$Var1, ints$Var2)] <- 0.125
+all(eigen(D)$val > 0) && det(D) > 0 && isSymmetric(D)
+# Inspect correlation
+round(cov2cor(D), 4)
 
-# Ongoing =-=-=-=-=-=-=-=-=-=
+# Parameters 
+beta <- rbind(                            # Fixed effects ----
+  c(2, -0.1, 0.1, -0.2),                  # Gaussian (1)
+  -c(2, -0.1, 0.1, -0.2),                 # Gaussian (2)
+  c(2, -0.1, 0.1, -0.2),                  # Count (1)
+  c(2, -0.1, 0.1, -0.2),                  # Count (2)
+  c(1, -1, 1, -1)                         # Binomial (1)
+)
 
+zeta <- c(0, -0.2)                        # Time invariant survival
+gamma <- c(0.25, -0.25, 0.25, -0.25, 0.30)# Association
+sigma <- c(0.16, 0.16, 0, 0, 0)           # Dispersion (variance for Gaussian response)
+family <- list("gaussian", "gaussian",
+               "poisson", "poisson",
+               "binomial")
+random.formula <- list(~time, ~time, ~time, ~time, ~1)
+
+sim.sets <- replicate(500,
+                      simData(family = family, sigma = sigma, beta = beta, D = D, gamma = gamma, 
+                              zeta = zeta, theta = c(-2.900088, 0.1),
+                              random.formula = random.formula, n = 500, ntms = 10)$data,
+                      simplify = F)
+
+save(sim.sets, file = paste0(save.dir, 'simsets_5variate_', gsub('\\s|\\:','_',.Internal(date())), '.RData')) # About 50MB
+
+# fit <- joint(list(
+#   Y.1 ~ time + cont + bin + (1 + time|id),
+#   Y.2 ~ time + cont + bin + (1 + time|id),
+#   Y.3 ~ time + cont + bin + (1 + time|id),
+#   Y.4 ~ time + cont + bin + (1 + time|id),
+#   Y.5 ~ time + cont + bin + (1|id)
+# ), Surv(survtime, status) ~ bin, data, family  = family, 
+# control = list(verbose=T))
