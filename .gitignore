@@ -12,3 +12,4 @@ src/.n*
 CRAN-SUBMISSION
 paper-sims/data/
 paper-sims/fits/
+paper-sims/MVNjustification/output
