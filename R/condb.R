@@ -25,6 +25,7 @@
 #'  \item{elapsed.time}{Time taken for \code{cond.ranefs} to complete.}
 #' }
 #' @export
+#' @seealso \code{\link{ranef.joint}}
 #'
 #' @examples
 #' \donttest{

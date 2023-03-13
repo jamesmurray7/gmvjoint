@@ -54,11 +54,12 @@ fixef.joint <- function(object, what = c("long", 'surv'), ...){
 #' @param ... additional arguments (none used).
 #' 
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
-#' @seealso \code{\link{fixef.joint}}
+#' @seealso \code{\link{fixef.joint}} \code{\link{cond.ranefs}}
 #' @method ranef joint
 #' @return A \code{matrix} containing required random effects effects. If \code{Var=TRUE},
 #' instead a list is returned with first element the \code{matrix} of random effects and second a 
-#' \code{matrix} of the variances \eqn{\hat{\Sigma}}.
+#' \code{matrix} of the variances \eqn{\hat{\Sigma}}. Note that these are \emph{posterior modes}
+#' of the random effects. Conditional distribution can be found by \code{\link{cond.ranefs}}.
 #'
 #' @export
 #'

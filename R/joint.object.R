@@ -38,8 +38,6 @@
 #'  \code{post.process=TRUE}.}
 #'  \item{\code{SE}}{A named vector of approximated standard error for each estimated parameter.
 #'  Only returned if \code{post.process=TRUE}.}
-#'  \item{\code{Itilde}}{the approximated observed empirical information matrix 
-#'  (see \link{vcov.joint}).}
 #'  \item{\code{logLik}}{log-likelihood evaluated at parameter estimates. Only returned if 
 #'  \code{post.process=TRUE}.}
 #'  \item{\code{REs}}{The random effects, with subject-specific variance matrices attributed.}

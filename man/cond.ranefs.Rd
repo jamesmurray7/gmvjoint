@@ -49,3 +49,6 @@ cond.b
 plot(cond.b)
 }
 }
+\seealso{
+\code{\link{ranef.joint}}
+}
