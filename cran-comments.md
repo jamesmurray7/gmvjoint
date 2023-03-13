@@ -15,6 +15,3 @@ i.e. gmvjoint.so has size 8.3Mb.
 * Windows (Release and devel, via win-builde.r-project.org).
 
 R-hub build OK.
-NOTE on windows/CRAN submission is on "checking CRAN incoming feasibility", which I can do nothing about.
-Release version of windows seems slower than development counterpart for one example (vcov.joint), but both are 
-< 10s on my most recent testing.
