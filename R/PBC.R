@@ -5,8 +5,9 @@
 #' profile of numerous biomarkers were observed for 312 patients at the Mayo Clinic between 1974
 #' and 1984  with patients assigned to either the active (D-penicillamine, n=154 (50.6%)) or 
 #' placebo treatment arm (Murtaugh 1994). The data is publicly available in numerous places, 
-#' including \code{joineRML}. The presence of many longitudinal biomarkers of clinical interest
-#' as well as an event-time has lead to the PBC data becoming a widely used in literature. 
+#' including \code{joineRML} and \code{survival}. The presence of many longitudinal biomarkers 
+#' of clinical interest as well as an event-time has lead to the PBC data becoming
+#' widely used in literature. 
 #' 
 #' Nine longitudinal biomarkers exist with varying degrees of completeness in the data.
 #' 
@@ -28,8 +29,8 @@
 #'  ("hepatomegaly") present.}
 #'  \item{\code{spiders}}{Binary \emph{response} variable. Takes value 1 if malformed blood 
 #'  vessels in skin ("hepatomegaly") present.}
-#'  \item{\code{edema}}{Factor variable describing edema therapy. See \code{\link[joineRML]{pbc2}}
-#'  or \code{\link[survival]{pbcseq}}.}
+#'  \item{\code{edema}}{Factor variable describing edema therapy, see 
+#'  \code{\link[survival]{pbcseq}}.}
 #'  \item{\code{serBilir}}{Serum bilirubin (measured in mg/dl).}
 #'  \item{\code{serChol}}{Serum cholesterol (measured in mg/dl).}
 #'  \item{\code{album}}{Serum albumin (measured in mg/dl).}
@@ -45,7 +46,7 @@
 #'  
 #' @keywords datasets
 #' 
-#' @source \code{\link[joineRML]{pbc2}}, \code{\link[survival]{pbcseq}}
+#' @source \code{\link[survival]{pbcseq}}
 #' 
 #' @references 
 #' 
