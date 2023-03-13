@@ -34,7 +34,7 @@ Xu et al. (2014). Here, they advocate for approximation of this information matr
 numerical differentiation of the profile Fisher Score vector. We do not consider this 
 methodology owing to its computational expense. That is, for each element of \eqn{\Omega} 
 which is perturbed by some small amount \eqn{\tilde{\Omega}^{p}}, we must re-calculate
-\eqn{\hat{\b}_i} and \eqn{\hat{\Sigma}_i}.
+\eqn{\hat{b}_i} and \eqn{\hat{\Sigma}_i}.
 }
 
 \examples{

@@ -2,14 +2,11 @@
 0 Errors | 0 Warnings | 1 Note.
 
 Note: 
-   installed size is  5.9Mb
+   installed size is  8.7Mb
    sub-directories of 1Mb or more:
-     libs   5.6Mb
+     libs   8.3Mb
 
-i.e. gmvjoint.so has size 5.6Mb.
-
-Many items which were previously exported (i.e. had an .Rd)
-file are now removed, as they weren't meant to be included.
+i.e. gmvjoint.so has size 8.3Mb.
 
 ## Test environments 
 

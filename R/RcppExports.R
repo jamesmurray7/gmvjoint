@@ -97,6 +97,11 @@ joint_density_sdb <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, 
 }
 
 #' @keywords internal
+metropolis <- function(b, Omega, Y, X, Z, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, beta_inds, b_inds, K, q, burnin, N, Sigma, tune) {
+    .Call(`_gmvjoint_metropolis`, b, Omega, Y, X, Z, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, beta_inds, b_inds, K, q, burnin, N, Sigma, tune)
+}
+
+#' @keywords internal
 vech2mat <- function(x, q) {
     .Call(`_gmvjoint_vech2mat`, x, q)
 }

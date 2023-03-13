@@ -22,6 +22,7 @@ extern SEXP _gmvjoint_ll_Gamma(SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_ll_genpois(SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_logfti(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_maketau(SEXP, SEXP);
+extern SEXP _gmvjoint_metropolis(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_phi_update(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_S_(SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gmvjoint_Sbeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
@@ -44,6 +45,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_gmvjoint_ll_genpois",        (DL_FUNC) &_gmvjoint_ll_genpois,         3},
     {"_gmvjoint_logfti",            (DL_FUNC) &_gmvjoint_logfti,            10},
     {"_gmvjoint_maketau",           (DL_FUNC) &_gmvjoint_maketau,            2},
+    {"_gmvjoint_metropolis",        (DL_FUNC) &_gmvjoint_metropolis,        22},
     {"_gmvjoint_phi_update",        (DL_FUNC) &_gmvjoint_phi_update,         9},
     {"_gmvjoint_S_",                (DL_FUNC) &_gmvjoint_S_,                 4},
     {"_gmvjoint_Sbeta",             (DL_FUNC) &_gmvjoint_Sbeta,             13},

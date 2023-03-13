@@ -30,13 +30,13 @@ the default \code{boot=FALSE}.}
 \value{
 A list of class \code{ROC.joint} consisting of: \describe{
   \item{\code{Tstart}}{numeric denoting the start of the time window of interest; all dynamic
-  predictions generated used longitudinal information up-to time \eqn{T_{\text{start}}}.}
+  predictions generated used longitudinal information up-to time \eqn{T_{\mathrm{start}}}.}
   \item{\code{delta}}{scalar which denotes length of interval to check, such that the window
-  is defined by \eqn{[T_{\text{start}}, T_{\text{start}}, + \delta]}.}
+  is defined by \eqn{[T_{\mathrm{start}}, T_{\mathrm{start}}, + \delta]}.}
   \item{\code{candidate.u}}{candidate vector of failure times to calculate dynamic probability
-   of surviving for each subject alive in \code{data} at time \eqn{T_{\text{start}}}.}
+   of surviving for each subject alive in \code{data} at time \eqn{T_{\mathrm{start}}}.}
   \item{\code{window.failures}}{numeric denoting the number of observed failures in
-  \eqn{[T_{\text{start}}, T_{\text{start}}, + \delta]}.}
+  \eqn{[T_{\mathrm{start}}, T_{\mathrm{start}}, + \delta]}.}
   \item{\code{Tstart.alive}}{numeric denoting the risk set at \code{Tstart}.}
   \item{\code{metrics}}{a \code{data.frame} containing probabilistic \code{thresholds} with:
   \code{TP} true positives; \code{FN} false negatives; \code{FP} false positives;

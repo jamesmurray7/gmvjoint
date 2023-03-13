@@ -6,8 +6,10 @@ importFrom("stats", "Gamma", "as.formula", "binomial", "coef", "cov",
            "dnorm", "dbinom", "dpois", "dgamma",
            "rbinom", "rexp", "rgamma", "rnorm", "rpois", "runif",
            "setNames", "pnorm", "qnorm", "cov2cor", "fitted",
-           "median", "vcov", "quantile", "pchisq", "AIC", "logLik", "sd")
-importFrom("graphics", "plot", "par", "abline", "lines", "axis", "legend", "arrows", "curve")
+           "median", "vcov", "quantile", "pchisq", "AIC", "logLik", "sd",
+           "predict", "density")
+importFrom("graphics", "plot", "par", "abline", "lines", "axis", "legend", "arrows", "curve",
+           "mtext")
 importFrom("utils", "head")
 importFrom("statmod", "gauss.quad.prob")
 importFrom('pracma', 'grad', 'hessian')
@@ -36,6 +38,8 @@ S3method(print, bootAUC.joint)
 S3method(print, bootAUC.diff.joint)
 S3method(anova, joint)
 S3method(print, anova.joint)
+S3method(print, cond.b.joint)
+S3method(plot, cond.b.joint)
 
 export(joint)
 export(simData)
@@ -45,3 +49,4 @@ export(ROC)
 export(rgenpois)
 export(bootAUC)
 export(bootAUCdiff)
+export(cond.ranefs)

@@ -651,6 +651,47 @@ arma::mat joint_density_sdb(const arma::vec& b, const List Y, const List X, cons
   return 0.5 * (out + out.t()); // Ensure symmetry
 }
 
+//' @keywords internal
+// [[Rcpp::export]]
+List metropolis(const arma::vec& b, const List Omega, const List Y, const List X, const List Z,
+                const List family, const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, const double l0i,
+                const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, 
+                const arma::vec& gamma_rep, const List beta_inds, const List b_inds, const int K, const int q,
+                const int burnin, const int N, const arma::mat& Sigma, const double tune){
+  // Unpack Omega
+  mat D = Omega["D"];
+  List sigma = Omega["sigma"];
+  vec beta = Omega["beta"];
+  vec zeta = Omega["zeta"];
+  // MC stuff
+  int iters = burnin + N;
+  mat out = mat(q, iters);
+  // Start
+  int j = 1, num_accepts = 0;
+  while(j < iters){
+    double U = randu();
+    vec b_current = out.col(j - 1);
+    vec b_proposal = mvnrnd(b_current, tune * Sigma);
+    double logf_current = -1. * joint_density(b_current, Y, X, Z, beta, D, sigma, family, Delta,
+                                              S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K);
+    double logf_proposal = -1. * joint_density(b_proposal, Y, X, Z, beta, D, sigma, family, Delta,
+                                               S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K);
+    double P = std::min(exp(logf_proposal - logf_current), 1.);
+    if(U < P){
+      b_current = b_proposal;
+      if(j > burnin) num_accepts ++;
+    }
+    out.col(j) = b_current;
+    j++ ;
+  }
+  
+  // Remove burnin -----------
+  out.shed_cols(0, burnin - 1);
+  return List::create(_["walks"] = out,
+                      _["burnin"] = burnin,
+                      _["N"] = N,
+                      _["AcceptanceRate"] = (double)num_accepts/(double)N);
+}
 /* *****
  * END-*
  * *****/
