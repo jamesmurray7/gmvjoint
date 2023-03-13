@@ -17,4 +17,5 @@ i.e. gmvjoint.so has size 8.3Mb.
 R-hub build OK.
 Note upon installation one may be warned about inconsistencies across TMB/Matrix versions, but this
 is not within my control.
-Some warning about C++11 flags also, but this comes from RcppArmadillo, and not sure I can relax this.
+Commented warnings about CXX_STD=CXX11 in Makevars(/.win) which resulted in a NOTE. Hopefully this doesn't result
+in deterioration of performance since I thought RcppArmadillo required this!
