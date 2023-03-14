@@ -48,14 +48,13 @@ surv.formula <- Surv(survtime, status) ~ drug
 control <- list(verbose=T)
 
 Gaussians <- joint(Gaussian.long.formulas, surv.formula, PBC, 
-                   list("gaussian", "gaussian", "gaussian", "gaussian"), control = control)
+                   list("gaussian", "gaussian", "gaussian", "gaussian"))
 
 Poissons <- joint(Poisson.long.formulas,
-                  surv.formula, PBC, list("poisson", "poisson"), control = control)
+                  surv.formula, PBC, list("poisson", "poisson"))
 
 Binomials <- joint(Binomial.long.formulas, surv.formula,
-                   PBC, list("binomial", "binomial"), 
-                   control = control)
+                   PBC, list("binomial", "binomial"))
 
 source('testing/fit2xtab.R')
 
@@ -70,12 +69,11 @@ reduced.model <- joint(
        albumin ~ drug * time + (1 + time|id),
        platelets ~ drug * time  + (1 + time|id),
        hepatomegaly ~ drug * time  + (1|id)),
-  surv.formula, PBC, list("gaussian", "gaussian", "poisson", "binomial"), control = control
-)
+  surv.formula, PBC, list("gaussian", "gaussian", "poisson", "binomial"))
 
 summary(reduced.model)
 fit2xtab(reduced.model, )
-# test <- get.marg.b.cpp(reduced.model,tune=0.80)
+test <- cond.ranefs(reduced.model,tune=0.80)
 
 final.biv.model <- joint(
   list(serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
@@ -83,3 +81,4 @@ final.biv.model <- joint(
   surv.formula, PBC, list("gaussian", "gaussian"), control = control
 )
 summary(final.biv.model)
+test <- cond.ranefs(final.biv.model,tune=0.80)
