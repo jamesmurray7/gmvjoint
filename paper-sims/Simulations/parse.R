@@ -48,6 +48,14 @@ Elapseds <- Map(function(TIME){
   EM + PP
 }, TIME = times)
 
+Totals <- Map(function(TIME){
+  TIME[3,]
+}, TIME = times)
+
+iter.per.second <- Map(function(TIME){
+  TIME[4,]/TIME[1,]
+}, TIME = times)
+
 df.Elapsed <- expand.grid(r = c(5, 10, 15),
                           omega = c(0.1, 0.3, 0.5))
 df.Elapsed <- cbind(df.Elapsed, t(apply(df.Elapsed,1,function(x){
@@ -57,6 +65,16 @@ df.Elapsed <- cbind(df.Elapsed, t(apply(df.Elapsed,1,function(x){
   c(qn[2], qn[3], qn[4])
 })))
 
+df.Totals <- expand.grid(r = c(5, 10, 15),
+                          omega = c(0.1, 0.3, 0.5))
+df.Totals <- cbind(df.Totals, t(apply(df.Totals,1,function(x){
+  r <- x[1]; fail <- paste0(100*x[2], "%")
+  .lookup <- paste0("n = 250, mi = ", r, ", failure = ", fail)
+  qn <- quantile(Totals[[.lookup]])
+  c(qn[2], qn[3], qn[4])
+})))
+
+sapply(iter.per.second, mean)
 
 # Plotting survival parameters --------------------------------------------
 library(ggplot2)
@@ -196,7 +214,16 @@ df.to.xtab <- function(tab){
   # Clean parameter names
   
   med.iqr.elapsed <- df.Elapsed[df.Elapsed$omega == tab$omega[1], ]
+  med.iqr.total <- df.Totals[df.Totals$omega == tab$omega[1],]
   med.iqr.report <- apply(med.iqr.elapsed,1,function(x){
+    r <- x[1]
+    med <- format(round(x[4], 3), nsmall = 3)
+    p25 <- format(round(x[3], 3), nsmall = 3)
+    p75 <- format(round(x[5], 3), nsmall = 3)
+    
+    paste0(med, ' [', p25, ', ', p75, "] seconds for $r=", r, "$")
+  })
+  med.iqr.total.report <- apply(med.iqr.total,1,function(x){
     r <- x[1]
     med <- format(round(x[4], 3), nsmall = 3)
     p25 <- format(round(x[3], 3), nsmall = 3)
@@ -236,7 +263,8 @@ df.to.xtab <- function(tab){
                     " and Mean SE the mean standard error calculated for each parameter from each model fit.",
                     " Coverage probabilities are calculated from $\\hbO\\pm1.96\\mathrm{SE}(\\hbO)$. The",
                     " median [IQR] elapsed times for the approximate EM algorithm to converge and standard",
-                    " errors calculated was ", med.iqr.report[1], ", ", med.iqr.report[2], " and ", med.iqr.report[3], ".")
+                    " errors calculated was ", med.iqr.report[1], ", ", med.iqr.report[2], " and ", med.iqr.report[3], ".",
+                    " \\textit{Total} computation time was ", med.iqr.total.report[1], ", ", med.iqr.total.report[2], " and ", med.iqr.total.report[3], ".")
   
   xt <- xtable::xtable(output.tab, caption = caption,
                        align = c('l', rep("r", ncol(output.tab))))
