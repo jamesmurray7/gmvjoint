@@ -47,8 +47,9 @@ Biases <- rowMeans(ests-target.mat)
 
 # Elapsed time
 Elapseds <- times[1,] + times[2,]
+Totals <- times[3,]
 qn <- quantile(Elapseds)
-
+qn2 <- quantile(Totals)
 
 # Plotting survival parameters --------------------------------------------
 library(ggplot2)
@@ -117,10 +118,10 @@ Emp.Mean <- emp.mean[to.report]; Emp.SE <- emp.sd[to.report]
 Mean.SE <- avg.se[to.report]; CP <- CPs[to.report]; Bias <- Biases[to.report]; MSE <- MSEs[to.report]
 
 to.round <- cbind.data.frame(`Empirical Mean` = Emp.Mean, `Empirical SE` = Emp.SE,
-                  `Mean SE` = Mean.SE, Bias = Bias, MSE = MSE)
+                  `Mean SE` = Mean.SE, Bias = Bias, MSE = MSE, CP = CP)
 to.round <- apply(to.round, 2, function(x) format(round(x, 3), nsmall = 3))
 
-tab <- cbind.data.frame(parameter = names(CP), to.round, CP = CP, stringsAsFactors=FALSE)
+tab <- cbind.data.frame(parameter = names(CP), to.round, stringsAsFactors=FALSE)
 row.names(tab) <- NULL
 tab
 
@@ -148,13 +149,15 @@ tab$`Emp. Mean (SE)` <- paste0(tab$`Empirical Mean`, ' (', tab$`Empirical SE`, '
 output.tab <- tab %>% 
   select(Parameter, `Emp. Mean (SE)`, `Mean SE`, Bias, MSE, CP)
 
-qn <- round(qn, 3)
+qn <- round(qn, 3); qn2 <- round(qn2,3)
 caption <- paste0("Parameter estimates for five-variate simulation scenario.",
                   " `Emp. Mean (SE)' denotes the average estimated value with the standard deviation of parameter estimates",
                   " and Mean SE the mean standard error calculated for each parameter from each model fit.",
                   " Coverage probabilities are calculated from $\\hbO\\pm1.96\\mathrm{SE}(\\hbO)$. The",
                   " median [IQR] elapsed time for the approximate EM algorithm to converge and standard",
-                  " errors calculated was ", qn[3], " [", qn[2], ", ", qn[4], "] seconds.")
+                  " errors calculated was ", qn[3], " [", qn[2], ", ", qn[4], "] seconds.",
+                  " Total computation time (e.g. including time taken to obtain initial estimates etc.)",
+                  " was ", qn2[3], " [", qn2[2], ", ", qn2[4], "] seconds.")
 
 xt <- xtable::xtable(output.tab, caption = caption,
                      align = c('l', rep("r", ncol(output.tab))))
