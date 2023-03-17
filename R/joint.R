@@ -327,7 +327,7 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     pp.start.time <- proc.time()[3]
     
     # Evaluate l0 at final parameter estimates and obtain l0u from surv.mod.
-    l0 <- sv$nev/rowSums(lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, zeta, sv$S, update$Sigma, b, w, v, b.inds2))
+    l0 <- sv$nev/rowSums(lambdaUpdate(sv$surv.times2, sv$ft.mat, gamma, zeta, sv$S, update$Sigma, b, w, v, b.inds2))
     sv.new <- surv.mod(surv, formulas, l0)
     
     # b and Sigmai at MLEs
@@ -343,10 +343,6 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     b <- lapply(b.update, function(x) x$par)
     SigmaSplit <- lapply(Sigma, function(x) lapply(b.inds, function(y) as.matrix(x[y,y])))
     bsplit <- lapply(b, function(x) lapply(b.inds, function(y) x[y]))
-    
-    # Obtain profile estimate (again) at final b.hat and Sigma.hat
-    l0 <- sv$nev/rowSums(lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, zeta, sv$S, Sigma, b, w, n, b.inds2))
-    sv.new <- surv.mod(surv, formulas, l0)
 
     # The Information matrix
     II <- obs.emp.I(coeffs, dmats, surv, sv, 

@@ -137,11 +137,12 @@ surv.mod <- function(surv, formulas, l0.init){
   })
   
   # Populate other items
-  Fu <- l0u <- l0i <- surv.times <- SS <- vector('list', n)
+  Fu <- l0u <- l0i <- surv.times <- surv.times2 <- SS <- vector('list', n)
   for(i in 1:n){
     Ti <- TiDi[[i]]$survtime; Di <- TiDi[[i]]$status
-    # Failure times survived (up-to-and-including Ti).
+    # Failure times survived (up-to-and-including their own).
     surv.times[[i]] <- which(ft <= Ti) # Store indiced
+    surv.times2[[i]] <- which(ft < Ti) # For the update to baseline hazard
     St <- ft[surv.times[[i]]]          # The actual times
     if(length(St)){   # Design matrices of 
       Fu[[i]] <- Fu.all[surv.times[[i]], , drop = F]
@@ -157,7 +158,7 @@ surv.mod <- function(surv, formulas, l0.init){
   
   # Return
   list(
-    ft = ft, ft.mat = Fu.all, nev = surv$nev, surv.times = surv.times,
+    ft = ft, ft.mat = Fu.all, nev = surv$nev, surv.times = surv.times, surv.times2 = surv.times2,
     l0 = l0, l0i = l0i, l0u = l0u, 
     Fi = Fi, Fu = Fu, Tis = sapply(TiDi, function(x) c(x[1]$survtime), simplify = T),
     S = S, SS = SS, q = ncol(Fu.all)

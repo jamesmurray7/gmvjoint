@@ -616,6 +616,7 @@ arma::mat lambdaUpdate(Rcpp::List survtimes, arma::mat& ft, arma::vec& gamma, ar
     rowvec S_i = S[i];
     mat A = ftg * Sigma_i * ftg.t();
     int ui = survtimes_i.size();
+    if(ui == 0) continue;
     // Loop over subject i's survived failure times.
     for(int j = 0; j < ui; j++){
       rowvec Fst = ft.row(j), Fstg = ftg.row(j);
