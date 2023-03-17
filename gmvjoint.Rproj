@@ -1,7 +1,7 @@
 Version: 1.0
 
-RestoreWorkspace: Default
-SaveWorkspace: Ask
+RestoreWorkspace: No
+SaveWorkspace: No
 AlwaysSaveHistory: No
 
 EnableCodeIndexing: Yes
