@@ -49,11 +49,7 @@ fit <- joint(long.formulas1, surv.formula, PBC, family,
              control = list(verbose = FALSE))
 fit2 <- joint(long.formulas2, surv.formula, PBC, family, control = list(verbose = FALSE))
 anova(fit, fit2)
-# Quadratic terms improve fit significantly. Now try cubic spline -------------
-long.formulas3 <- list(serBilir ~ drug * splines::ns(time, 3) + (1 + splines::ns(time, 3))|id)
-fit3 <- joint(long.formulas3, surv.formula, PBC, family, control = list(verbose = FALSE))
-anova(fit2, fit3)
-# Spline terms do _not_ improve fit -------------------------------------------
+# Quadratic terms improve fit significantly. 
 }
 }
 \seealso{
