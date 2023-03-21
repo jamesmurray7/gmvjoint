@@ -128,14 +128,14 @@ CoxSnellResids <- function(object){
 #'
 #' # Subset data and remove NAs
 #' PBC <- subset(PBC, select = c('id', 'survtime', 'status', 'drug', 'time',
-#'                               'albumin', 'ascites', 'platelets'))
+#'                               'albumin', 'hepatomegaly', 'platelets'))
 #' PBC <- na.omit(PBC) 
 #' 
 #' # Specify trivariate fit
 #' long.formulas <- list(
 #'   albumin ~ time*drug + (1 + time|id),
 #'   platelets ~ time * drug + (1 + time|id),
-#'   ascites ~ time * drug + (1|id)
+#'   hepatomegaly ~ time * drug + (1|id)
 #' )
 #' surv.formula <- Surv(survtime, status) ~ drug
 #' 
