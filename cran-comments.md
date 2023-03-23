@@ -17,8 +17,9 @@ i.e. gmvjoint.so has size 7.3Mb.
 R-hub build OK (some NOTEs about "lastMiKTeXException" detritus).
 
 ## Other Notes
-Note upon installation one may be warned about inconsistencies across TMB/Matrix versions, but this
-is not within my control.
+Removed usage to Matrix package, replacing with bespoke code or using another,
+which should alleviate deprecation warnings. They may persist for some time due to the 
+Matrix package being used in glmmTMB.
 Commented warnings about CXX_STD=CXX11 in Makevars(/.win) which resulted in a NOTE. 
 Tried some fixes to lambdaUpdate in src/funs.cpp, which was causing a clang issue. Hopefully it remedies.
 

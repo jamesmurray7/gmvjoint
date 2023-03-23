@@ -1,6 +1,6 @@
 #' @keywords internal
 #' @importFrom MASS mvrnorm
-#' @importFrom Matrix nearPD
+#' @importFrom pracma nearest_spd
 #' @importFrom stats vcov
 Omega.draw <- function(x){
   Omega.Var <- vcov(x)
@@ -24,7 +24,7 @@ Omega.draw <- function(x){
   D[upper.tri(D)] <- t(D)[upper.tri(D)]
   # Check this is pos-definite and transform if not.
   if(any(eigen(D)$values < 0) || (det(D) <= 0)){ 
-    D <- as.matrix(Matrix::nearPD(D)$mat)
+    D <- pracma::nearest_spd(D)
   }
   beta <- draw[match(names(co$beta), names(draw))]
   gamma <- draw[match(names(co$gamma), names(draw))]

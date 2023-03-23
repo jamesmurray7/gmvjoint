@@ -132,3 +132,24 @@ numDiff <- function(x, f, ..., method = 'central', heps = 1e-4){
   }
   (out + t(out)) * .5
 }
+
+# Construct a block diagonal matrix from LIST of matrices,
+# intended to be used in initial condition stage, but could handle
+# any list of SQUARE matrices.
+#' @keywords internal
+bDiag <- function(X){ # X a list of matrices
+  K <- length(X)
+  # If univariate, just return X[[1]]
+  if(K == 1) return(X[[1]])
+  # Determine dimensions of constituent block-diagonals
+  dims <- sapply(X, dim)
+  if(any(dims[1,]!=dims[2,])) stop("Non-square matrices in X.\n")
+  q <- rowSums(dims)[1]
+  M <- matrix(0, q, q)
+  # Determine allocation
+  alloc <- split(1:q, 
+                 do.call(c, lapply(1:K, function(i) rep(i, dims[1,i]))))
+  # And allocate
+  for(k in 1:K) M[alloc[[k]], alloc[[k]]] <- X[[k]]
+  return(M)
+}

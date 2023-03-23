@@ -3,7 +3,7 @@
 # ============================================================
 
 #' @keywords internal
-#' @importFrom Matrix nearPD
+#' @importFrom pracma nearest_spd
 #' @importFrom glmmTMB fixef ranef genpois
 Longit.inits <- function(long.formula, data, family){
   lapply(long.formula, function(x) if(!"formula"%in%class(x)) stop('"long.formula" must be of class "formula"'))
@@ -47,15 +47,16 @@ Longit.inits <- function(long.formula, data, family){
   Ds <- lapply(1:K, function(k){
     D <- glmmTMB::VarCorr(fits[[k]])$c$id; dimD <- dim(D)
     D <- matrix(D, nrow = dimD[1], ncol = dimD[2])
-    # Checking pos-def. on this D, if not then use Matrix::nearPD()$mat
+    # Checking pos-def. on this D, if not then transform with pracma
     if(any(eigen(D)$values < 0) || (det(D) <= 0)){
       message("Generated covariance matrix not positive semi-definite, occurred for ", markers[k], ".")
+      message("This is likely sign of singular fit, continuing anyway...")
       message("\n------- -> Transforming... <- -------\n")
-      D <- as.matrix(Matrix::nearPD(D, maxit = 1e4)$mat)
+      D <- pracma::nearest_spd(D)
     }
     D
   })
-  D <- as.matrix(Matrix::bdiag(Ds))
+  D <- bDiag(Ds)
   
   # Dispersion ================================
   sigma <- lapply(1:K, function(k){

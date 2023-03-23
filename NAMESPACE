@@ -12,7 +12,7 @@ importFrom("graphics", "plot", "par", "abline", "lines", "axis", "legend", "arro
            "mtext")
 importFrom("utils", "head")
 importFrom("statmod", "gauss.quad.prob")
-importFrom('pracma', 'grad', 'hessian')
+importFrom('pracma', 'grad', 'hessian', 'nearest_spd')
 importFrom("mvtnorm", "dmvnorm")
 import(glmmTMB)
 import(survival)
