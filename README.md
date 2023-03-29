@@ -36,7 +36,11 @@ in the same syntax as a [glmmTMB](https://cran.r-project.org/package=glmmTMB) mo
 As an example, suppose we want to fit a trivariate model on the oft-used PBC data, with a linear time-drug interaction term on albumin, a spline term on
 (logged) serum bilirubin and a linear fit on spiders, we specify
 ```r
+data(PBC)
 PBC$serBilir <- log(PBC$serBilir)
+PBC <- subset(PBC, select = c('id', 'survtime', 'status', 'drug', 'time',
+                              'serBilir', 'albumin', 'spiders'))
+PBC <- na.omit(PBC) 
 long.formulas <- list(
   albumin ~ drug * time + (1 + time|id),
   serBilir ~ drug * splines::ns(time, 3) + (1 + splines::ns(time, 3)|id),
@@ -56,6 +60,7 @@ list. We call our `fit` via
 ```r
 fit <- joint(long.formulas = long.formulas, surv.formula = surv.formula, data = PBC, 
              family = list("gaussian", "gaussian", "binomial"))
+summary(fit)
 ```
 where extra control arguments are documented in `?joint`. Numerous S3 methods exist for the class of object `joint` creates: `summary()`, `logLik()`, `fixef()`, `ranef()`, `fitted()` and `resid()`. 
 
@@ -66,6 +71,7 @@ Currently the largest limitation exists with the relatively strict data structur
 
 * Longitudinal information: The longitudinal time argument must be named `time` and the subject identifier (which we 'split' random effects by) `id`. Unsure if I will ever change these; I think a little more user pre-processing is no bad thing, when alternative would be a more crowded call to `joint`, which I wouldn't be a fan of.
 * Misc.: data must be balanced (i.e. no `NA` values); this will be fixed in a future update. For now I don't think this is the biggest issue, and recommend using `na.omit` for example. Additionally, the id variable __must__ increment by no more than one. That is, `data$id=1,1,1,2,2,2,3,3,3` is fine, but `data$id=1,1,1,1,3,3,3,4,4` is not. This is due to how data matrices are created internally and will be fixed in the future. 
+* Something of a bottleneck is creation of data matrices for large K. Some investigations ongoing.
 * Pretty-ing of progress bars using cli package.
 
 ## References
