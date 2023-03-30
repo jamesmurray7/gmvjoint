@@ -71,7 +71,7 @@ Currently the largest limitation exists with the relatively strict data structur
 
 * Longitudinal information: The longitudinal time argument must be named `time` and the subject identifier (which we 'split' random effects by) `id`. Unsure if I will ever change these; I think a little more user pre-processing is no bad thing, when alternative would be a more crowded call to `joint`, which I wouldn't be a fan of.
 * Misc.: data must be balanced (i.e. no `NA` values); this will be fixed in a future update. For now I don't think this is the biggest issue, and recommend using `na.omit` for example. Additionally, the id variable __must__ increment by no more than one. That is, `data$id=1,1,1,2,2,2,3,3,3` is fine, but `data$id=1,1,1,1,3,3,3,4,4` is not. This is due to how data matrices are created internally and will be fixed in the future. 
-* Something of a bottleneck is creation of data matrices for large K. Some investigations ongoing.
+* Something of a bottleneck is creation of data matrices for large K. Some promising results in e.g. dev/CreateDataMatrices_gTMB.R. May be incorporated in future!
 * Pretty-ing of progress bars using cli package.
 
 ## References
