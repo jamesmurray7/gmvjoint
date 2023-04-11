@@ -17,6 +17,7 @@ simData(
   theta = c(-4, 0.2),
   cens.rate = exp(-3.5),
   unif.times = TRUE,
+  dof = Inf,
   random.formula = NULL,
   return.ranefs = FALSE
 )
@@ -55,6 +56,11 @@ the survival sub-model, in the order of continuous and binary.}
 will have the same follow-up times defined by \code{seq(0, fup, length.out = ntms)}. If 
 \code{unif.times = FALSE} then follow-up times are set as random draws from a uniform 
 distribution with maximum \code{fup}.}
+
+\item{dof}{integer, specifies the degrees of freedom of the multivariate t-distribution
+used to generate the random effects. If specified, this t-distribution is used. If left
+at the default \code{dof=Inf} then the random effects are drawn from a multivariate normal
+distribution.}
 
 \item{random.formula}{allows user to specify if an intercept-and-slope (\code{~ time}) or 
 intercept-only (\code{~1}) random effects structure should be used. defaults to the former.}

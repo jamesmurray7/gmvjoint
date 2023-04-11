@@ -59,6 +59,10 @@ rgenpois <- function(mu, phi){
 #' will have the same follow-up times defined by \code{seq(0, fup, length.out = ntms)}. If 
 #' \code{unif.times = FALSE} then follow-up times are set as random draws from a uniform 
 #' distribution with maximum \code{fup}. 
+#' @param dof integer, specifies the degrees of freedom of the multivariate t-distribution
+#' used to generate the random effects. If specified, this t-distribution is used. If left
+#' at the default \code{dof=Inf} then the random effects are drawn from a multivariate normal
+#' distribution.
 #' @param random.formula allows user to specify if an intercept-and-slope (\code{~ time}) or 
 #' intercept-only (\code{~1}) random effects structure should be used. defaults to the former.
 #' @param return.ranefs a logical determining whether the \emph{true} random effects should be 
@@ -101,6 +105,7 @@ rgenpois <- function(mu, phi){
 #'   where \eqn{y} is the shape parameter, and the scale parameter is \eqn{\exp{x}}.
 #'
 #' @importFrom MASS mvrnorm
+#' @importFrom mvtnorm rmvt
 #' 
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #' @keywords simulation
@@ -139,6 +144,7 @@ simData <- function(n = 250, ntms = 10, fup = 5,
                     gamma = c(0.5, -0.5), zeta = c(0.05, -0.30),
                     theta = c(-4, 0.2), cens.rate = exp(-3.5),
                     unif.times = TRUE,
+                    dof = Inf,
                     random.formula = NULL,
                     return.ranefs = FALSE){
   
@@ -197,13 +203,21 @@ simData <- function(n = 250, ntms = 10, fup = 5,
     Z <- replicate(K, model.matrix(~ 1 + time, data = df), simplify = F) # assume all intslopes.
   }
 
+  # Random effects specification
+  if(is.infinite(dof)) 
+    .simRE <- function(n, mu, Sigma) MASS::mvrnorm(n = n, mu = mu, Sigma = Sigma)
+  else
+    .simRE <- function(n, mu, Sigma) mvtnorm::rmvt(n = n, sigma = Sigma, delta = mu, df = dof)
+  
   # Linear predictor & response generation ----
   if(!is.null(random.formula)){
     q <- ncol(do.call(cbind, lapply(Z, head)))
-    b <- MASS::mvrnorm(n, mu = rep(0, q), Sigma = D)
+    # b <- MASS::mvrnorm(n, mu = rep(0, q), Sigma = D)
+    b <- .simRE(n, rep(0, q), D)
     b.inds <- split(1:q, do.call(c, sapply(1:K, function(k) rep(k, ncol(Z[[k]])), simplify = F)))
   }else{
-    b <- MASS::mvrnorm(n, mu = rep(0, K * 2), Sigma = D)
+    # b <- MASS::mvrnorm(n, mu = rep(0, K * 2), Sigma = D)
+    b <- .simRE(n, rep(0, K * 2), D)
     b.inds <- split(1:(2*K), rep(1:K, each = 2)) 
   }
   
