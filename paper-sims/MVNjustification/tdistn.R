@@ -19,12 +19,13 @@ summary(test$fit)
 
 library(cli)
 
-dfs <- c(2, 3, 4, 5, 6, 7, 8, 9, 10)
+# dfs <- c(2, 3, 4, 5, 6, 7, 8, 9, 10) # change as needed!
+dfs <- c(15, 20, 25, 30, 50, 100)
 N <- 100
 
 fit.df <- function(df, ...){
   nm <- paste0("Simulation study, df = ", df)
-  fn <- paste0('/data/c0061461/fits_tdistn/df_', df, '.RData')
+  fn <- paste0('/data/c0061461/fits_tdistn/df_', df, '.RData') # the file name
   cli_progress_bar(name = nm, total = N)
   fits <- true.REs <- vector("list", N)
   for(i in 1:N){
