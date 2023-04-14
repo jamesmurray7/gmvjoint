@@ -247,26 +247,39 @@ ET <- lapply(seq_along(RDs), function(i){
   do.call(rbind, Est.trues)
 })
 
-ET[[1]] %>% 
-  # select(id, simnum) %>%
-  tidyr::pivot_longer(`Y.1_.Intercept.`:`Y.1_time`) %>% 
-  mutate(
-    name = ifelse(grepl("Intercept", name), "b[0]", "b[1]")
-  ) %>% 
-  tidyr::pivot_wider(names_from = what, values_from = value,
-                     names_vary = 'slowest') %>% 
-  ggplot(aes(x = Estimate, y = True)) + 
-  geom_density_2d()
+library(ggpubr)
+out.plots <- list()
 
-ET[[2]] %>% 
-  # select(id, simnum) %>%
-  tidyr::pivot_longer(`Y.1_.Intercept.`:`Y.1_time`) %>% 
-  mutate(
-    name = ifelse(grepl("Intercept", name), "b[0]", "b[1]")
-  ) %>% 
-  tidyr::pivot_wider(names_from = what, values_from = value,
-                     names_vary = 'slowest') %>% 
-  ggplot() + 
-  geom_density(aes(x = Estimate), col = 'black') + 
-  geom_density(aes(x = True), col = 'red') + 
-  facet_wrap(~name, scales = 'free', labeller = label_parsed)
+plotfn <- function(df){
+  do.call(rbind, ET) %>% 
+    filter(df == df) %>% 
+    tidyr::pivot_longer(`Y.1_.Intercept.`:`Y.1_time`) %>% 
+    mutate(
+      name = ifelse(grepl("Intercept", name), "b[0]", "b[1]")
+    ) %>% 
+    tidyr::pivot_wider(names_from = what, values_from = value,
+                       names_vary = 'slowest') %>% 
+    filter(!(name=='b[0]' & (abs(True) > 10 | abs(Estimate) > 10)),
+           !(name=='b[1]' & (abs(True) > 3 | abs(Estimate) > 3))) %>% 
+    ggplot() + 
+    # geom_abline(intercept = 0, slope = 1, colour = 'black') + 
+    # geom_point(aes(x = Estimate, y = True),colour = col, size = .2) + 
+    # geom_density(aes(x = Estimate), colour = 'black', trim = TRUE) + 
+    # geom_density(aes(x = True), colour = 'red', trim = TRUE) + 
+    stat_density(aes(x = Estimate), geom = 'line', colour = 'black', trim = TRUE) + 
+    stat_density(aes(x = True), geom = 'line', colour = 'red', trim = TRUE) + 
+    labs(x = 'Estimate', y = 'Density', title = bquote(nu==.(df))) + 
+    facet_wrap(~name, scales = 'free', labeller = label_parsed) + 
+    theme_light() + 
+    theme(
+      strip.background = element_blank(),
+      strip.text = element_text(colour = "black", size = 12, face = 'bold'),
+      panel.grid.minor.y = element_blank(),
+      panel.grid.minor.x = element_blank()
+    )
+}
+df3 <- plotfn(3)
+df5 <- plotfn(5)
+df20 <- plotfn(20)
+df100 <- plotfn(100)
+               
