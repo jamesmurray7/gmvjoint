@@ -1,7 +1,7 @@
 # Data --------------------------------------------------------------------
-data.dir <- '/data/c0061461/fits_tdistn/'
-RDs <- dir(data.dir)
-
+data.dir <- '/data/c0061461/fits_ghnodes/univariate-gauss/'
+RDs <- dir(data.dir, pattern = '.RD')
+RDs <- RDs[-which(RDs%in%c("datas.RData", "tab.txt"))]
 
 # Targets -----------------------------------------------------------------
 targets <- setNames(c(0.25, 0.00, 0.05,
@@ -69,16 +69,16 @@ tabs <- lapply(seq_along(RDs), function(i){
   f <- RDs[i]
   file <- paste0(data.dir,f)
   cat(sprintf("Current file: %s\n", file))
-  df <- as.numeric(gsub('\\.RData', '',gsub('df\\_', '', f)))
+  nodes <- as.numeric(gsub('\\.RData', '',gsub('n\\_', '', f)))
   assign("x", get(load(file)))
-  fits <- x[[1]]
+  fits <- x#[[1]]
   num.null <- sum(sapply(fits, is.null))
   cat(sprintf("%d NULL fits.\n", num.null))
   # Get "S"ummary
   S <- getEsts(fits)
   MSD <- paste0(.f(S$Emp.Mean), ' (', .f(S$Emp.SD), ')')
   ptar <- paste0(names(targets), ' = ', .f(targets))
-  out <- data.frame(df = as.integer(.f(df, 0)), parameter = ptar, `MeanSD` = MSD, 
+  out <- data.frame(nodes = as.integer(.f(nodes, 0)), parameter = ptar, `MeanSD` = MSD, 
                     SE = .f(S$Avg.SE), Bias = .f(S$Bias), MSE = .f(S$MSE),
                     CP = .f(S$CP, 2), stringsAsFactors = F)
   row.names(out) <- NULL
@@ -88,13 +88,13 @@ tabs <- lapply(seq_along(RDs), function(i){
 })
 
 tabs2 <- do.call(rbind,tabs)
-tabs2 <- dplyr::arrange(tabs2, df)
+tabs2 <- dplyr::arrange(tabs2, nodes)
 
 
 # WIDE version
 tabsw <- tidyr::pivot_wider(tabs2, 
                    id_cols = parameter,
-                   names_from = df, values_from = MeanSD:CP,
+                   names_from = nodes, values_from = MeanSD:CP,
                    names_vary = 'slowest')
 # Clean parameters up.
 library(dplyr)
@@ -115,7 +115,7 @@ tabsw$Parameter <- gsub("\\_1","",tabsw$Parameter)
 tabsw$Parameter <- gsub("=\\s\\s", "= ", tabsw$Parameter)
 
 nms <- names(tabsw)
-dfs <- unique(tabs2$df)
+nodes <- unique(tabs2$node)
 
 library(xtable)
 make.xt <- function(x, comm = NULL, ...){
@@ -133,10 +133,12 @@ make.xt <- function(x, comm = NULL, ...){
 }
 
 # 3 sets of 5?
-dfs.to.tabulate <- c(2,3,5,10,30,50)
+# dfs.to.tabulate <- c(2,3,5,10,30,50)
+nodes.to.tabulate <- c(2,3,5,
+                       7,9,15)
 tab.rows <- 3
 tab.cols <- 2
-rows <- list(dfs.to.tabulate[1:3], dfs.to.tabulate[4:length(dfs.to.tabulate)])
+rows <- list(nodes.to.tabulate[1:3], nodes.to.tabulate[4:length(nodes.to.tabulate)])
 Pcol <- tabsw$Parameter                                # so just check and move on!
 
 cols <- list()
@@ -147,7 +149,7 @@ for(j in 1:tab.cols){
     cols.to.extract <- which(stringr::str_extract(nms, '\\_\\d?\\d?\\d$') %in% paste0('_', rowdf[d]))
     this.df <- as.data.frame(cbind(Pcol, tabsw[, cols.to.extract]))
     names(this.df) <- gsub('\\_.*', '', names(this.df))
-    names(this.df)[which(names(this.df) == 'MeanSD')] <- "Emp. Mean (SE)"
+    names(this.df)[which(names(this.df) == 'MeanSD')] <- "Mean (SE)"
     names(this.df)[which(names(this.df) == 'Pcol')] <- "Parameter"
     out[[d]] <- this.df
   }
@@ -164,15 +166,19 @@ while(nr.rhs < nr.lhs){
 tab <- cbind(lhs,rhs[,-1])
 make.xt(tab)
 
+write.table(make.xt(tab),
+            file = paste0(data.dir, 'tab.txt'),
+            quote = F, )
+
 
 # Plotting coverages ------------------------------------------------------
 library(ggplot2)
 
-tabsplot <- tabs2 %>% 
-  select(df, parameter, CP) %>% 
-  mutate(parameter = trimws(gsub('\\=.*$', '', parameter))) %>% 
+tabsplot <- tabs2 %>%
+  select(nodes, parameter, Bias, MSE) %>%
+  mutate(parameter = trimws(gsub('\\=.*$', '', parameter))) %>%
   mutate(parameter2 = case_when(
-    grepl("^D\\[", parameter) ~ stringr::str_replace_all(parameter, "\\[", '[') %>% 
+    grepl("^D\\[", parameter) ~ stringr::str_replace_all(parameter, "\\[", '[') %>%
       stringr::str_replace_all(., "\\]", ']') %>% gsub('\\,','',.),
     grepl("zeta_bin", parameter) ~ 'zeta',
     grepl("^Y\\.\\d", parameter) ~ gsub("^Y\\.", 'beta[', parameter),
@@ -185,101 +191,24 @@ tabsplot$parameter2 <- gsub("\\_time", "1]", tabsplot$parameter2)
 tabsplot$parameter2 <- gsub("\\_cont", "2]", tabsplot$parameter2)
 tabsplot$parameter2 <- gsub("\\_bin", "3]", tabsplot$parameter2)
 
-  
 tabsplot %>% 
-  mutate_at('CP', as.numeric) %>% 
-  ggplot(aes(x = df, y = CP)) + 
-  geom_hline(aes(yintercept = 0.95), lty = 5, col = 'lightgray') + 
-  geom_line(lwd = 1.2) + 
-  labs(y = '95% Coverage Probability') + 
-  scale_y_continuous(breaks = c(0, 0.25, 0.50, 0.75, 0.90, 0.95, 1.00)) + 
-  scale_x_log10(expression(nu)) + 
-  facet_wrap(~parameter2, labeller = label_parsed, ncol = 5, nrow = 2)+
-  theme_light() + 
+  filter(parameter2 %in% c("gamma", "zeta", "sigma^2")) %>% 
+  mutate_at(c("MSE", "Bias"), as.numeric) %>%
+  ggplot(aes(x = nodes, y = Bias)) + 
+  geom_hline(aes(yintercept=0), lty=3)+
+  geom_line(lwd = 1.2)+
+  scale_x_continuous(name = expression(rho), 
+                     breaks = nodes.to.tabulate) +
+  facet_wrap(~parameter2,ncol=3,nrow=1, scales = 'free_y', labeller = label_parsed)+
+  theme_light() +
   theme(
     strip.background = element_blank(),
     strip.text = element_text(colour = "black", size = 12, face = 'bold'),
     legend.position = 'none',
-    axis.text.y = element_text(size = 6, angle = 45),
+    # axis.text.y = element_text(size = 12),
     panel.grid.minor.y = element_blank(),
     panel.grid.minor.x = element_blank()
   )
 
-ggsave('/data/c0061461/fits_tdistn/CPs.png',
-       width = 190, height = 150, units = 'mm')
+# ggpubr with bias underneath?
 
-
-# RE Comparison -----------------------------------------------------------
-# Point estimate vs actual value
-
-ET <- lapply(seq_along(RDs), function(i){
-  f <- RDs[i]
-  file <- paste0(data.dir,f)
-  cat(sprintf("Current file: %s\n", file))
-  df <- as.numeric(gsub('\\.RData', '',gsub('df\\_', '', f)))
-  assign("x", get(load(file)))
-  fits <- x[[1]]
-  true.REs <- x[[2]]
-  num.null <- sum(sapply(fits, is.null))
-  cat(sprintf("%d NULL fits.\n", num.null))
-  
-  Est.trues <- lapply(seq_len(100), function(x){
-    fx <- fits[[x]]
-    bx <- true.REs[[x]]
-    if(is.null(fx)){ 
-      return(NULL)
-    }else{
-     RE <- fx$REs
-     attr(RE, 'Var') <- NULL
-     attr(RE, 'vcov') <- NULL
-     ids <- 1:nrow(RE)
-     est <- data.frame(id = ids, df = df, what = 'Estimate', RE)
-     colnames(bx) <- colnames(RE)
-     true <- data.frame(id = ids, df = df, what = 'True', bx)
-     out <- rbind(est, true)
-     out$simnum <- x
-     return(out)
-    }
-  })
-  
-  cat(cli::bg_cyan(cli::col_red('Done!')))
-  cat("\n\n")
-  do.call(rbind, Est.trues)
-})
-
-library(ggpubr)
-out.plots <- list()
-
-plotfn <- function(df){
-  do.call(rbind, ET) %>% 
-    filter(df == df) %>% 
-    tidyr::pivot_longer(`Y.1_.Intercept.`:`Y.1_time`) %>% 
-    mutate(
-      name = ifelse(grepl("Intercept", name), "b[0]", "b[1]")
-    ) %>% 
-    tidyr::pivot_wider(names_from = what, values_from = value,
-                       names_vary = 'slowest') %>% 
-    filter(!(name=='b[0]' & (abs(True) > 10 | abs(Estimate) > 10)),
-           !(name=='b[1]' & (abs(True) > 3 | abs(Estimate) > 3))) %>% 
-    ggplot() + 
-    # geom_abline(intercept = 0, slope = 1, colour = 'black') + 
-    # geom_point(aes(x = Estimate, y = True),colour = col, size = .2) + 
-    # geom_density(aes(x = Estimate), colour = 'black', trim = TRUE) + 
-    # geom_density(aes(x = True), colour = 'red', trim = TRUE) + 
-    stat_density(aes(x = Estimate), geom = 'line', colour = 'black', trim = TRUE) + 
-    stat_density(aes(x = True), geom = 'line', colour = 'red', trim = TRUE) + 
-    labs(x = 'Estimate', y = 'Density', title = bquote(nu==.(df))) + 
-    facet_wrap(~name, scales = 'free', labeller = label_parsed) + 
-    theme_light() + 
-    theme(
-      strip.background = element_blank(),
-      strip.text = element_text(colour = "black", size = 12, face = 'bold'),
-      panel.grid.minor.y = element_blank(),
-      panel.grid.minor.x = element_blank()
-    )
-}
-df3 <- plotfn(3)
-df5 <- plotfn(5)
-df20 <- plotfn(20)
-df100 <- plotfn(100)
-               
