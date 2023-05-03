@@ -23,6 +23,8 @@
 #'   \strong{details}. Default is \code{tol.den=1e-3}.}
 #'   \item{\code{tol.thr}}{Numeric: Threshold used when \code{conv = 'sas'}, see 
 #'   \strong{details}. Default is \code{tol.thr=1e-1}.}
+#'   \item{\code{maxit}}{Integer: Maximum number of EM iterations to carry out before
+#'   exiting the algorithm. Defaults to \code{maxit=200L}, which is usually sufficient.}
 #'   \item{\code{correlated}}{Logical: Should covariance parameters \strong{between} responses 
 #'   be estimated and used in determination of model convergence? Default is 
 #'   \code{correlated=TRUE}. A choice of \code{correlated=FALSE} is equivalent to imposing the 
@@ -40,6 +42,8 @@
 #'   \item{\code{return.dmats}}{Logical: Should data matrices be returned? Defaults to 
 #'   \code{return.dmats=TRUE}. Note that some S3 methods for \code{\link{joint.object}}s
 #'   greatly benefit from inclusion of these data matrices.}
+#'   \item{\code{return.inits}}{Logical: Should a list of inital conditons be returned? 
+#'   Defaults to \code{return.inits=FALSE}.}
 #'   \item{\code{center.ph}}{Should the survival covariates be mean-centered? Defaults
 #'   to \code{center.ph=TRUE}.}
 #' 
@@ -376,7 +380,8 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   dmats <- list(long = dmats, surv = if(post.process) sv.new else sv, ph = surv)
   if(return.dmats) out$dmats <- dmats
   
-  if(return.inits) out$inits = inits.long
+  if(return.inits) out$inits = list(inits.long = inits.long,
+                                    inits.surv = inits.surv)
   class(out) <- 'joint'
   return(out)
 }

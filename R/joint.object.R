@@ -45,5 +45,7 @@
 #'  fit.}
 #'  \item{\code{dmats}}{if requested, data matrices on each of the longitudinal and survival 
 #'  processes for each subject.}
+#'  \item{\code{inits}}{if requested, a list of length two. \code{inits.long} the initial 
+#'  conditions for the longitudinal parameters; \code{inits.surv} the survival ones.}
 #' }
 "joint.object" <- NULL
