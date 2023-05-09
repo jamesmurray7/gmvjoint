@@ -592,6 +592,48 @@ arma::mat Hgammazeta(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
   return 0.5 * (out + out.t());
 }
 
+// Rcpp::List gammazetaUpdate(arma::vec& gammazeta, Rcpp::List b, Rcpp::List Sigma,
+//                            Rcpp::List S, Rcpp::List SS, Rcpp::List Fu, Rcpp::List Fi,
+//                            Rcpp::List haz, Rcpp::List Delta, Rcpp::List b_inds, Rcpp::List survtimes,
+//                            int K, arma::vec& w, arma::vec& v, bool scoreOnly,
+//                            long double Seps, long double Heps){
+//   int ps = gammazeta.size(), n = b.size();
+//   mat Hess = zeros<mat>(ps, ps);
+//   vec Score = vec(ps), gammazetaNew = vec(ps);
+//   
+//   for(int i = 0; i < n; i++){
+//     
+//     // Unpack this id's design matrices.
+//     vec survtimes_i = survtimes[i];
+//     if(survtimes_i.size()==0) continue; // No contribution if censored before first failure.
+//     
+//     mat Sigma_i = Sigma[i], SS_i = SS[i], Fu_i = Fu[i];
+//     vec b_i = b[i], haz_i = haz[i];
+//     rowvec S_i = S[i], Fi_i = Fi[i];
+//     int Delta_i = Delta[i];
+//     
+//     // Work out score (and Hessian) contribution for this id.
+//     vec Score_i = Sgammazeta(gammazeta, b_i, Sigma_i, S_i, SS_i, 
+//                          Fu_i, Fi_i, haz_i, Delta_i, w, v, b_inds, K, Seps);
+//     if(!scoreOnly){
+//       mat Hess_i = Hgammazeta(gammazeta, b_i, Sigma_i, S_i, SS_i, 
+//                               Fu_i, Fi_i, haz_i, Delta_i, w, v, b_inds, K, Seps, Heps);
+//       Hess += Hess_i;
+//     }
+//     
+//     Score += Score_i;
+//   }
+//   
+//   // If not only finding the Score, then solve for new gamma
+//   if(!scoreOnly){
+//     vec xx = solve(Hess, Score);
+//     gammazetaNew += gammazeta - xx;
+//   }
+//   
+//   return Rcpp::List::create(_["Hessian"] = Hess,
+//                             _["Score"] = Score);
+// }
+
 //' @keywords internal
 // [[Rcpp::export]]
 arma::mat lambdaUpdate(Rcpp::List survtimes, arma::mat& ft, arma::vec& gamma, arma::vec& zeta,
