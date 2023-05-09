@@ -141,8 +141,8 @@ surv.mod <- function(surv, formulas, l0.init){
   for(i in 1:n){
     Ti <- TiDi[[i]]$survtime; Di <- TiDi[[i]]$status
     # Failure times survived (up-to-and-including their own).
-    surv.times[[i]] <- which(ft <= Ti) # Store indiced
-    surv.times2[[i]] <- which(ft < Ti) # For the update to baseline hazard
+    surv.times[[i]] <- which(ft <= Ti) # Store indices
+    surv.times2[[i]] <- which(ft < Ti) # For the update to baseline hazard // REMOVE
     St <- ft[surv.times[[i]]]          # The actual times
     if(length(St)){   # Design matrices of 
       Fu[[i]] <- Fu.all[surv.times[[i]], , drop = F]

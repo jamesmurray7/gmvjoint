@@ -46,12 +46,8 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   D.update <- mapply(function(Sigma, b) Sigma + tcrossprod(b), Sigma = Sigma, b = b.hat, SIMPLIFY = F)
   
   # \beta =====================================
-  # if(beta.quad){
-    tau = mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
-  # }else{
-  #   tau = list(0)
-  # }
-  
+  tau <- mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
+
   Sb <- mapply(function(X, Y, Z, b, tau){
     Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K, 
           FALSE, tau, w, v)
@@ -89,15 +85,31 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   for(j in setdiff(1:K, c(disps))) sigma.update[[j]] <- NA # Return null for all distsn which do not have disp. parameters.
   
   # Survival parameters (\gamma, \zeta) =======
-  Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, .Machine$double.eps^(1/3))
-  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta)
+  lambda.update <- lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, zeta, S, Sigma, b.hat, w, v, b.inds2)
+  l0.new <- sv$nev/rowSums(lambda.update)
+  l0u.new <- lapply(l0u, function(ll){
+    l0.new[1:length(ll)]
+  })
+  Psurv <- length(c(gamma, zeta))
+  Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta, ST){
+    if(length(ST))
+      return(Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, 
+                        b.inds2, K, .Machine$double.eps^(1/3)))
+    else
+      return(rep(0, Psurv))
+  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u.new, Delta = Delta, ST = sv$surv.times)
+
+  Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta, ST){
+    if(length(ST))
+      return(Hgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K,
+                       .Machine$double.eps^(1/3), .Machine$double.eps^(1/4)))
+    else
+      return(matrix(0, Psurv, Psurv))
+  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u.new, Delta = Delta, 
+     ST = sv$surv.times, SIMPLIFY = F)
   
-  Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    Hgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, 
-               .Machine$double.eps^(1/3), .Machine$double.eps^(1/4))
-  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
-  
+  # GU <- gammazetaUpdate(c(gamma,zeta), b.hat, Sigma, S, SS, Fu, Fi, l0u.new, Delta,
+  #                       b.inds2, sv$surv.times, K, w, v, FALSE, .Machine$double.eps^(1/3), .Machine$double.eps^(1/4))
   
   # #########
   # M-step ##
@@ -124,9 +136,10 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   
   # Survival parameters (gamma, zeta)
   gammazeta.new <- c(gamma, zeta) - solve(Reduce('+', Hgz), rowSums(Sgz))
+  gamma.new <- gammazeta.new[1:K]; zeta.new <- gammazeta.new[(K+1):length(gammazeta.new)]
   
   # The baseline hazard and related objects
-  lambda.update <- lambdaUpdate(sv$surv.times2, sv$ft.mat, gamma, zeta, S, Sigma, b.hat, w, v, b.inds2)
+  lambda.update <- lambdaUpdate(sv$surv.times, sv$ft.mat, gamma.new, zeta.new, S, Sigma, b.hat, w, v, b.inds2)
   l0.new <- sv$nev/rowSums(lambda.update)
   l0u.new <- lapply(l0u, function(ll){
     l0.new[1:length(ll)]
@@ -137,7 +150,7 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   # Return
   list(
     D = D.new, beta = beta.new, sigma = sigma.new,       # Yk responses
-    gamma = gammazeta.new[1:K], zeta = gammazeta.new[(K+1):length(gammazeta.new)],  # Survival
+    gamma = gamma.new, zeta = zeta.new,                  # Survival
     l0 = l0.new, l0u = l0u.new, l0i = as.list(l0i.new),  #   Hazard
     b = b.hat,                                           #   REs.
     Sigma = Sigma                                        #   Their variance
