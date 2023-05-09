@@ -41,16 +41,30 @@ nms <- apply(to.sim, 1, function(x) paste0("n = ", as.numeric(x[1]), ", mi = ", 
 sim.sets <- setNames(apply(to.sim, 1, function(x){
   n <- as.numeric(x[1]); mi <- as.numeric(x[2]); failure <- x[3]
   if(failure == '30%'){
-    theta <- c(-2.9,.1)    # appx. 30%
+    theta <- c(-4.,.1)    # appx. 30%
   }else if(failure == "10%"){
-    theta <- c(-4, .1) 
+    theta <- c(-5.6, .1) 
   }else{
-    theta <- c(-2.15, 0.1) # 48-54%ish
+    theta <- c(-3, 0.1) # 48-54%ish
   }
-  replicate(N, simData(n = n, ntms = mi, family = family, sigma = sigma, beta = beta,
-                       D = D, gamma = gamma, zeta = zeta, theta = theta,
+  replicate(N, simData(n = n, ntms = mi, family = family, sigma = sigma, beta = beta, fup = 10,
+                       D = D, gamma = gamma, zeta = zeta, theta = theta, unif.times = FALSE,
                        random.formula = list(~time, ~time, ~1))$data, simplify = F)
 }), nms)
+
+# Check average failure rate
+rates <- sapply(sim.sets, function(X){
+  sapply(X, function(y){
+    sum(tapply(y$status, y$id, head, 1))/to.sim$n[1]
+  })
+})
+round(colMeans(rates), 2) # On average, we get what we want!
+# n = 250, mi = 5, failure = 10% n = 250, mi = 10, failure = 10% n = 250, mi = 15, failure = 10%  n = 250, mi = 5, failure = 30% 
+#   0.11                            0.12                            0.11                            0.31 
+# n = 250, mi = 10, failure = 30% n = 250, mi = 15, failure = 30%  n = 250, mi = 5, failure = 50% n = 250, mi = 10, failure = 50% 
+#   0.31                            0.31                            0.50                            0.50 
+# n = 250, mi = 15, failure = 50% 
+# 0.50 
 
 save(sim.sets, file = paste0(save.dir, 'simsets_', gsub('\\s|\\:','_',.Internal(date())), '.RData')) # About 25MB
 

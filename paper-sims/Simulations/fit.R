@@ -15,7 +15,7 @@ fit <- function(d, ...){ # d is a single item from e.g. sim.sets$`...` .
   this.fit
 }
 
-.pb <- function() utils::txtProgressBar(max = 100,style=3)
+.pb <- function() utils::txtProgressBar(max = 100, style = 3)
 
 fitwrap <- function(x){ # x is a list of data sets e.g. sim.sets$`mi = 5, failure = low`.
   out <- vector('list', 100)
