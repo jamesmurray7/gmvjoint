@@ -76,10 +76,17 @@ converge.check <- function(params.old, params.new, criteria, iter, Omega, verbos
       cat("gamma:", round(Omega$gamma, 4), "\n")
       cat("zeta:", round(Omega$zeta, 4), "\n")
       cat("\n")
-      cat("Maximum absolute difference:", round(max(diffs.abs), 4), "for",
-          names(params.new)[which.max(diffs.abs)], "\n")
-      cat("Maximum relative difference:", round(max(diffs.rel), 4), "for",
-                 names(params.new)[which.max(diffs.rel)], "\n")
+      if(type != "sas"){
+        cat("Maximum absolute difference:", round(max(diffs.abs), 4), "for",
+            names(params.new)[which.max(diffs.abs)], "\n")
+        cat("Maximum relative difference:", round(max(diffs.rel), 4), "for",
+            names(params.new)[which.max(diffs.rel)], "\n")
+      }else{
+       cat("Maximum absolute difference: ", round(max(diffs.abs[!sas.crit]), 4), "for",
+           names(params.new)[which.max(diffs.abs[!sas.crit])], "\n")
+        cat("Maximum relative difference: ", round(max(diffs.rel[sas.crit]), 4), "for",
+            names(params.new)[which.max(diffs.rel[sas.crit])], "\n")
+      }
       if(converged) cat(paste0("Converged! (Criteria: ", type, ")."), "\n\n")
   }
   
