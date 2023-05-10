@@ -247,18 +247,18 @@ df.to.xtab <- function(tab){
   tab$parameter2 <- gsub("\\_cont", "2}", tab$parameter2)
   tab$parameter2 <- gsub("\\_bin", "3}", tab$parameter2)
   tab$Parameter <- paste0("$\\", tab$parameter2, "=", format(round(tab$true, 3), nsmall = 3), "$")
-  tab$`Emp. Mean (SE)` <- paste0(tab$`Empirical Mean`, ' (', tab$`Empirical SE`, ')')
+  tab$`Emp. Mean (SD)` <- paste0(tab$`Empirical Mean`, ' (', tab$`Empirical SE`, ')')
   
   output.tab <- tab %>% 
-    select(r, Parameter, `Emp. Mean (SE)`, `Mean SE`, Bias, MSE, CP)
+    select(r, Parameter, `Emp. Mean (SD)`, `Mean SE`, Bias, MSE, CP)
   
   output.tab <- output.tab %>% 
     pivot_wider(id_cols = Parameter,
                 names_from = r, names_vary='slowest',
-                values_from = `Emp. Mean (SE)`:CP)
+                values_from = `Emp. Mean (SD)`:CP)
   
   caption <- paste0("Parameter estimates for $\\omega=", med.iqr.elapsed$omega[1], "$",
-                    " for differing maximal longitudinal profile lengths $r$. `Emp. Mean (SE)'",
+                    " for differing maximal longitudinal profile lengths $r$. `Emp. Mean (SD)'",
                     " denotes the average estimated value with the standard deviation of parameter estimates",
                     " and Mean SE the mean standard error calculated for each parameter from each model fit.",
                     " Coverage probabilities are calculated from $\\hbO\\pm1.96\\mathrm{SE}(\\hbO)$. The",
