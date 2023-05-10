@@ -85,31 +85,28 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   for(j in setdiff(1:K, c(disps))) sigma.update[[j]] <- NA # Return null for all distsn which do not have disp. parameters.
   
   # Survival parameters (\gamma, \zeta) =======
-  lambda.update <- lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, zeta, S, Sigma, b.hat, w, v, b.inds2)
-  l0.new <- sv$nev/rowSums(lambda.update)
-  l0u.new <- lapply(l0u, function(ll){
-    l0.new[1:length(ll)]
+  l0.hat <- lambdaUpdate_noprecalc(b.hat, Fu, SS, Sigma, gamma.rep, zeta, sv$nev, w, v) # Profile estimate to work out (gamma, zeta).
+  l0u.hat <- lapply(l0u, function(ll){                                                  # _Not_ estimator for lambda_0.
+    l0.hat[1:length(ll)]
   })
+  
   Psurv <- length(c(gamma, zeta))
+  
   Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta, ST){
     if(length(ST))
-      return(Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, 
+      return(Sgammazeta_cd(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, 
                         b.inds2, K, .Machine$double.eps^(1/3)))
     else
       return(rep(0, Psurv))
-  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u.new, Delta = Delta, ST = sv$surv.times)
-
+  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u.hat, Delta = Delta, ST = sv$surv.times)
+  
   Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta, ST){
     if(length(ST))
-      return(Hgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K,
-                       .Machine$double.eps^(1/3), .Machine$double.eps^(1/4)))
+      return(Hgammazeta_cd(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, .Machine$double.eps^(1/4)))
     else
       return(matrix(0, Psurv, Psurv))
-  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u.new, Delta = Delta, 
+  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u.hat, Delta = Delta, 
      ST = sv$surv.times, SIMPLIFY = F)
-  
-  # GU <- gammazetaUpdate(c(gamma,zeta), b.hat, Sigma, S, SS, Fu, Fi, l0u.new, Delta,
-  #                       b.inds2, sv$surv.times, K, w, v, FALSE, .Machine$double.eps^(1/3), .Machine$double.eps^(1/4))
   
   # #########
   # M-step ##
@@ -152,6 +149,7 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
     D = D.new, beta = beta.new, sigma = sigma.new,       # Yk responses
     gamma = gamma.new, zeta = zeta.new,                  # Survival
     l0 = l0.new, l0u = l0u.new, l0i = as.list(l0i.new),  #   Hazard
+    l0u.hat = l0u.hat,                                   #   (+ profile)
     b = b.hat,                                           #   REs.
     Sigma = Sigma                                        #   Their variance
   )

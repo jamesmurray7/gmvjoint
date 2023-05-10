@@ -326,32 +326,11 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   # Post processing ----
   if(post.process){
     if(verbose) cat('Calculating SEs\n')
-    beta.inds2 <- lapply(beta.inds, function(x) x - 1); b.inds2 <- lapply(b.inds, function(x) x - 1) 
     gamma.rep <- rep(gamma, sapply(b.inds, length))
     pp.start.time <- proc.time()[3]
     
-    # Evaluate l0 at final parameter estimates and obtain l0u from surv.mod.
-    l0 <- sv$nev/rowSums(lambdaUpdate(sv$surv.times, sv$ft.mat, gamma, zeta, sv$S, update$Sigma, b, w, v, b.inds2))
-    sv.new <- surv.mod(surv, formulas, l0)
-    
-    # b and Sigmai at MLEs
-    b.update <- mapply(function(b, Y, X, Z, Delta, S, Fi, l0i, SS, Fu, l0u){
-      optim(b, joint_density, joint_density_ddb,
-            Y = Y, X = X, Z = Z, beta = beta, D = D, sigma = sigma, family = family, 
-            Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS, Fu = Fu, haz = l0u, gamma_rep = gamma.rep, zeta = zeta,
-            beta_inds = beta.inds2, b_inds = b.inds2, K = K,
-            method = 'BFGS', hessian = T)
-    }, b = b, Y = Y, X = X, Z = Z, Delta = Delta, S = S, Fi = Fi, l0i = sv.new$l0i, SS = SS,
-    Fu = Fu, l0u = sv.new$l0u, SIMPLIFY = F)
-    Sigma <- lapply(b.update, function(x) solve(x$hessian))
-    b <- lapply(b.update, function(x) x$par)
-    SigmaSplit <- lapply(Sigma, function(x) lapply(b.inds, function(y) as.matrix(x[y,y])))
-    bsplit <- lapply(b, function(x) lapply(b.inds, function(y) x[y]))
-
-    # The Information matrix
-    II <- obs.emp.I(coeffs, dmats, surv, sv, 
-                    Sigma, SigmaSplit, b, bsplit, 
-                    sv.new$l0u, w, v, n, family, K, q, beta.inds, b.inds)
+    II <- obs.emp.I2(coeffs, dmats, surv, sv, b, l0i, l0u, w, v, n,
+                     family, K, q, beta.inds, b.inds)
     H <- structure(II$Hessian,
                    dimnames = list(names(params), names(params)))
     
@@ -361,14 +340,15 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     out$vcov <- I
     out$SE <- sqrt(diag(I))
    
-    postprocess.time <- round(proc.time()[3]-pp.start.time, 2)
+    postprocess.time <- round(proc.time()[3] - pp.start.time, 2)
+    
     # Calculate log-likelihood. Done separately as EMtime + postprocess.time is for EM + SEs.
-    out$logLik <- joint.log.lik(coeffs, dmats, b, surv, sv, sv.new$l0u, sv.new$l0i, gamma.rep, beta.inds, b.inds, 
-                                K, q, family, Sigma)
+    out$logLik <- joint.log.lik(coeffs, dmats, II$b.hat, surv, sv, l0u, l0i, gamma.rep, beta.inds, b.inds, 
+                                K, q, family, II$Sigma)
     # Collate RE and their variance
-    REs <- do.call(rbind, b)
-    attr(REs, 'Var') <- do.call(rbind, lapply(Sigma, diag))
-    attr(REs, 'vcov') <- do.call(rbind, lapply(Sigma, vech))
+    REs <- do.call(rbind, II$b.hat)
+    attr(REs, 'Var') <- do.call(rbind, lapply(II$Sigma, diag))
+    attr(REs, 'vcov') <- do.call(rbind, lapply(II$Sigma, vech))
     out$REs <- REs
   }
   comp.time <- round(proc.time()[3] - start.time, 3)
@@ -376,8 +356,8 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
                         `Post processing` = if(post.process) unname(postprocess.time) else NULL,
                         `Total Computation time` = unname(comp.time),
                         `iterations` = iter)
-  
-  dmats <- list(long = dmats, surv = if(post.process) sv.new else sv, ph = surv)
+  if(post.process) sv <- surv.mod(surv, formulas, l0)
+  dmats <- list(long = dmats, surv = sv, ph = surv)
   if(return.dmats) out$dmats <- dmats
   
   if(return.inits) out$inits = list(inits.long = inits.long,

@@ -592,47 +592,72 @@ arma::mat Hgammazeta(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
   return 0.5 * (out + out.t());
 }
 
-// Rcpp::List gammazetaUpdate(arma::vec& gammazeta, Rcpp::List b, Rcpp::List Sigma,
-//                            Rcpp::List S, Rcpp::List SS, Rcpp::List Fu, Rcpp::List Fi,
-//                            Rcpp::List haz, Rcpp::List Delta, Rcpp::List b_inds, Rcpp::List survtimes,
-//                            int K, arma::vec& w, arma::vec& v, bool scoreOnly,
-//                            long double Seps, long double Heps){
-//   int ps = gammazeta.size(), n = b.size();
-//   mat Hess = zeros<mat>(ps, ps);
-//   vec Score = vec(ps), gammazetaNew = vec(ps);
-//   
-//   for(int i = 0; i < n; i++){
-//     
-//     // Unpack this id's design matrices.
-//     vec survtimes_i = survtimes[i];
-//     if(survtimes_i.size()==0) continue; // No contribution if censored before first failure.
-//     
-//     mat Sigma_i = Sigma[i], SS_i = SS[i], Fu_i = Fu[i];
-//     vec b_i = b[i], haz_i = haz[i];
-//     rowvec S_i = S[i], Fi_i = Fi[i];
-//     int Delta_i = Delta[i];
-//     
-//     // Work out score (and Hessian) contribution for this id.
-//     vec Score_i = Sgammazeta(gammazeta, b_i, Sigma_i, S_i, SS_i, 
-//                          Fu_i, Fi_i, haz_i, Delta_i, w, v, b_inds, K, Seps);
-//     if(!scoreOnly){
-//       mat Hess_i = Hgammazeta(gammazeta, b_i, Sigma_i, S_i, SS_i, 
-//                               Fu_i, Fi_i, haz_i, Delta_i, w, v, b_inds, K, Seps, Heps);
-//       Hess += Hess_i;
-//     }
-//     
-//     Score += Score_i;
-//   }
-//   
-//   // If not only finding the Score, then solve for new gamma
-//   if(!scoreOnly){
-//     vec xx = solve(Hess, Score);
-//     gammazetaNew += gammazeta - xx;
-//   }
-//   
-//   return Rcpp::List::create(_["Hessian"] = Hess,
-//                             _["Score"] = Score);
-// }
+//' @keywords internal
+// [[Rcpp::export]]
+arma::vec Sgammazeta_cd(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
+                        arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi,
+                        arma::vec& haz, int Delta, arma::vec& w, arma::vec& v, Rcpp::List b_inds, int K, double eps){
+  int ps = gammazeta.size();
+  vec out = vec(ps), epsvec = vec(ps);
+  for(int i = 0; i < ps; i++){
+    epsvec[i] = eps;
+    double xi = 1.;//std::max(1.0, std::abs(gammazeta[i]));
+    vec ge1 = gammazeta + xi * epsvec, ge2 = gammazeta - xi * epsvec;
+    double f1 = Egammazeta(ge1, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
+           f2 = Egammazeta(ge2, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
+    
+    out[i] = (f1 - f2) / (2 * eps);
+    epsvec[i] = 0.;
+  }
+  return out;
+}
+
+//' @keywords internal
+// [[Rcpp::export]]
+ arma::mat Hgammazeta_cd(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
+                         arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi,
+                         arma::vec& haz, int Delta, arma::vec& w, arma::vec& v, Rcpp::List b_inds, int K, double eps){
+   int ps = gammazeta.size();
+   mat out = zeros<mat>(ps, ps);
+   vec epsvec = vec(ps, fill::value(eps));
+   mat epsmat = diagmat(epsvec);
+   // epsmat.print();
+   double f0 = Egammazeta(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
+   for(int i = 0; i < (ps - 1); i++){
+     vec eps_i = epsmat.col(i);
+     double xi_i = 1. ;// std::max(1.0, std::abs(gammazeta[i]));
+     // Diagonal terms
+     vec ge_i1 = gammazeta + xi_i * eps_i, ge_i2 = gammazeta - xi_i * eps_i;
+     double f1 = Egammazeta(ge_i1, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
+            f2 = Egammazeta(ge_i2, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
+     out(i,i) = (f1 - 2. * f0 + f2)/pow(eps, 2.);
+    // Off-diagonal
+    for(int j = (i + 1); j < ps; j++){
+      vec eps_j = epsmat.col(j);
+      double xi_j = 1.; //std::max(1.0, std::abs(gammazeta[j]));
+      vec ge_ij1 = gammazeta + xi_i * eps_i + xi_j * eps_j,
+          ge_ij2 = gammazeta + xi_i * eps_i - xi_j * eps_j,
+          ge_ij3 = gammazeta - xi_i * eps_i + xi_j * eps_j,
+          ge_ij4 = gammazeta - xi_i * eps_i - xi_j * eps_j;
+      double f1 = Egammazeta(ge_ij1, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
+             f2 = Egammazeta(ge_ij2, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
+             f3 = Egammazeta(ge_ij3, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
+             f4 = Egammazeta(ge_ij4, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
+      out(i,j) = (f1 - f2 - f3 + f4)/(4. * pow(eps, 2.));
+      out(j,i) = out(i,j);
+    }
+   }
+   // Calculate ps, psth item
+   int last = ps-1;
+   vec eps_i = epsmat.col(ps-1);
+   double xi_i = 1.;//std::max(1.0, std::abs(gammazeta[last]));
+   vec ge_i1 = gammazeta + xi_i * eps_i, ge_i2 = gammazeta - xi_i * eps_i;
+   double f1 = Egammazeta(ge_i1, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
+          f2 = Egammazeta(ge_i2, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
+   out(last, last) = (f1 - 2. * f0 + f2)/pow(eps, 2.);
+   return out;
+ }
+
 
 //' @keywords internal
 // [[Rcpp::export]]
@@ -651,7 +676,7 @@ arma::mat lambdaUpdate(Rcpp::List survtimes, arma::mat& ft, arma::vec& gamma, ar
   }
   mat ftg = ft.each_row() % gammas.t();
   // Loop over subjects
-  for(int i = 0; i < n; i++){
+  for(int i = 0; i < n; i++){ // This could be rewritten; don't have the time currently.
     vec survtimes_i = survtimes[i];
     mat Sigma_i = Sigma[i];
     vec b_i = b[i];
@@ -672,6 +697,57 @@ arma::mat lambdaUpdate(Rcpp::List survtimes, arma::mat& ft, arma::vec& gamma, ar
   }
   return store;
 }
+
+// This is a lot slower than simply calculating everything within the function
+// (i.e. _noprecalc). Kept in this .cpp file for now, though...
+arma::vec lambdaUpdate_precalc(Rcpp::List mu_surv, Rcpp::List tau_surv, arma::vec& nev,
+                               arma::vec& w, arma::vec& v){
+  int n = mu_surv.size(), gh = w.size(), unique_times = nev.size();
+  vec out = zeros<arma::vec>(unique_times);
+  
+  for(int i = 0; i < n; i++){
+    
+    vec mu = mu_surv[i], tau = tau_surv[i];
+    int ui = mu.size();
+    
+    for(int l = 0; l < gh; l++){
+      out.subvec(0, ui - 1) += w[l] * mu % exp(tau * v[l]);
+    }
+    
+  }
+  
+  return nev/out;
+}
+
+//' @keywords internal, this assumes mu_surv, tau_surv not calculated prior.
+ // [[Rcpp::export]]
+ arma::vec lambdaUpdate_noprecalc(Rcpp::List b, Rcpp::List Fu, Rcpp::List SS, Rcpp::List Sigma,
+                                  arma::vec& gamma_rep, arma::vec& zeta, 
+                                  arma::vec& nev,
+                                  arma::vec& w, arma::vec& v){
+   int n = b.size(), gh = w.size(), unique_times = nev.size();
+   vec out = zeros<arma::vec>(unique_times);
+   mat g = diagmat(gamma_rep);
+   
+   for(int i = 0; i < n; i++){
+     
+     vec b_i = b[i];
+     mat SS_i = SS[i], Fu_i = Fu[i], S_i = Sigma[i];
+     mat Q = Fu_i * g;
+     mat A = Q * S_i * Q.t();
+     
+     // mu, tau.
+     vec mu = exp(SS_i * zeta + Q * b_i), tau = sqrt(diagvec(A));
+     
+     int ui = Fu_i.n_rows;
+     for(int l = 0; l < gh; l++){
+       out.subvec(0, ui - 1) += w[l] * mu % exp(tau * v[l]);
+     }
+     
+   }
+   
+   return nev/out;
+ }
 
 //' @keywords internal
 // [[Rcpp::export]]

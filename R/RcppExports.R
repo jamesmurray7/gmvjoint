@@ -87,8 +87,23 @@ Hgammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_i
 }
 
 #' @keywords internal
+Sgammazeta_cd <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps) {
+    .Call(`_gmvjoint_Sgammazeta_cd`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps)
+}
+
+#' @keywords internal
+Hgammazeta_cd <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps) {
+    .Call(`_gmvjoint_Hgammazeta_cd`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps)
+}
+
+#' @keywords internal
 lambdaUpdate <- function(survtimes, ft, gamma, zeta, S, Sigma, b, w, v, b_inds) {
     .Call(`_gmvjoint_lambdaUpdate`, survtimes, ft, gamma, zeta, S, Sigma, b, w, v, b_inds)
+}
+
+#' @keywords internal, this assumes mu_surv, tau_surv not calculated prior.
+lambdaUpdate_noprecalc <- function(b, Fu, SS, Sigma, gamma_rep, zeta, nev, w, v) {
+    .Call(`_gmvjoint_lambdaUpdate_noprecalc`, b, Fu, SS, Sigma, gamma_rep, zeta, nev, w, v)
 }
 
 #' @keywords internal
