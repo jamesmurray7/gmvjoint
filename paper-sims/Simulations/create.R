@@ -49,7 +49,7 @@ nms <- apply(to.sim, 1, function(x) paste0("n = ", as.numeric(x[1]), ", mi = ", 
 #   }else{
 #     theta <- c(-3, 0.1) # 48-54%ish
 #   }
-#   replicate(N, simData(n = n, ntms = mi, family = family, sigma = sigma, beta = beta, fup = 10,
+#   replicate(N, simData(n = n, ntms = mi, family = family, sigma = sigma, beta = beta, 
 #                        D = D, gamma = gamma, zeta = zeta, theta = theta, unif.times = FALSE,
 #                        random.formula = list(~time, ~time, ~1))$data, simplify = F)
 # }), nms)

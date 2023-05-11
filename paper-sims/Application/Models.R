@@ -82,3 +82,14 @@ final.biv.model <- joint(
 )
 summary(final.biv.model)
 test <- cond.ranefs(final.biv.model,tune=0.80)
+
+
+# Full seven-variate? -----------------------------------------------------
+
+# all.long.formulas <- c(Gaussian.long.formulas, Poisson.long.formulas, Binomial.long.formulas[[1]])
+# 
+# all.fit <- joint(all.long.formulas,
+#                  surv.formula, PBC, list("gaussian", "gaussian", "gaussian", "gaussian",
+#                                          "poisson", "poisson", "binomial"),
+#                  control = list(verbose = T,
+#                                 tol.abs = 5e-3))
