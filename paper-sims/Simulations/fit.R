@@ -15,12 +15,13 @@ fit <- function(d, ...){ # d is a single item from e.g. sim.sets$`...` .
   this.fit
 }
 
-.pb <- function() utils::txtProgressBar(max = 100, style = 3)
+N <- 200
+.pb <- function() utils::txtProgressBar(max = N, style = 3)
 
 fitwrap <- function(x){ # x is a list of data sets e.g. sim.sets$`mi = 5, failure = low`.
-  out <- vector('list', 100)
+  out <- vector('list', N)
   pb <- .pb()
-  for(j in 1:100){
+  for(j in 1:N){
     out[[j]] <- fit(x[[j]], control = list(return.dmats = FALSE))
     utils::setTxtProgressBar(pb, j)
   }

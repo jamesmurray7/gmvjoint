@@ -35,7 +35,7 @@ family <- list("gaussian",
                "binomial")
 
 # Set out things that vary across simulations.
-N <- 100
+N <- 200
 to.sim <- expand.grid(n = c(250), mi = c(5, 10, 15), failure = c('10%','30%', '50%'))
 nms <- apply(to.sim, 1, function(x) paste0("n = ", as.numeric(x[1]), ", mi = ", as.numeric(x[2]), ", failure = ", x[3]))
 
@@ -43,13 +43,13 @@ nms <- apply(to.sim, 1, function(x) paste0("n = ", as.numeric(x[1]), ", mi = ", 
 # sim.sets <- setNames(apply(to.sim, 1, function(x){
 #   n <- as.numeric(x[1]); mi <- as.numeric(x[2]); failure <- x[3]
 #   if(failure == '30%'){
-#     theta <- c(-4.,.1)    # appx. 30%
+#     theta <- c(-2.9,.1)    # appx. 30%
 #   }else if(failure == "10%"){
-#     theta <- c(-5.6, .1) 
+#     theta <- c(-4.3, .1)
 #   }else{
-#     theta <- c(-3, 0.1) # 48-54%ish
+#     theta <- c(-2.15, 0.1) # 48-54%ish
 #   }
-#   replicate(N, simData(n = n, ntms = mi, family = family, sigma = sigma, beta = beta, 
+#   replicate(N, simData(n = n, ntms = mi, family = family, sigma = sigma, beta = beta,
 #                        D = D, gamma = gamma, zeta = zeta, theta = theta, unif.times = FALSE,
 #                        random.formula = list(~time, ~time, ~1))$data, simplify = F)
 # }), nms)

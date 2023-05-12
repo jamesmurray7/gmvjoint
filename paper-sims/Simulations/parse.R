@@ -1,4 +1,5 @@
 # Restate true parameter values
+N <- 200
 D.true <- diag(c(0.25, 0.09, 0.50, 0.10, 2.00))
 D.true[1,3] <- D.true[3,1] <- D.true[1,5] <- D.true[5,1] <- D.true[3,5] <- D.true[5,3] <- 0.25
 beta.true <- c(2, -0.1, 0.1, -0.2, 2, -0.1, 0.1, -0.2, 1, -1, 1, -1)
@@ -6,7 +7,7 @@ sigma.true <- .16
 gamma.true <- c(.5,-.5,.5)
 zeta.true <- -.2
 target <- c(vech(D.true), beta.true, sigma.true, gamma.true, zeta.true)
-target.mat <- t(apply(t(matrix(target)),2,rep,100))
+target.mat <- t(apply(t(matrix(target)),2,rep,N))
 # Parsing fits.
 qz <- qnorm(.975)
 # Function to extract estimates
@@ -31,7 +32,7 @@ avg.se <- lapply(SEs, rowMeans)
 # 95% coverage probability
 CPs <- Map(function(estimate, se){
   lb <- estimate - qz * se; ub <- estimate + qz * se
-  rowSums(lb <= target.mat & ub >= target.mat)/100
+  rowSums(lb <= target.mat & ub >= target.mat)/N
 }, estimate = ests, se = SEs)
 
 MSEs <- Map(function(estimate){
@@ -113,7 +114,7 @@ all.ests %>%
          omega = factor(omega, levels = c(.1, .3, .5))) %>% 
   ggplot(aes(x = omega, y = value, fill = r)) + 
   geom_hline(aes(yintercept = target), lty = 5, colour = 'grey5', alpha = .5) + 
-  geom_boxplot(outlier.alpha = .33,
+  geom_boxplot(outlier.alpha = .33, lwd = 0.25, fatten = 2,
                outlier.size = .50) + 
   facet_wrap(~name, scales = 'free_y', labeller = label_parsed) + 
   labs(fill = expression(r~"="),# "r =",#Maximal profile length", 
@@ -125,7 +126,7 @@ all.ests %>%
         legend.title = element_text(size=8),
         legend.position = 'bottom')
 
-ggsave("~/Downloads/sim1fig.png", width = 140, height = 90, units = 'mm')
+ggsave("~/Downloads/sim1fig200.png", width = 140, height = 90, units = 'mm')
 
 tiff(filename = "~/Downloads/sim1fig.tiff", width = 140, height = 90, units = 'mm',
      res=1e3, compression = 'lzw')
