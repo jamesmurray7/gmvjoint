@@ -38,7 +38,7 @@ getSigma <- function(b, Y, X, Z, Delta, S, Fi, l0i, SS, Fu, l0u, family, b.inds,
 }
 
 # Function to sample given data, true random effects, known family and target ids.
-Sample <- function(data, btrue, family, ids){
+Sample <- function(data, btrue, family, ids, D){
   # Longit.
   X <- Y <- Z <- setNames(vector('list', length(ids)), paste0("id: ", ids))
   for(i in seq_along(ids)){
@@ -53,21 +53,18 @@ Sample <- function(data, btrue, family, ids){
   b <- lapply(seq_along(ids), function(x) btrue[ids[x],,drop=F])
   # Survival part
   fts <- sort(unique(data[data$status==1,'survtime']))
-  surv <- parseCoxph(Surv(survtime, status) ~ bin, data, center = F)
+  surv <- parseCoxph(Surv(survtime, status) ~ bin, data)
   l0 <- exp(theta[1] + theta[2] * fts)
   if(family == "binomial"){
     sv <- surv.mod(surv, lapply(list(Y.1~time + cont + bin + (1|id)), parseFormula), l0)
-    D <- matrix(.40, 1, 1)
     b.inds <- list(0)
     gamma.rep <- 0.5
   }else if(family == "gaussian"){
     sv <- surv.mod(surv, lapply(list(Y.1~time + cont + bin + (1 + time|id)), parseFormula), l0)  
-    D <- diag(c(0.25, 0.09))
     b.inds <- list(0:1)
     gamma.rep <- c(0.5, 0.5)
   }else{
     sv <- surv.mod(surv, lapply(list(Y.1~time + cont + bin + (1 + time|id)), parseFormula), l0)  
-    D <- diag(c(0.15, 0.02))
     b.inds <- list(0:1)
     gamma.rep <- c(0.5, 0.5)
   }
@@ -119,7 +116,8 @@ plotFamily <- function(family, save.dir = './paper-sims/MVNjustification/output/
   r <- with(data, tapply(time, id, length))
   r5 <- unname(which(r==5)[1]); r10 <- unname(which(r==10)[1]); r15 <- unname(which(r==15)[1])
   ids <- c(r5, r10, r15)
-  ss <- Sample(data = data, btrue = b.true, family = family, ids = ids)
+  ss <- Sample(data = data, btrue = b.true, family = family, ids = ids, D = D)
+  cat("Acceptance rates: ", paste0(sapply(ss$Acc, round, 2) * 100, "%"), "\n")
   # Create empty lists to store densities, etc.
   densinfos <- setNames(vector('list', 3), paste0("r",c(5,10,15)))
   
