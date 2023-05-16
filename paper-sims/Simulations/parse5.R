@@ -144,14 +144,14 @@ tab$parameter2 <- gsub("\\_time", "1}", tab$parameter2)
 tab$parameter2 <- gsub("\\_cont", "2}", tab$parameter2)
 tab$parameter2 <- gsub("\\_bin", "3}", tab$parameter2)
 tab$Parameter <- paste0("$\\", tab$parameter2, "=", format(round(tab$true, 3), nsmall = 3), "$")
-tab$`Emp. Mean (SE)` <- paste0(tab$`Empirical Mean`, ' (', tab$`Empirical SE`, ')')
+tab$`Emp. Mean (SD)` <- paste0(tab$`Empirical Mean`, ' (', tab$`Empirical SE`, ')')
 
 output.tab <- tab %>% 
-  select(Parameter, `Emp. Mean (SE)`, `Mean SE`, Bias, MSE, CP)
+  select(Parameter, `Emp. Mean (SD)`, `Mean SE`, Bias, MSE, CP)
 
 qn <- round(qn, 3); qn2 <- round(qn2,3)
 caption <- paste0("Parameter estimates for five-variate simulation scenario.",
-                  " `Emp. Mean (SE)' denotes the average estimated value with the standard deviation of parameter estimates",
+                  " `Emp. Mean (SD)' denotes the average estimated value with the standard deviation of parameter estimates",
                   " and Mean SE the mean standard error calculated for each parameter from each model fit.",
                   " Coverage probabilities are calculated from $\\hbO\\pm1.96\\mathrm{SE}(\\hbO)$. The",
                   " median [IQR] elapsed time for the approximate EM algorithm to converge and standard",
@@ -167,3 +167,4 @@ print(xt,
       include.rownames = FALSE,
       sanitize.text.function = identity,
       sanitize.colnames.function = function(x) gsub("\\_\\d?\\d", "", x))
+
