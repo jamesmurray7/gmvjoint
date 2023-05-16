@@ -90,6 +90,7 @@ ranef.joint <- function(object, Var = FALSE, ...){
   if(Var){
     Sigma <- attr(RE, 'Var')
     attr(RE, 'Var') <- NULL
+    attr(RE, 'vcov') <- NULL
     out <- list(
       b = RE,
       Sigma = Sigma
@@ -97,6 +98,7 @@ ranef.joint <- function(object, Var = FALSE, ...){
     return(out)
   }else{
     attr(RE, 'Var') <- NULL
+    attr(RE, 'vcov') <- NULL
     return(RE)
   }
 }
