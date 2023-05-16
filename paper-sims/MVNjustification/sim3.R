@@ -122,10 +122,14 @@ Sample <- function(data, btrue, family, ids, D){
     b0 <- data.frame(condx = cond.dens[[i]]$b0$x, condy = cond.dens[[i]]$b0$y,
                         normy = norm.dens[[i]]$b0,
                         family = family, var = "b[0]")
-    b1 <- data.frame(condx = cond.dens[[i]]$b1$x, condy = cond.dens[[i]]$b1$y,
-                     normy = norm.dens[[i]]$b1,
-                     family = family, var = "b[1]")
-    i.dens <- rbind(b0,b1)
+    if(q > 1){
+      b1 <- data.frame(condx = cond.dens[[i]]$b1$x, condy = cond.dens[[i]]$b1$y,
+                       normy = norm.dens[[i]]$b1,
+                       family = family, var = "b[1]")
+      i.dens <- rbind(b0,b1)
+    }else{
+      i.dens <- b0
+    }
     i.dens$id <- i; i.dens$m <- mi[i]
     i.dens
   })
@@ -133,6 +137,7 @@ Sample <- function(data, btrue, family, ids, D){
   out <- do.call(rbind, dfs) # About 4MB at 10,000 iterations on 100 subjects.
   out$ApproxBias <- out$normy - out$condy
   list(df = out, MVN.dens = MVN.dens, mi = unname(mi),
+       family = family,
        Acc = Acc)
 }
 
@@ -142,9 +147,8 @@ getOUT <- function(n, family){ # Wrapper for simulation + Sampling
   OUT <- Sample(data, btrue, family, 1:n, D)
 }
 
-OUT <- getOUT(250, 'gaussian')
-
 plotOut <- function(OUT, save.dir = './paper-sims/MVNjustification/output/'){
+  fn <- paste0(save.dir, OUT$family, "_RE_mi_breakdown.png")
   df <- OUT$df
   
   # Sort into groups / make labels
@@ -167,47 +171,52 @@ plotOut <- function(OUT, save.dir = './paper-sims/MVNjustification/output/'){
   df <- left_join(df, mini, 'm')
   
   # Plot (lots of) densities
-  df %>% 
-    ggplot(aes(x = condx, y = condy, group = id)) + 
-    geom_line(lwd = .5) + 
-    geom_line(aes(y = normy), lwd = .5, col = 'tomato', lty = 5) +
-    facet_grid(cols = vars(mi.grp.lab), rows = vars(var),
-               scales = 'free_y') + 
-    labs(y = 'Density', x = NULL) + 
-    theme_csda()
+  if(OUT$family != "binomial"){
+    b0plot <- df %>% filter(var=='b[0]') %>% 
+      ggplot(aes(x = condx, y = condy, group = id)) + 
+      geom_line(lwd = .5) + 
+      geom_line(aes(y = normy), lwd = .5, col = 'tomato', lty = 5) +
+      facet_grid(~mi.grp.lab, scales = 'free')+
+      labs(y = bquote(b[0]),x='') + 
+      theme_csda()
+    b1plot <- df %>% filter(var=='b[1]') %>% 
+      ggplot(aes(x = condx, y = condy, group = id)) + 
+      geom_line(lwd = .5) + 
+      geom_line(aes(y = normy), lwd = .5, col = 'tomato', lty = 5) +
+      facet_grid(~mi.grp.lab, scales = 'free')+
+      labs(y = bquote(b[1]),x=OUT$family) + 
+      theme_csda()+
+      theme(
+        strip.text = element_blank()
+      )
+    png(fn, width = 190, height = 120, units = 'mm', pointsize = 9, res = 1000)
+    gridExtra::grid.arrange(b0plot,b1plot, nrow=2,ncol=1)
+    dev.off()
+  }else{
+    b0plot <- df %>% filter(var=='b[0]') %>% 
+      ggplot(aes(x = condx, y = condy, group = id)) + 
+      geom_line(lwd = .5) + 
+      geom_line(aes(y = normy), lwd = .5, col = 'tomato', lty = 5) +
+      facet_grid(~mi.grp.lab, scales = 'free')+
+      labs(y = bquote(b[0]), x=OUT$family) + 
+      theme_csda()
+    png(fn, width = 190, height = 120, units = 'mm', pointsize = 9, res = 1000)
+    print(b0plot)
+    dev.off()
+  }
   
-  df %>% 
-    mutate(temp = abs(condy-normy)) %>% 
-    ggplot(aes(x = condx, y = temp, group = id)) + 
-    geom_line(lwd = .5) + 
-    facet_grid(cols = vars(mi.grp.lab), rows = vars(var),
-               scales = 'free_y') + 
-    labs(y = 'Density', x = NULL) + 
-    theme_csda()
-  
-
-  df$abs.error <- abs(df$condy - df$normy)
-  df$rel.error <- df$abs.error/abs(df$condy)
-  
-  cat("Absolute error: \n")
-  df %>% 
-    group_by(var, mi.grp.lab) %>% 
-    summarise(.groups = 'keep',
-        min = min(abs.error),
-        mean = mean(abs.error),
-        med = median(abs.error),
-        max = max(abs.error),
-   ) %>% ungroup %>% print
-  cat("\nRelative error:\n")
-  df %>% 
-    group_by(var, mi.grp.lab) %>% 
-    summarise(.groups = 'keep',
-              min = min(rel.error),
-              mean = mean(rel.error),
-              med = median(rel.error),
-              max = max(rel.error),
-    ) %>% ungroup %>% print
-  cat("\n")
-  
+  cat("Done for", OUT$family, ".\n")
 }
 
+getPlot <- function(n, family){
+  OUT <- getOUT(n, family)
+  plotOut(OUT)
+  rm(OUT)
+  on.exit(gc())
+}
+
+theta <- c(-1, 0.0)
+getPlot(60, "gaussian")
+getPlot(60, "poisson")
+theta <- c(-1, 0.1)
+getPlot(60, "binomial")
