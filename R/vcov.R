@@ -172,6 +172,14 @@ obs.emp.I2 <- function(Omega, dmats, surv, sv, b, l0i, l0u,
   
   # Scores ------------------------------------------------------------------
   # The RE covariance matrix, D
+  # Dinv <- solve(D)
+  # Below is correct but feels like cheating a little...
+  # postmult <- diag(1, nrow = nrow(Dinv), ncol = ncol(Dinv))
+  # postmult[postmult == 0] <- 2 # off-diagonals have twice the contribution!
+  # sD <- mapply(function(b, S){
+  #   vech(t(0.5 * (Dinv %*% (S + tcrossprod(b)) %*% Dinv) - 0.5 * Dinv)) * vech(postmult)
+  # }, b = b.hat, S = Sigma, SIMPLIFY = F)
+  
   Dinv <- solve(D)
   vech.indices <- which(lower.tri(D, diag = T), arr.ind = T)
   dimnames(vech.indices) <- NULL
@@ -182,13 +190,23 @@ obs.emp.I2 <- function(Omega, dmats, surv, sv, b, l0i, l0u,
     out
   })
   
+  # sDi <- function(i) {
+  #   mapply(function(b, S) {
+  #     EbbT <- S + tcrossprod(b)
+  #     dDEbbT <- delta.D[[i]] %*% EbbT
+  #     term <- 0.5 * Dinv - 0.5 * Dinv %*% dDEbbT %*% Dinv
+  #     out <- 0.5 * (t(-term) - term)
+  #     sum(diag(out))
+  #   },
+  #   b = b.hat, S = Sigma,
+  #   SIMPLIFY = TRUE)
+  # }
   sDi <- function(i) {
     mapply(function(b, S) {
       EbbT <- S + tcrossprod(b)
-      dDEbbT <- delta.D[[i]] %*% EbbT
-      term <- 0.5 * Dinv - 0.5 * Dinv %*% dDEbbT %*% Dinv
-      out <- 0.5 * (t(-term) - term)
-      sum(diag(out))
+      invDdD <- Dinv %*% delta.D[[i]]
+      invDdDinvD <- invDdD %*% Dinv
+      0.5 * sum(diag(invDdDinvD %*% EbbT)) - 0.5 * sum(diag(invDdD))
     },
     b = b.hat, S = Sigma,
     SIMPLIFY = TRUE)
