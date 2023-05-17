@@ -49,18 +49,15 @@ control <- list(verbose=T)
 
 Gaussians <- joint(Gaussian.long.formulas, surv.formula, PBC, 
                    list("gaussian", "gaussian", "gaussian", "gaussian"))
+xtable(Gaussians)
 
 Poissons <- joint(Poisson.long.formulas,
                   surv.formula, PBC, list("poisson", "poisson"))
+xtable(Poissons)
 
 Binomials <- joint(Binomial.long.formulas, surv.formula,
                    PBC, list("binomial", "binomial"))
-
-source('testing/fit2xtab.R')
-
-fit2xtab(Gaussians, 16)
-fit2xtab(Poissons)
-fit2xtab(Binomials)
+xtable(Binomials, max.row = 6)
 
 # Take Gaussian: {serBilir, albumin}, Poisson: {platelets} and Binomial {hepatomegaly} forward
 
@@ -71,9 +68,7 @@ reduced.model <- joint(
        hepatomegaly ~ drug * time  + (1|id)),
   surv.formula, PBC, list("gaussian", "gaussian", "poisson", "binomial"))
 
-summary(reduced.model)
-fit2xtab(reduced.model, )
-test <- cond.ranefs(reduced.model,tune=0.80)
+xtable(reduced.model)
 
 final.biv.model <- joint(
   list(serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
@@ -81,14 +76,16 @@ final.biv.model <- joint(
   surv.formula, PBC, list("gaussian", "gaussian"), control = control
 )
 summary(final.biv.model)
-test <- cond.ranefs(final.biv.model,tune=0.80)
+xtable(final.biv.model)
 
 
 # Full seven-variate? -----------------------------------------------------
 
-all.long.formulas <- c(Gaussian.long.formulas, Poisson.long.formulas, Binomial.long.formulas[[1]])
-
+all.long.formulas <- c(Gaussian.long.formulas, Poisson.long.formulas, Binomial.long.formulas)
+# About 6 minutes
 all.fit <- joint(all.long.formulas,
                  surv.formula, PBC, list("gaussian", "gaussian", "gaussian", "gaussian",
-                                         "poisson", "poisson", "binomial"))
+                                         "poisson", "poisson", "binomial", "binomial"))
 save(all.fit, file = '/data/c0061461/GLMM_Paper_Sims/Revision2/PBCallfits.RData')
+xtable(all.fit)
+xtable(all.fit, max.row = 16)
