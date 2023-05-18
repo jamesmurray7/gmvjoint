@@ -1,5 +1,6 @@
 rm(list=ls())
 library(splines)
+library(xtable)
 data(PBC)
 
 PBC <- na.omit(PBC[,c("id", "survtime", "status", "drug", "sex", "age", "time", 'ascites',
@@ -79,7 +80,6 @@ final.biv.model <- joint(
 summary(final.biv.model)
 xtable(final.biv.model)
 
-
 # Full seven-variate? -----------------------------------------------------
 
 all.long.formulas <- c(Gaussian.long.formulas, Poisson.long.formulas, Binomial.long.formulas)
@@ -90,3 +90,50 @@ all.fit <- joint(all.long.formulas,
 save(all.fit, file = '/data/c0061461/GLMM_Paper_Sims/Revision2/PBCallfits.RData')
 xtable(all.fit)
 xtable(all.fit, max.row = 16)
+
+
+# JMbayes2 final ----------------------------------------------------------
+library(JMbayes2)
+
+# log(serBilir)
+lsb <- lme(fixed = serBilir ~ drug * (time + I(time^2)),
+           random = ~ time + I(time^2)|id,
+           data = PBC)
+alb <- lme(fixed = albumin ~ drug * time,
+           random = ~ time|id,
+           data = PBC)
+plt <- mixed_model(fixed = platelets ~ drug * time,
+                   random = ~time|id,
+                   data = PBC, family = poisson())
+hep <- mixed_model(fixed = hepatomegaly ~ drug * time,
+              random = ~1|id,
+              data = PBC, family = binomial())
+M <- list(lsb, alb, plt, hep)
+
+sdt <- PBC[!duplicated(PBC$id), ]
+ph <- coxph(Surv(survtime, status) ~ drug, sdt)
+
+# Rhat < 1.05 for everything _but_ quadratic time term.
+# (3.6 mins)
+# jmb <- jm(ph, M, data_Surv = sdt, id_var = 'id',
+#           time_var = 'time')
+# Try for a bit longer?
+jmb <- jm(ph, M, data_Surv = sdt, id_var = 'id',
+          time_var = 'time',
+          control = list(n_iter = 7000L))  #3.9 mins
+(sjmb <- summary(jmb))
+
+.ff <- function(x) format(round(x, 3), nsmall = 3)
+fn <- function(x){
+  x[grepl("sigma", rownames(x)), c("Mean", "2.5%", "97.5%")] <- x[grepl("sigma", rownames(x)), c("Mean", "2.5%", "97.5%")]^2
+  `Mean (SD)` <- paste0(.ff(x$Mean), ' (', .ff(x$StDev), ')')
+  CI <- paste0('[', .ff(x$`2.5%`), ', ', .ff(x$`97.5%`), ']')
+  df <- data.frame(`Mean (SD)` = `Mean (SD)`, CI = CI,
+                   row.names = rownames(x), stringsAsFactors = F)
+  xt <- xtable(df)
+  print(xt)
+  xx <- readline('hit enter')
+}
+lapply(list(sjmb$Outcome1, sjmb$Outcome2, sjmb$Outcome3, sjmb$Outcome4), fn)
+fn(sjmb$Survival)
+
