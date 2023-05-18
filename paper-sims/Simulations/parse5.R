@@ -72,8 +72,8 @@ ests.df <- as.data.frame(t(ests)) %>%
 # Option 1, paneled ----
 ests.df %>% 
   ggplot(aes(x = name, y = value)) + 
-  geom_boxplot(fill = .nice.orange, outlier.alpha = .33, outlier.size = .50) + 
-  geom_point(aes(y = target), pch = "*", size = 7, colour = 'steelblue') + 
+  geom_boxplot(fill = .nice.orange, outlier.alpha = .33, outlier.size = .50, lwd = .25, fatten = 2) + 
+  geom_point(aes(y = target), pch = "*", size = 4.95, colour = '#4c98fe') + 
   facet_wrap(~name, scales = 'free', labeller = label_parsed) + 
   labs(y = 'Estimate', x = "")+
   theme_csda() + 
@@ -85,18 +85,18 @@ ests.df %>%
   )  
 
 # Option 2, not paneled ----
-ests.df %>% 
-  ggplot(aes(x = name, y = value)) + 
-  geom_boxplot(fill = .nice.orange, outlier.alpha = .33, outlier.size = .50) + 
-  geom_point(aes(y = target), pch = "*", size = 7, colour = 'blue') + 
-  labs(y = 'Estimate', x = 'Parameter') +  
-  scale_x_discrete(labels = parse(text=unique(ests.df$name))) + 
-  theme_csda() + 
-  theme(
-    axis.text.x = element_text(size=9.5),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_text(size = 9.5)
-  )
+# ests.df %>% 
+#   ggplot(aes(x = name, y = value)) + 
+#   geom_boxplot(fill = .nice.orange, outlier.alpha = .33, outlier.size = .50) + 
+#   geom_point(aes(y = target), pch = "*", size = 6.5, colour = 'blue') + 
+#   labs(y = 'Estimate', x = 'Parameter') +  
+#   scale_x_discrete(labels = parse(text=unique(ests.df$name))) + 
+#   theme_csda() + 
+#   theme(
+#     axis.text.x = element_text(size=9.5),
+#     axis.ticks.x = element_blank(),
+#     axis.title.x = element_text(size = 9.5)
+#   )
 
 ggsave("~/Downloads/sim2fig.png", width = 140, height = 90, units = 'mm')
 

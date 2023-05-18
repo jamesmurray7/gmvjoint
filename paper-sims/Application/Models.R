@@ -50,6 +50,7 @@ control <- list(verbose=T)
 Gaussians <- joint(Gaussian.long.formulas, surv.formula, PBC, 
                    list("gaussian", "gaussian", "gaussian", "gaussian"))
 xtable(Gaussians)
+xtable(Gaussians, vcov = T)
 
 Poissons <- joint(Poisson.long.formulas,
                   surv.formula, PBC, list("poisson", "poisson"))
