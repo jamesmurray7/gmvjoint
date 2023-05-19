@@ -129,7 +129,7 @@ surv.mod <- function(surv, formulas, l0.init){
       else{
         sfts <- spline.fts[[f]]
         lhs <- out
-        rhs <- predict(sfts, T.df)
+        rhs <- predict(sfts, T.df$time)
         out[,-1] <- rhs
         return(out)
       }
