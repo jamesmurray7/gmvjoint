@@ -62,12 +62,12 @@ Binomials <- joint(Binomial.long.formulas, surv.formula,
 xtable(Binomials, max.row = 6)
 
 # Take Gaussian: {serBilir, albumin}, Poisson: {platelets} and Binomial {hepatomegaly} forward
+reduced.long <- list(serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
+     albumin ~ drug * time + (1 + time|id),
+     platelets ~ drug * time  + (1 + time|id),
+     hepatomegaly ~ drug * time  + (1|id))
 
-reduced.model <- joint(
-  list(serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
-       albumin ~ drug * time + (1 + time|id),
-       platelets ~ drug * time  + (1 + time|id),
-       hepatomegaly ~ drug * time  + (1|id)),
+reduced.model <- joint(reduced.long,
   surv.formula, PBC, list("gaussian", "gaussian", "poisson", "binomial"))
 
 xtable(reduced.model)
