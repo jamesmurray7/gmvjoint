@@ -13,8 +13,8 @@
 #' required.
 #' @param dp integer, the number of decimal places to round the estimate, standard error and
 #' confidence intervals to; defaults to \code{dp = 3}.
-#' @param vcov logical, should the half-vecorisation of the covariance matrix be reported? 
-#' Default is \code{vcov = FALSE}.
+#' @param vcov logical, should the half-vecorisation of the block diagonal of covariance 
+#' matrix be reported? Default is \code{vcov = FALSE}.
 #' @param capture logical, should the printed \code{xtable} output be saved anywhere instead
 #' of just printed to the console? Defaults to \code{capture = FALSE}.
 #' @param capture.location character, if \code{capture = TRUE}, this should specify what
@@ -30,7 +30,6 @@
 #' @param size character, LaTeX size to be placed before the tabular environment, defaults
 #' to \code{size = "footnotesize"}; replace with \code{"normalsize"} if wanted.
 #' @param ... additional arguments, none used.
-#'
 #'
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #' @method xtable joint
@@ -82,6 +81,32 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
   S.gamma <- S[(1+length(x$coeffs$zeta)):nrow(S),]
   S.zeta <- S[1:length(x$coeffs$zeta),]
   
+  # If (block diagonal) of vcov elements are required, form these now.
+  if(vcov){
+    D <- x$coeffs$D
+    SE.vD <- x$SE[grepl("^D\\[", names(x$SE))]
+    vD <- setNames(vech(D), names(SE.vD))
+    
+    b.inds <- x$ModelInfo$inds$b
+    Dtabs <- lapply(seq_along(b.inds), function(i){
+      x <- b.inds[[i]]
+      Dx <- D[x,x]; vDx <- vech(Dx)
+      inds <- which(vD %in% vDx)
+      xSE <- SE.vD[inds]
+      
+      Parameter <- paste0("D_{", i,",",apply(which(lower.tri(Dx, T), arr.ind = T) - 1, 1, paste, collapse=''),"}")
+      MSE <- paste0(.toXdp(vDx), " (", .toXdp(xSE), ")")
+      lb <- vDx - qz * xSE; ub <- vDx + qz * xSE
+      CI <- paste0('[', .toXdp(lb),', ',.toXdp(ub),']')
+      
+      tab.Dx <- cbind(Parameter, MSE, CI)
+      if(p.val)
+        return(cbind(tab.Dx, rep('{}', length(vDx))))
+      else
+        return(tab.Dx)
+    })
+  }
+  
   # Rearrange to get {longit, gamma} for each k=1,dots,K response
   RespChunks <- lapply(1:K, function(k){
     Lk <- L[[k]];
@@ -104,11 +129,10 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
     if(p.val){
       p <- ifelse(df$`p-value` < 1e-3, "< 0.001", 
                   format(round(df$`p-value`, 3), nsmall = 3, justify = 'right', width = 7))
-      return(cbind(out, p))
-    }else{
-      return(out)
+      out <- cbind(out, p)
     }
-    
+    if(vcov) out <- rbind(Dtabs[[k]], out)
+    out
   })
   
   tab <- do.call(rbind, RespChunks)
@@ -123,27 +147,9 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
                 format(round(S.zeta$`p-value`, 3), nsmall = 3, justify = 'right', width = 7))
     tab.zeta <- cbind(tab.zeta, p)
   }
-  
-  if(vcov){
-    vD <- vech(x$coeffs$D)
-    SE.vD <- x$SE[grepl("^D\\[", names(x$SE))]
-    MSE <- paste0(.toXdp(vD), " (", .toXdp(SE.vD), ")")
-    lb <- vD - qz * SE.vD; ub <- vD + qz * SE.vD
-    CI <- paste0('[', .toXdp(lb),', ',.toXdp(ub),']')
-    Parameter <- names(SE.vD)
-    Parameter <- gsub('\\[', '_{', gsub('\\]', '}', Parameter))
-    tab.D <- cbind(Parameter, MSE, CI)
-    if(p.val){
-      p <- rep('{}', length(vD))
-      tab.D <- cbind(tab.D, p)
-    }
-    tab2 <- as.data.frame(rbind(tab.D, tab, tab.zeta), stringsAsFactors = FALSE)
-  }else{
-    tab2 <- as.data.frame(rbind(tab, tab.zeta), stringsAsFactors = FALSE)
-  }
-  
+
+  tab2 <- as.data.frame(rbind(tab, tab.zeta), stringsAsFactors = FALSE)
   tab2$Parameter <- paste0('$\\', tab2$Parameter, '$')
-  
   
   # Splitting out into multiple columns -->
   nr <- nrow(tab2)
@@ -166,7 +172,7 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
       this <- tab3[k,]
       .nr <- nrow(this)
       while(.nr < max.row){
-        this <- rbind(this, rep('-', ncol(tab3)))
+        this <- rbind(this, rep('{}', ncol(tab3)))
         .nr <- nrow(this)
       }
       this
@@ -189,7 +195,7 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
       report.resps <- resps[1]
     }
     
-    caption <- sprintf("Joint analysis of %s. Elapsed time for the approximate EM algorithm to converge and SE calculation was %.3f seconds. Total Computation time was %.3f seconds.",
+    caption <- sprintf("Parameter estimates (SE: standard error) for the joint analysis of %s. Elapsed time for the approximate EM algorithm to converge and SE calculation was %.3f seconds. Total Computation time was %.3f seconds.",
                        report.resps, x$elapsed.time['EM time'] + x$elapsed.time["Post processing"], x$elapsed.time["Total Computation time"])
     xt <- xtable::xtable(tab3, align = align,
                          caption = caption)
