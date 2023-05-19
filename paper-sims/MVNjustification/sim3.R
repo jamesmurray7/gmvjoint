@@ -149,17 +149,22 @@ getOUT <- function(n, family){ # Wrapper for simulation + Sampling
 
 plotOut <- function(OUT, save.dir = './paper-sims/MVNjustification/output/'){
   fn <- paste0(save.dir, OUT$family, "_RE_mi_breakdown.png")
+  pp <- quantile(OUT$Acc, probs = c(0.025, 0.500, 0.975))
+  cat(sprintf("Median [2.5%%, 97.5%%] acceptance rate for %s: %.2f [%.2f, %.2f]\n\n",
+              OUT$family, pp[2], pp[1], pp[3]))
   df <- OUT$df
   
   # Sort into groups / make labels
   mi <- OUT$mi
   grp <- ifelse(mi <= 5, "[1,5]", ifelse(mi <= 10, "[6,10]", ifelse(mi <= 15,"[11,15]", "zzz")))
-  grp <- factor(grp, c("[1,5]", "[6,10]", "[11,15]"))
+  grp <- factor(grp, 
+                levels = c("[1,5]", "[6,10]", "[11,15]"),
+                labels = c('"["*1*","*5*"]"', '"["*6*","*10*"]"', '"["*11*","*15*"]"'))
   
   mi.tab <- table(mi)
   mi.lab <- paste0(names(mi.tab[mi]), "\n(n=", mi.tab[mi],')')
   grp.tab <- table(grp)
-  grp.lab <- paste0(names(grp.tab[grp]), "\n(n=", grp.tab[grp],')')
+  grp.lab <- paste0("atop(m[i] %in% ", names(grp.tab[grp]), ',"("*n==', grp.tab[grp],'*")")')
   
   mini <- data.frame(m = mi, mi.grp = grp, mi.lab = mi.lab, mi.grp.lab = grp.lab)
   mini <- mini[!duplicated(mini),]
@@ -176,18 +181,18 @@ plotOut <- function(OUT, save.dir = './paper-sims/MVNjustification/output/'){
       ggplot(aes(x = condx, y = condy, group = id)) + 
       geom_line(lwd = .5) + 
       geom_line(aes(y = normy), lwd = .5, col = 'tomato', lty = 5) +
-      facet_grid(~mi.grp.lab, scales = 'free')+
+      facet_grid(~mi.grp.lab, scales = 'free', labeller = label_parsed)+
       labs(y = bquote(b[0]),x='') + 
       theme_csda()
     b1plot <- df %>% filter(var=='b[1]') %>% 
       ggplot(aes(x = condx, y = condy, group = id)) + 
       geom_line(lwd = .5) + 
       geom_line(aes(y = normy), lwd = .5, col = 'tomato', lty = 5) +
-      facet_grid(~mi.grp.lab, scales = 'free')+
-      labs(y = bquote(b[1]),x=OUT$family) + 
+      facet_grid(~mi.grp.lab, scales = 'free', labeller = label_parsed)+
+      labs(y = bquote(b[1]), x = '') + 
       theme_csda()+
       theme(
-        strip.text = element_blank()
+        strip.text = element_blank() # Remove top text as they're stacked.
       )
     png(fn, width = 190, height = 120, units = 'mm', pointsize = 9, res = 1000)
     gridExtra::grid.arrange(b0plot,b1plot, nrow=2,ncol=1)
@@ -197,8 +202,8 @@ plotOut <- function(OUT, save.dir = './paper-sims/MVNjustification/output/'){
       ggplot(aes(x = condx, y = condy, group = id)) + 
       geom_line(lwd = .5) + 
       geom_line(aes(y = normy), lwd = .5, col = 'tomato', lty = 5) +
-      facet_grid(~mi.grp.lab, scales = 'free')+
-      labs(y = bquote(b[0]), x=OUT$family) + 
+      facet_grid(~mi.grp.lab, scales = 'free', labeller = label_parsed)+
+      labs(y = bquote(b[0]), x = '') + 
       theme_csda()
     png(fn, width = 190, height = 120, units = 'mm', pointsize = 9, res = 1000)
     print(b0plot)
@@ -216,7 +221,7 @@ getPlot <- function(n, family){
 }
 
 theta <- c(-1, 0.0)
-getPlot(60, "gaussian")
-getPlot(60, "poisson")
+getPlot(30, "gaussian")
+getPlot(30, "poisson")
 theta <- c(-1, 0.1)
-getPlot(60, "binomial")
+getPlot(30, "binomial")
