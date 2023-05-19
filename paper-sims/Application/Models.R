@@ -50,8 +50,9 @@ control <- list(verbose=T)
 
 Gaussians <- joint(Gaussian.long.formulas, surv.formula, PBC, 
                    list("gaussian", "gaussian", "gaussian", "gaussian"))
+
 xtable(Gaussians)
-xtable(Gaussians, vcov = T)
+xtable(Gaussians, p.val = T)
 
 Poissons <- joint(Poisson.long.formulas,
                   surv.formula, PBC, list("poisson", "poisson"))
@@ -79,6 +80,30 @@ final.biv.model <- joint(
 )
 summary(final.biv.model)
 xtable(final.biv.model)
+
+# Platelets is actually sig. at 10% in 4 variate
+final.triv.model <- reduced.long
+final.triv.model[[4]] <- NULL
+
+final.trv.model <- joint(final.triv.model, surv.formula,
+                         PBC, list("gaussian", "gaussian", "poisson"))
+summary(final.trv.model)
+
+# Aside:: joineRML on this triv with log(platelets)
+final.trv.jml <- joineRML::mjoint(
+  formLongFixed = list(
+    'SB' = serBilir ~ drug * (time + I(time^2)),
+    'Ab' = albumin ~ drug * time,
+    'Pt' = log(platelets) ~ drug * time
+  ),
+  formLongRandom = list(
+    'SB' = ~ time + I(time^2)|id,
+    'Ab' = ~ time|id,
+    'Pt' = ~ time|id
+  ),
+  formSurv = surv.formula,
+  data = PBC, timeVar = 'time', control = list(type='sobol', tol2 = 1e-2)
+)
 
 # Full seven-variate? -----------------------------------------------------
 

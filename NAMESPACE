@@ -41,7 +41,7 @@ S3method(anova, joint)
 S3method(print, anova.joint)
 S3method(print, cond.b.joint)
 S3method(plot, cond.b.joint)
-#S3method(xtable, joint)
+S3method(xtable, joint)
 
 export(joint)
 export(simData)
