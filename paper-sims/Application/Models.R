@@ -48,19 +48,21 @@ Binomial.long.formulas <- list(
 surv.formula <- Surv(survtime, status) ~ drug
 control <- list(verbose=T)
 
+# 4 variate Gaussian
 Gaussians <- joint(Gaussian.long.formulas, surv.formula, PBC, 
                    list("gaussian", "gaussian", "gaussian", "gaussian"))
 
-xtable(Gaussians)
-xtable(Gaussians, p.val = T)
+xtable(Gaussians, vcov = TRUE, max.row = 18, size = "tiny", booktabs = FALSE)
+# Take forward: 
+
 
 Poissons <- joint(Poisson.long.formulas,
                   surv.formula, PBC, list("poisson", "poisson"))
-xtable(Poissons)
+xtable(Poissons, vcov = TRUE, size = 'footnotesize', max.row = 9, booktabs = FALSE)
 
 Binomials <- joint(Binomial.long.formulas, surv.formula,
                    PBC, list("binomial", "binomial"))
-xtable(Binomials, max.row = 6)
+xtable(Binomials, vcov = TRUE, size = 'footnotesize', max.row = 7, booktabs = FALSE)
 
 # Take Gaussian: {serBilir, albumin}, Poisson: {platelets} and Binomial {hepatomegaly} forward
 reduced.long <- list(serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
@@ -73,48 +75,16 @@ reduced.model <- joint(reduced.long,
 
 xtable(reduced.model)
 
-final.biv.model <- joint(
-  list(serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
-       albumin ~ drug * time + (1 + time|id)),
-  surv.formula, PBC, list("gaussian", "gaussian"), control = control
-)
-summary(final.biv.model)
-xtable(final.biv.model)
-
-# Platelets is actually sig. at 10% in 4 variate
-final.triv.model <- reduced.long
-final.triv.model[[4]] <- NULL
-
-final.trv.model <- joint(final.triv.model, surv.formula,
-                         PBC, list("gaussian", "gaussian", "poisson"))
-summary(final.trv.model)
-
-# Aside:: joineRML on this triv with log(platelets)
-final.trv.jml <- joineRML::mjoint(
-  formLongFixed = list(
-    'SB' = serBilir ~ drug * (time + I(time^2)),
-    'Ab' = albumin ~ drug * time,
-    'Pt' = log(platelets) ~ drug * time
-  ),
-  formLongRandom = list(
-    'SB' = ~ time + I(time^2)|id,
-    'Ab' = ~ time|id,
-    'Pt' = ~ time|id
-  ),
-  formSurv = surv.formula,
-  data = PBC, timeVar = 'time', control = list(type='sobol', tol2 = 1e-2)
-)
-
-# Full seven-variate? -----------------------------------------------------
+# Full eight-variate? -----------------------------------------------------
 
 all.long.formulas <- c(Gaussian.long.formulas, Poisson.long.formulas, Binomial.long.formulas)
+all.long.formulas
 # About 6 minutes
 all.fit <- joint(all.long.formulas,
                  surv.formula, PBC, list("gaussian", "gaussian", "gaussian", "gaussian",
-                                         "poisson", "poisson", "binomial", "binomial"))
+                                         "poisson", "poisson", "binomial"))
 save(all.fit, file = '/data/c0061461/GLMM_Paper_Sims/Revision2/PBCallfits.RData')
-xtable(all.fit)
-xtable(all.fit, max.row = 16)
+xtable(all.fit, vcov = TRUE, booktabs = FALSE, max.row = 20)
 
 
 # JMbayes2 final ----------------------------------------------------------
