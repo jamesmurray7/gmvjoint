@@ -223,5 +223,6 @@ getPlot <- function(n, family){
 theta <- c(-1, 0.0)
 getPlot(30, "gaussian")
 getPlot(30, "poisson")
-theta <- c(-1, 0.1)
+theta <- c(-6, 2)
 getPlot(30, "binomial")
+
