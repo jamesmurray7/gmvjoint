@@ -178,6 +178,11 @@ print(xt.to.xt,
       include.rownames = FALSE,
       sanitize.text.function = identity)
 
+# Computation time
+jmb$running_time[3] + startup
+summary(reduced.model)$et[1] + summary(reduced.model)$et[2]
+summary(reduced.model)$et[3]
+
 # Full seven-variate? -----------------------------------------------------
 # Keep spiders removed; it greatly increases computation time!!
 all.long.formulas <- c(Gaussian.long.formulas, Poisson.long.formulas, Binomial.long.formulas)
