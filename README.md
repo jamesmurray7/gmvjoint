@@ -27,6 +27,8 @@ or the latest development version using `devtools`:
 ```r
 devtools::install_github('jamesmurray7/gmvjoint')
 ``` 
+ 
+MacOS users may be interested in [swapping their BLAS library](https://cran.r-project.org/bin/macosx/RMacOSX-FAQ.html#Which-BLAS-is-used-and-how-can-it-be-changed_003f) to one which provides an optimal BLAS implementation for Mac hardware (`vecLib`).
 
 ## Example
 To fit a joint model, we first need to specify the longitudinal and survival sub-models. 
