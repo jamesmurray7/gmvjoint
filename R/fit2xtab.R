@@ -33,7 +33,8 @@
 #'
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #' @method xtable joint
-#' @return A LaTeX-ready \code{xtable} print-out of the joint model.
+#' @return A LaTeX-ready \code{xtable} print-out of the joint model. A list containing 
+#' constituent tables is also returned invisibly, along with the final \code{xtable} output.
 #' @seealso \code{\link{joint}}
 #' @export
 #'
@@ -227,6 +228,11 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
           hline.after = hline.after)
   }
   
-  return(invisible(xt))
+  return(invisible(list(
+    Dtabs = if(vcov) Dtabs else NULL,
+    RespChunks = RespChunks,
+    zeta = tab.zeta,
+    xtab = xt
+  )))
 }
 
