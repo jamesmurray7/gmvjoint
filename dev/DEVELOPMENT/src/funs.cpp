@@ -65,7 +65,7 @@ double joint_density(const arma::vec& b,
     vec sigmak = sigma[k];
     vec eta_k = eta[k];
     if(f == "gaussian"){
-      ll += ll_Gaussian(eta_k, Yk, as_scalar(sigmak));
+      ll += ll_Gaussian(eta_k, Yk, sqrt(as_scalar(sigmak)));
     }else if(f == "binomial"){
       ll += ll_Binomial(trunc_exp(eta_k)/(1. + trunc_exp(eta_k)), Yk);
     }else if(f == "poisson"){
