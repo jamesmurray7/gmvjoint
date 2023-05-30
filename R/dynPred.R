@@ -111,7 +111,7 @@
 #' plot(bi.preds)
 #' }
 dynPred <- function(data, id, fit, u = NULL, nsim = 200, progress = TRUE,
-                     b.density = c('normal', 't'), scale = NULL, df = NULL){
+                    b.density = c('normal', 't'), scale = NULL, df = NULL){
   if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
   b.density <- match.arg(b.density)
   
@@ -130,8 +130,8 @@ dynPred <- function(data, id, fit, u = NULL, nsim = 200, progress = TRUE,
   }
   
   # Get indices for \b and \beta
-  b.inds <- lapply(fit$ModelInfo$inds$b, function(x) x - 1)
-  beta.inds <- lapply(fit$ModelInfo$inds$beta, function(x) x - 1)
+  b.inds <- fit$ModelInfo$inds$C$b
+  beta.inds <- fit$ModelInfo$inds$C$beta
   
   # Obtain 'denominator' dataset based on first value of vector u
   newdata2 <- newdata[newdata$time <= u[1], ]

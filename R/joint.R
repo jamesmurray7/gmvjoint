@@ -186,104 +186,117 @@
 #'               control = list(verbose = TRUE))
 #' fit
 #' }
-joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE, control = list()){
+joint <- function(long.formulas, surv.formula, 
+                  data, family,
+                  disp.formulas = NULL, 
+                  control = list()){
+  
+  con <- list(correlated = T, gh.nodes = 3, gh.sigma = 1, center.ph = T,
+              tol.abs = 1e-3, tol.rel = 1e-2, tol.thr = 1e-1, tol.den = 1e-3,
+              maxit = 200, conv = 'sas', verbose = F, hessian = 'auto',
+              numdiff = 'central', return.inits = F, return.dmats = T, post.process = T)
+  conname <- names(con)
+  con[(conname <- names(control))] <- control
+  if(any(!names(control)%in%names(con))){
+    warning("Supplied control arguments do not match with possible names:\n", paste0(names(con), collapse=', '))
+  }
+  
+  # Ensure supplied families are character, not functions
+  if(!is.list(family) | !all(sapply(family, function(x) is.character(x) & !is.function(x))))
+    stop("'family' must be supplied as a list of character strings")
   
   start.time <- proc.time()[3]
   
   # Initial parsing ----
   if("factor"%in%class(data$id)) data$id <- as.numeric(as.character(data$id))
   formulas <- lapply(long.formulas, parseFormula)
-  center.ph <- if(!is.null(control$center.ph)) control$center.ph else TRUE
-  surv <- parseCoxph(surv.formula, data, center.ph)
+  surv <- parseCoxph(surv.formula, data, con$center.ph)
   n <- surv$n; K <- length(family)
   if(K!=length(long.formulas)) stop('Mismatched lengths of "family" and "long.formulas".')
+  # Parse dispersion formulas
+  if(is.null(disp.formulas)){
+    disp.formulas <- replicate(K, ~1, simplify = FALSE)
+  }else{
+    if(sum(!sapply(disp.formulas, is.null)) != K)
+      stop("Need to supply dispersion formulas for all responses even if not required for all K responses\n",
+           "(You can just fill-in ~1 for those with no wanted dispersion model.)")
+  }
   
   # Initial conditons ----
-  inits.long <- Longit.inits(long.formulas, data, family)
+  inits.long <- Longit.inits(long.formulas, disp.formulas, data, family)
+  id.assign <- AssignIds(data)
+  dmats <- getdmats(inits.long$fits, id.assign)
   # Suss out indices of b_k and beta_k.
-  b.inds <- lapply(1:K, function(k){
-    nm <- inits.long$responses[k]
-    which(grepl(nm, colnames(inits.long$b)))
+  b.inds <- lapply(seq_along(dmats$q), function(x){
+    xx <- seq(dmats$q[x])
+    if(x > 1) 
+      return(xx + sum(dmats$q[1:(x-1)]))
+    else
+      return(xx)
   })
-  beta.inds <- lapply(1:K, function(k){
-    nm <- inits.long$responses[k]
-    which(grepl(nm, names(inits.long$beta.init)))
+  beta.inds <- lapply(seq_along(dmats$P), function(x){
+    xx <- seq(dmats$P[x])
+    if(x > 1) 
+      return(xx + sum(dmats$P[1:(x-1)]))
+    else
+      return(xx)
   })
-  q <- length(do.call(c, b.inds))
+  inds <- list(
+    R = list(b = b.inds, beta = beta.inds),
+    Cpp = list(b = lapply(b.inds, function(x) x - 1), beta = lapply(beta.inds, function(x) x - 1))
+  )
   
   inits.surv <- TimeVarCox(data, inits.long$b, surv, formulas, b.inds)
   
   # Longitudinal parameters
   beta <- inits.long$beta.init
+  names.beta <- names(beta)
   D <- inits.long$D.init
-  sigma <- inits.long$sigma.init # dispersion / resid. variance / 0 otherwise.
+  sigma <- inits.long$sigma.init # dispersions
   b <- lapply(1:n, function(i) inits.long$b[i, ])
   # Survival parameters
   zeta <- inits.surv$inits[match(names(surv$ph$assign), names(inits.surv$inits))]
   names(zeta) <- paste0('zeta_', names(zeta))
   gamma <- inits.surv$inits[grepl('gamma\\_', names(inits.surv$inits))]
   
-  # Longitudinal and survival data objects ----
-  dmats <- createDataMatrices(data, formulas)
+  # Survival data objects 
   sv <- surv.mod(surv, formulas, inits.surv$l0.init)
-  
-  X <- dmats$X; Y <- dmats$Y; Z <- dmats$Z # Longitudinal data matrices
-  m <- lapply(Y, function(y) sapply(y, length))
-  # survival
-  Fi <- sv$Fi; Fu <- sv$Fu; l0i <- sv$l0i; l0u <- sv$l0u; Delta <- surv$Delta 
-  l0 <- sv$l0
-  S <- sv$S; SS <- sv$SS
-  
-  # Assign family to joint density and parameter updates ----
-  # Ensure family is a string, not a function i.e. if user supplies `Gamma` instead of `"Gamma"`.
-  family <- lapply(family, function(family) if("function"%in%class(family)) family()$family else family)
-  
-  # Do we want to add-in correlated random effects between responses? For large K this greatly increases
-  #   computation time and model instability.
-  if(!is.null(control$correlated)) correlated <- control$correlated else correlated <- T
-  if(!correlated) D[inits.long$off.inds] <- 0
   
   # Parameter vector and list ----
   Omega <- list(D=D, beta = beta, sigma = sigma, gamma = gamma, zeta = zeta)
   params <- c(setNames(vech(D), paste0('D[', apply(which(lower.tri(D, T), arr.ind = T), 1, paste, collapse = ','), ']')),
               beta, unlist(sigma)[inits.long$sigma.include], gamma, zeta)
-
-  # Gauss-Hermite Quadrature ----
-  if(!is.null(control$gh.nodes)) gh <- control$gh.nodes else gh <- 3
-  if(!is.null(control$gh.sigma)) .sigma <- control$gh.sigma else .sigma <- 1
+  sigma.include <- inits.long$sigma.include
+  if(!con$return.inits) rm(inits.surv)
   
-  GH <- statmod::gauss.quad.prob(gh, 'normal', sigma = .sigma)
+  # Gauss-Hermite Quadrature ----
+  GH <- statmod::gauss.quad.prob(con$gh.nodes, 'normal', sigma = con$gh.sigma)
   w <- GH$w; v <- GH$n
   
   # Begin EM ----
   diff <- 100; iter <- 0;
   # Convergence criteria setup
-  if(!is.null(control$tol.abs)) tol.abs <- control$tol.abs else tol.abs <- 1e-3
-  if(!is.null(control$tol.rel)) tol.rel <- control$tol.rel else tol.rel <- 1e-2
-  if(!is.null(control$tol.den)) tol.den <- control$tol.den else tol.den <- 1e-3
-  if(!is.null(control$tol.thr)) tol.thr <- control$tol.thr else tol.thr <- 1e-1
-  if(!is.null(control$maxit)) maxit <- control$maxit else maxit <- 200
-  if(!is.null(control$conv)) conv <- control$conv else conv <- "sas"
-  if(!conv%in%c('absolute', 'relative', 'either', 'sas'))
-    stop('Convergence criteria must be one of "absolute", "relative", "either" or "sas".')
-  convergence.criteria <- list(type = conv, tol.abs = tol.abs, tol.rel = tol.rel, tol.den = tol.den,
-                               threshold = tol.thr)
+  if(!con$conv%in%c('absolute', 'relative', 'either', 'sas')){
+    warning('Convergence criteria must be one of "absolute", "relative", "either" or "sas". Using "sas"')
+    con$conv <- "sas"
+  }
+    
+  convergence.criteria <- list(type = con$conv, tol.abs = con$tol.abs, tol.rel = con$tol.rel, tol.den = con$tol.den,
+                               threshold = con$tol.thr)
   
-  if(!is.null(control$verbose)) verbose <- control$verbose else verbose <- F
-  if(!is.null(control$hessian)) hessian <- control$hessian else hessian <- 'auto'
-  if(!hessian %in% c('auto', 'manual')) stop("Argument 'hessian' needs to be either 'auto' (i.e. from optim) or 'manual' (i.e. from _sdb, the default).")
-  if(!is.null(control$return.inits)) return.inits <- control$return.inits else return.inits <- F
-  if(!is.null(control$return.dmats)) return.dmats <- control$return.dmats else return.dmats <- T
-  
-  if(verbose) cat("Starting EM algorithm...\n")
+  if(con$verbose){
+    cat("Initial conditions: \n")
+    converge.check(0, 0, convergence.criteria, 0, Omega, TRUE)
+    cat("\nStarting EM algorithm...\n")
+  }
   converged <- FALSE
   EMstart <- proc.time()[3]
-  while((!converged) && (iter < maxit)){
-    update <- EMupdate(Omega, family, X, Y, Z, b, 
-                       S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv, 
-                       w, v, n, m, hessian, beta.inds, b.inds, K, q)
-    if(!correlated) update$D[inits.long$off.inds] <- 0
-    params.new <- c(vech(update$D), update$beta, unlist(update$sigma)[inits.long$sigma.include], 
+  while((!converged) && (iter < con$maxit)){
+    update <- EMupdate(Omega, family, dmats, b, sv, 
+                       surv, w, v, con, inds)
+    
+    if(!con$correlated) update$D[inits.long$off.inds] <- 0
+    params.new <- c(vech(update$D), update$beta, unlist(update$sigma)[sigma.include], 
                     update$gamma, update$zeta)
     names(params.new) <- names(params)
     
@@ -292,17 +305,18 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     D <- update$D; beta <- update$beta; sigma <- update$sigma
     gamma <- update$gamma; zeta <- update$zeta
     l0 <- update$l0; l0u <- update$l0u; l0i <- update$l0i
+    sv$l0 <- l0; sv$l0i <- l0i; sv$l0u <- l0u
     iter <- iter + 1
     Omega <- list(D = D, beta = beta, sigma = sigma, gamma = gamma, zeta = zeta)
     
-    convcheck <- converge.check(params, params.new, convergence.criteria, iter, Omega, verbose)
+    convcheck <- converge.check(params, params.new, convergence.criteria, iter, Omega, con$verbose)
     if(iter >= 4) converged <- convcheck$converged # Allow to converge after 3 iterations
     params <- params.new
   }
   
   EMend <- proc.time()[3]
   coeffs <- Omega
-  coeffs$beta <- setNames(c(Omega$beta), names(inits.long$beta.init))
+  coeffs$beta <- setNames(c(Omega$beta), names.beta)
   out <- list(coeffs = coeffs,
               hazard = cbind(ft = sv$ft, haz = l0, nev = sv$nev))
   
@@ -310,27 +324,35 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
   ModelInfo$ResponseInfo <- sapply(1:K, function(k){
     paste0(inits.long$responses[k], ' (', family[k], ')')
   })
+  ModelInfo$Resps <- inits.long$responses
   ModelInfo$family <- family
+  ModelInfo$K <- dmats$K
+  ModelInfo$Pcounts <- list(P = dmats$P, Pd = dmats$Pd, 
+                            q = sv$q, vD = length(vech(D)))
   ModelInfo$long.formulas <- long.formulas
-  ModelInfo$surv.formulas <- surv.formula
+  ModelInfo$disp.formulas <- disp.formulas
+  ModelInfo$surv.formula <- surv.formula
   ModelInfo$survtime <- surv$survtime
   ModelInfo$status <- surv$status
-  ModelInfo$control <- if(!is.null(control)) control else NULL
+  ModelInfo$control <- con
   ModelInfo$convergence.criteria <- convergence.criteria
-  ModelInfo$inds <- list(beta = beta.inds, b = b.inds)
-  ModelInfo$nobs <- colSums(do.call(rbind, m))
-  ModelInfo$n <- n
+  ModelInfo$inds <- inds
+  ModelInfo$n <- dmats$n
+  ModelInfo$nobs <- setNames(dmats$m, inits.long$responses)
+  ModelInfo$mi <- sapply(dmats$mi, unlist)
   ModelInfo$nev <- sum(sv$nev)
+  ModelInfo$id.assign <- list(original.id = id.assign$id,
+                              assigned.id = id.assign$assign)
   out$ModelInfo <- ModelInfo
   
   # Post processing ----
-  if(post.process){
-    if(verbose) cat('Calculating SEs\n')
+  if(con$post.process){
+    if(con$verbose) cat('Post-processing...\n')
     gamma.rep <- rep(gamma, sapply(b.inds, length))
     pp.start.time <- proc.time()[3]
     
-    II <- obs.emp.I2(coeffs, dmats, surv, sv, b, l0i, l0u, w, v, n,
-                     family, K, q, beta.inds, b.inds)
+    II <- obs.emp.I(coeffs, dmats, surv, sv, family, b, 
+                    l0i, l0u, w, v, inds)
     H <- structure(II$Hessian,
                    dimnames = list(names(params), names(params)))
     
@@ -343,25 +365,29 @@ joint <- function(long.formulas, surv.formula, data, family, post.process = TRUE
     postprocess.time <- round(proc.time()[3] - pp.start.time, 2)
     
     # Calculate log-likelihood. Done separately as EMtime + postprocess.time is for EM + SEs.
-    out$logLik <- joint.log.lik(coeffs, dmats, II$b.hat, surv, sv, l0u, l0i, gamma.rep, beta.inds, b.inds, 
-                                K, q, family, II$Sigma)
+    out$logLik <- joint.log.lik(coeffs, dmats, surv, sv, family, II$b.hat, l0i, l0u, inds, II$Sigma)
     # Collate RE and their variance
     REs <- do.call(rbind, II$b.hat)
+    attr(REs, 'Var') <- do.call(rbind, lapply(II$Sigma, diag))
+    attr(REs, 'vcov') <- do.call(rbind, lapply(II$Sigma, vech))
+    out$REs <- REs
+  }else{
+    REs <- do.call(rbind, b)
     attr(REs, 'Var') <- do.call(rbind, lapply(II$Sigma, diag))
     attr(REs, 'vcov') <- do.call(rbind, lapply(II$Sigma, vech))
     out$REs <- REs
   }
   comp.time <- round(proc.time()[3] - start.time, 3)
   out$elapsed.time <- c(`EM time` = unname(round(EMend - EMstart, 3)),
-                        `Post processing` = if(post.process) unname(postprocess.time) else NULL,
+                        `Post processing` = if(con$post.process) unname(postprocess.time) else NULL,
                         `Total Computation time` = unname(comp.time),
                         `iterations` = iter)
-  if(post.process) sv <- surv.mod(surv, formulas, l0)
+  if(con$post.process) sv <- surv.mod(surv, formulas, l0)
   dmats <- list(long = dmats, surv = sv, ph = surv)
-  if(return.dmats) out$dmats <- dmats
+  if(con$return.dmats) out$dmats <- dmats
   
-  if(return.inits) out$inits = list(inits.long = inits.long,
-                                    inits.surv = inits.surv)
+  if(con$return.inits) out$inits = list(inits.long = inits.long,
+                                        inits.surv = inits.surv)
   class(out) <- 'joint'
   return(out)
 }
@@ -373,7 +399,11 @@ print.joint <- function(x, ...){
   if(!inherits(x, 'joint')) stop('x must be a "joint" object!')
   
   M <- x$ModelInfo
-  K <- length(M$ResponseInfo) # Number of responses
+  K <- M$K # Number of responses
+  fams <- M$family
+  dpsL <- sapply(M$long.formulas, deparse)
+  dpsD <- sapply(M$disp.formulas, deparse)
+  dpsS <- deparse(M$surv.formula)
   
   # Data information
   cat(sprintf("Number of subjects: %d\n", M$n))
@@ -381,22 +411,25 @@ print.joint <- function(x, ...){
   
   # Longitudinal information: 
   cat("\n===================\nModel specification\n===================\n")
-  if(K == 1){
+  if(K == 1)
     cat("Univariate longitudinal process specification:\n")
-    cat(sprintf("%s: %s\n", M$ResponseInfo[1], deparse(M$long.formulas[[1]])))
-  }else{
+  else
     cat("Multivariate longitudinal process specifications: \n")
-    for(k in 1:K){
-      cat(sprintf("%s: %s\n", M$ResponseInfo[k], deparse(M$long.formulas[[k]])))
-    }
+  
+  for(k in 1:K){
+    cat(sprintf("%s: %s\n", M$ResponseInfo[k], dpsL[k]))
+    if(fams[[1]] %in% c("Gamma", "negbin", "genpois"))
+      cat(sprintf("Dispersion model: %s\n",
+                  if(dpsD[k]=="~1") "(Intercept) model" else dpsD[k]
+      ))
   }
   
   cat("\nSurvival sub-model specification: \n")
-  cat(deparse(M$surv.formulas))
+  cat(deparse(M$surv.formula))
   
   cat("\n\nAssociation parameter estimates: \n")
   print(setNames(x$coeffs$gamma,
         M$ResponseInfo))
   cat("\n")
-  invisible(1+1)
+  invisible(x)
 }

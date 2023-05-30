@@ -69,25 +69,28 @@ converge.check <- function(params.old, params.new, criteria, iter, Omega, verbos
   
   if(verbose){
       cat("\n")
-      cat(sprintf("Iteration %d:\n", iter))
+      if(iter > 0) cat(sprintf("Iteration %d:\n", iter))
       cat("vech(D):", round(vech(Omega$D), 4), "\n")
       cat("beta:", round(Omega$beta, 4), "\n")
       if(any(unlist(Omega$sigma) != 0)) cat("sigma:", round(unlist(Omega$sigma)[unlist(Omega$sigma) != 0], 4), "\n")
       cat("gamma:", round(Omega$gamma, 4), "\n")
       cat("zeta:", round(Omega$zeta, 4), "\n")
       cat("\n")
-      if(type != "sas"){
-        cat("Maximum absolute difference:", round(max(diffs.abs), 4), "for",
-            names(params.new)[which.max(diffs.abs)], "\n")
-        cat("Maximum relative difference:", round(max(diffs.rel), 4), "for",
-            names(params.new)[which.max(diffs.rel)], "\n")
-      }else{
-       cat("Maximum absolute difference: ", round(max(diffs.abs[!sas.crit]), 4), "for",
-           names(params.new)[which.max(diffs.abs[!sas.crit])], "\n")
-        cat("Maximum relative difference: ", round(max(diffs.rel[sas.crit]), 4), "for",
-            names(params.new)[which.max(diffs.rel[sas.crit])], "\n")
+      if(iter > 0){
+        if(type != "sas") {
+          cat("Maximum absolute difference:", round(max(diffs.abs), 4), "for",
+              names(params.new)[which.max(diffs.abs)],"\n")
+          cat("Maximum relative difference:", round(max(diffs.rel), 4), "for",
+              names(params.new)[which.max(diffs.rel)],"\n")
+        }else{
+          cat("Maximum absolute difference: ", round(max(diffs.abs[!sas.crit]), 4), "for",
+              names(params.new)[which.max(diffs.abs[!sas.crit])], "\n")
+          cat("Maximum relative difference: ", round(max(diffs.rel[sas.crit]), 4), "for",
+              names(params.new)[which.max(diffs.rel[sas.crit])], "\n")
+        }
+        if(converged) cat(paste0("Converged! (Criteria: ", type, ")."), "\n\n")
       }
-      if(converged) cat(paste0("Converged! (Criteria: ", type, ")."), "\n\n")
+      
   }
   
   list(converged = converged,

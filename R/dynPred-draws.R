@@ -7,7 +7,7 @@ Omega.draw <- function(x){
   # Mean vector
   co <- x$coeffs
   sigma <- unlist(co$sig)
-  sigma <- sigma[sigma != 0.0]
+  sigma <- sigma[sigma != 0L]
   Omega.mean <- setNames(
     c(
       c(vech(co$D)),
@@ -31,7 +31,7 @@ Omega.draw <- function(x){
   zeta <- draw[match(names(co$zeta), names(draw))]
   # Sort out sigma --> MUST be a list.
   .sigma <- lapply(co$sigma, function(x){
-    if(x == 0L)
+    if(length(x) == 1L & x == 0L)
       return(0)
     else
       return(draw[match(names(x), names(draw))])
@@ -47,10 +47,11 @@ Omega.draw <- function(x){
 logLik.b <- function(b, long, surv, O, beta.inds, b.inds, fit){
   beta <- O$beta; D <- O$D; gamma <- rep(O$gamma, sapply(b.inds, length)); zeta <- O$zeta; sigma <- O$sigma
   
-  neg.ll <- joint_density(b = b, Y = long$Y, X = long$X, Z = long$Z, beta = beta, D = D, sigma = sigma,
+  neg.ll <- joint_density(b = b, Y = long$Y, X = long$X, Z = long$Z, W = long$W, 
+                          beta = beta, D = D, sigma = sigma,
                           family = fit$ModelInfo$family, Delta = surv$Delta, S = surv$S, Fi = surv$Fi, l0i = surv$l0i,
                           SS = surv$SS, Fu = surv$Fu, haz = surv$l0u, gamma_rep = gamma, zeta = zeta, beta_inds = beta.inds,
-                          b_inds = b.inds, K = length(fit$ModelInfo$family))
+                          b_inds = b.inds, K = fit$ModelInfo$K)
   
   -neg.ll
 }
@@ -73,23 +74,23 @@ b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, beta.inds, b.inds, 
     # Posterior mode and its variance at \Omega^{\ell}
     b.hat.l <- optim(
       b.current, joint_density, joint_density_ddb,
-      Y = long$Y, X = long$X, Z = long$Z, beta = beta, D = D, sigma = sigma,
+      Y = long$Y, X = long$X, Z = long$Z, W = long$W, beta = beta, D = D, sigma = sigma,
       family = fit$ModelInfo$family, Delta = surv$Delta, S = surv$S, Fi = surv$Fi, l0i = surv$l0i,
       SS = surv$SS, Fu = surv$Fu, haz = surv$l0u, gamma_rep = gamma, zeta = zeta, beta_inds = beta.inds,
-      b_inds = b.inds, K = length(fit$ModelInfo$family), method = 'BFGS', hessian = T
+      b_inds = b.inds, K = fit$ModelInfo$K, method = 'BFGS', hessian = T
     )
     Sigma.hat.l <- solve(b.hat.l$hessian)
     b.hat.l <- b.hat.l$par
     # Draw from N(b.hat.l, Sigma.hat.l)
     b.prop.l <- MASS::mvrnorm(n = 1, mu = b.hat.l, Sigma = Sigma.hat.l)
     # DMNVORM on b draws
-    current.dens <- as.double(dmvnrm_arma_fast(t(b.current), b.hat.t, Sigma.t, T))
-    prop.dens <- as.double(dmvnrm_arma_fast(t(b.prop.l), b.hat.t, Sigma.t, T))
+    current.dens <- as.double(dmvn_fast(b.current, b.hat.t, Sigma.t, T))
+    prop.dens <- as.double(dmvn_fast(b.prop.l, b.hat.t, Sigma.t, T))
   }else{
     #' Draw from shifted t distribution at \hat{b}, \hat{\Sigma} for subject|T_i>t
     b.prop.l <- mvtnorm::rmvt(n = 1, sigma = Sigma.t, df = df, delta = b.hat.t)
-    current.dens <- as.double(dmvt_arma_fast(t(b.current), b.hat.t, Sigma.t, df = df))
-    prop.dens <- as.double(dmvt_arma_fast(b.prop.l, b.hat.t, Sigma.t, df = df))
+    current.dens <- as.double(dmvt_fast(b.current, b.hat.t, Sigma.t, df = df))
+    prop.dens <- as.double(dmvt_fast(b.prop.l, b.hat.t, Sigma.t, df = df))
   }
   diff.dens <- current.dens - prop.dens # Difference in current - proposal log-likelihood.
   

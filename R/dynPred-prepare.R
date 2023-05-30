@@ -3,12 +3,13 @@
 #' @keywords internal
 prepareLongData <- function(data, fit){
   
-  K <- length(fit$ModelInfo$long.formulas)
+  K <- fit$ModelInfo$K
   id <- unique(data$id)
   
   X <- fit$dmats$long$X[[id]]
   Z <- fit$dmats$long$Z[[id]]
   Y <- fit$dmats$long$Y[[id]]
+  W <- fit$dmats$long$W[[id]]
   
   # Truncate at max. time value in `data`, which should look like
   # data[data$time == x, ].
@@ -25,8 +26,12 @@ prepareLongData <- function(data, fit){
   Y <- lapply(1:K, function(k){
     Y[[k]][1:nrow(X[[k]])]
   })
+  W <- lapply(1:K, function(k){
+    Wk <- W[[k]]
+    Wk[1:nrow(X[[k]])]
+  })
   
-  list(X = X, Y = Y, Z = Z)
+  list(X = X, Y = Y, Z = Z, W = W)
 }
 
 #' @keywords internal
@@ -40,7 +45,7 @@ prepareSurvData <- function(data, fit, u = NULL){
   
   # All _possible_ survived times observed in model, cast by W_k(t).
   # along with baseline hazard
-  Fu.all <- fit$dmats$surv$Fu[[which.max(sapply(fit$dmats$surv$Fu, nrow))]]
+  Fu.all <- fit$dmats$surv$ft.mat
   l0u <- fit$hazard[,2]
   ft <- fit$dmats$surv$ft
   
@@ -73,7 +78,6 @@ prepareSurvData <- function(data, fit, u = NULL){
 
 
 # Prepare and collate longitudinal and survival data for dynamic predictions
-
 #' @keywords internal
 prepareData <- function(data, fit, u = NULL){
   id <- unique(data$id)
@@ -83,15 +87,14 @@ prepareData <- function(data, fit, u = NULL){
   
   if(is.null(u)){ # This to work out b.current and Sigma at start of MH.
     b <- fit$REs[id, ]
-    K <- length(fit$ModelInfo$family)
-    b.inds <- fit$ModelInfo$inds$b; gamma.rep <- rep(fit$coeffs$gamma, sapply(b.inds, length))
-    b.inds <- lapply(b.inds, function(x) x - 1)
-    beta.inds <- lapply(fit$ModelInfo$inds$beta, function(x) x - 1)
+    K <-fit$ModelInfo$K
+    b.inds <- fit$ModelInfo$inds$C$b; gamma.rep <- rep(fit$coeffs$gamma, sapply(b.inds, length))
+    beta.inds <- fit$ModelInfo$inds$C$beta
     
     bfit <- optim(rep(0, ncol(fit$REs)),
                   joint_density,
                   joint_density_ddb,
-                  Y = long$Y, X = long$X, Z = long$Z, beta = fit$coeffs$beta,
+                  Y = long$Y, X = long$X, Z = long$Z, W = long$W, beta = fit$coeffs$beta,
                   D = fit$coeffs$D, sigma = fit$coeffs$sigma, family = fit$ModelInfo$family,
                   Delta = surv$Delta, S = surv$S, Fi = surv$Fi, l0i = surv$l0i,
                   SS = surv$SS, Fu = surv$Fu, haz = surv$l0u, gamma_rep = gamma.rep,

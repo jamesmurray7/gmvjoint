@@ -40,17 +40,17 @@
 #' }
 cond.ranefs <- function(fit, burnin = 500L, N = 3500L, tune = 2.){
   if(!inherits(fit, "joint")) stop("Only usable with object of class 'joint'.")
-  if(is.null(fit$dmats)) stop("Need dmats.")
+  if(is.null(fit$dmats)) stop("Need dmats, rerun with appropriate control arguments.")
   # Unpack dmats
   M <- fit$ModelInfo
   dm <- fit$dmats$long
   sv <- fit$dmats$surv
   surv <- fit$dmats$ph
-  q <- sv$q; K <- length(M$family)
+  q <- sv$q; K <- M$K
   
   # Unpack parameter estimates
   Omega <- fit$coeffs
-  gamma.rep <- rep(Omega$gamma, sapply(M$inds$b, length))
+  gamma.rep <- rep(Omega$gamma, sapply(M$inds$R$b, length))
   
   # Model matrices
   l0i <- sv$l0i; l0u <- sv$l0u
@@ -59,8 +59,8 @@ cond.ranefs <- function(fit, burnin = 500L, N = 3500L, tune = 2.){
   S <- sv$S; SS <- sv$SS
   X <- dm$X; Y <- dm$Y; Z <- dm$Z
   # Other
-  beta.inds <- lapply(M$inds$beta, function(x) x-1)
-  b.inds <- lapply(M$inds$b, function(x) x-1)
+  beta.inds <- M$inds$Cpp$beta
+  b.inds <- M$inds$Cpp$b
   ff <- M$family
   nobs <- sapply(lapply(Y, el), length)
   

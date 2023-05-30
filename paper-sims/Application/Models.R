@@ -1,38 +1,37 @@
 rm(list=ls())
 library(splines)
 library(xtable)
-data(PBC)
+data(PBC, package = 'gmvjoint')
 
-PBC <- na.omit(PBC[,c("id", "survtime", "status", "drug", "sex", "age", "time", 'ascites',
+# Some issues with Ascites -- Cov matrix seems fairly volatile.
+unlist(with(PBC, tapply(ascites, id, function(x) table(unique(x)))))
+table(with(PBC, tapply(ascites, id, function(x){
+  sum(x==1,na.rm=T)/length(x)
+})))
+sum(PBC$ascites==1,na.rm=T)/nrow(gmvjoint::PBC)
+sum(PBC$hepatomegaly==1,na.rm=T)/nrow(PBC)
+table(with(PBC, tapply(hepatomegaly, id, function(x){
+  sum(x==1,na.rm=T)/length(x)
+})))
+sum(PBC$spiders==1,na.rm=T)/nrow(PBC)
+table(with(PBC, tapply(spiders, id, function(x){
+  sum(x==1,na.rm=T)/length(x)
+})))
+
+
+PBC <- na.omit(PBC[,c("id", "survtime", "status", "drug", "sex", "age", "time",
                       "hepatomegaly", "spiders", "serBilir",
                       "albumin", "alkaline", "SGOT", "platelets", "prothrombin")])
 PBC$serBilir <- log(PBC$serBilir)
 PBC$prothrombin <- (PBC$prothrombin * .1)^ (-4)
 PBC$AST <- log(PBC$SGOT)
 
-# Some issues with Ascites -- Cov matrix seems fairly volatile.
-unlist(with(PBC, tapply(ascites, id, function(x) table(unique(x)))))
-table(with(PBC, tapply(ascites, id, function(x){
-  sum(x==1)/length(x)
-})))
-sum(PBC$ascites==1,na.rm=T)/nrow(gmvjoint::PBC)
-sum(PBC$hepatomegaly==1)/nrow(PBC)
-table(with(PBC, tapply(hepatomegaly, id, function(x){
-  sum(x==1)/length(x)
-})))
-sum(PBC$spiders==1)/nrow(PBC)
-table(with(PBC, tapply(spiders, id, function(x){
-  sum(x==1)/length(x)
-})))
-
-PBC$ascites <- NULL
-PBC <- na.omit(PBC)
-
+splines::ns((PBC$time), df = 3)
 Gaussian.long.formulas <- list(
   serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
   albumin ~ drug * time + (1 + time|id),
-  prothrombin ~ drug * ns(time, 3) + (1 + ns(time, 3)|id),
-  AST ~ drug * time  + (1 + time|id)
+  prothrombin ~ drug * ns(time, knots = c(1, 4)) + (1 + ns(time, knots = c(1, 4))|id)
+  # AST ~ drug * time  + (1 + time|id)
 )
 
 Poisson.long.formulas <- list(
@@ -50,7 +49,7 @@ control <- list(verbose=T)
 
 # 4 variate Gaussian
 Gaussians <- joint(Gaussian.long.formulas, surv.formula, PBC, 
-                   list("gaussian", "gaussian", "gaussian", "gaussian"))
+                   list("gaussian", "gaussian", "gaussian"))
 
 xtable(Gaussians, vcov = TRUE, max.row = 18, size = "tiny", booktabs = FALSE)
 # Take forward: 
