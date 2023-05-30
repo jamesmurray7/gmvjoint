@@ -1,11 +1,3 @@
-# gmvjoint version 0.3.0
-* Rework to instead use glmmTMB's fits (used for initial conditions) to create required
-data matrices instead of a separate step, which frequently created a bottleneck for large
-number of responses.
-* Added negative binomial distribution.
-* Allowed for (possibly time varying) dispersion models (for Gamma/negative binomial/
-generalised poisson).
-
 # gmvjoint version 0.2.0
 * Dynamic predictions added
 * ROC/AUC function added

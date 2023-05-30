@@ -1,16 +1,3 @@
-#' @keywords internal
-dgenpois <- function(x, mu, phi, log = FALSE){
-  lx <- length(x); lm <- length(mu); lp <- length(phi)
-  ch <- lx == lm & lx == lp & lm == lp
-  if(!ch) stop("Not all supplied inputs are of same length, check.\n")
-  
-  out <- sapply(1:lx, function(i) GP1_pmf_scalar(mu[i], phi[i], x[i]))
-  if(log)
-    return(log(out))
-  else
-    return(out)
-}
-
 #' Simulate realisations from a generalised poisson distribution
 #' @param mu A numeric vector of rates \eqn{\exp{\eta}}, with \eqn{\eta} the linear predictor.
 #' @param phi A numeric specifying the dispersion \eqn{\varphi}. If \eqn{\varphi<0} the response 
@@ -33,10 +20,11 @@ rgenpois <- function(mu, phi){
   for(j in 1:n){
     ans <- 0;
     rand <- runif(1)
-    kum <- dgenpois(0, mu[j], phi[j])
+    kum <- GP1_pmf_scalar(mu[j], phi, 0)
     while(rand > kum){
       ans <- ans + 1
-      kum <- kum + dgenpois(ans, mu[j], phi[j])
+      # message(ans)
+      kum <- kum + GP1_pmf_scalar(mu[j], phi, ans)
     }
     out[j] <- ans
   }
@@ -67,10 +55,10 @@ rgenpois <- function(mu, phi){
 #' the survival sub-model, in the order of continuous and binary.
 #' @param theta parameters to control the failure rate, see \strong{baseline hazard}.
 #' @param cens.rate parameter for \code{rexp} to generate censoring times for each subject.
-#' @param regular.times logical, if \code{regular.times = TRUE} (the default), then 
-#' \emph{every} subject will have the same follow-up times defined by 
-#' \code{seq(0, fup, length.out = ntms)}. If \code{regular.times = FALSE} then follow-up times are
-#' set as random draws from a uniform distribution with maximum \code{fup}. 
+#' @param unif.times logical, if \code{unif.times = TRUE} (the default), then \emph{every} subject
+#' will have the same follow-up times defined by \code{seq(0, fup, length.out = ntms)}. If 
+#' \code{unif.times = FALSE} then follow-up times are set as random draws from a uniform 
+#' distribution with maximum \code{fup}. 
 #' @param dof integer, specifies the degrees of freedom of the multivariate t-distribution
 #' used to generate the random effects. If specified, this t-distribution is used. If left
 #' at the default \code{dof=Inf} then the random effects are drawn from a multivariate normal
@@ -151,26 +139,32 @@ rgenpois <- function(mu, phi){
 #'                     theta = c(-3, 0.2), zeta = c(0,-.2))
 simData <- function(n = 250, ntms = 10, fup = 5, 
                     family = list('gaussian', 'gaussian'), 
-                    sigma = list(0.16, 0.16),
+                    sigma = c(0.16, 0.16),
                     beta = rbind(c(1, 0.10, 0.33, -0.50), c(1, 0.10, 0.33, -0.50)), D = NULL,
                     gamma = c(0.5, -0.5), zeta = c(0.05, -0.30),
                     theta = c(-4, 0.2), cens.rate = exp(-3.5),
-                    regular.times = TRUE,
+                    unif.times = TRUE,
                     dof = Inf,
-                    random.formulas = NULL, disp.formulas = NULL,
+                    random.formula = NULL,
                     return.ranefs = FALSE){
-  random.formula <- random.formulas
+  
   # Checks --------------
   # Check family is valid option
   family <- lapply(family, function(f){
     if("function"%in%class(f)) f <- f()$family
-    if(!f%in%c('gaussian', 'binomial', 'poisson', 'genpois', 'Gamma', 'genpois', 'negbin')) 
-      stop('Family must be one of "gaussian", "binomial", "poisson", "genpois", "negbin" or "Gamma".')
+    if(!f%in%c("gaussian", "binomial", "poisson", "genpois", "Gamma")) 
+      stop('Family must be one of "gaussian", "binomial", "poisson", "genpois" or "Gamma".')
     f
   })
   # Check dispersion supplied if neg. binom.
-  family <- lapply(family, function(f) match.arg(f, c('gaussian', 'binomial', 'poisson', 'genpois', 'Gamma', 'genpois', 'negbin'), several.ok = F))
+  family <- lapply(family, function(f) family <- match.arg(f, c("gaussian", "binomial", "poisson", "genpois", "Gamma"), several.ok = F))
+  
+  # Checks wrt the fixed effects and dispersion parameters
   funlist <- unlist(family)
+  num.gp <- length(which(funlist == 'genpois'))
+  num.ga <- length(which(funlist == 'gaussian'))
+  num.Ga <- length(which(funlist == 'Gamma'))
+  
   # Fixed effects
   K <- nrow(beta)
   if(K != length(funlist)) stop('Incorrect number of families provided and/or beta terms.')
@@ -185,17 +179,8 @@ simData <- function(n = 250, ntms = 10, fup = 5,
   # Check covariance matrix D is positive semi-definite.
   if(any(eigen(D)$value < 0) || det(D) <= 0) stop('D must be positive semi-definite')
   
-  # Parse dispersion formulas
-  if(is.null(disp.formulas)){
-    disp.formulas <- replicate(K, ~1, simplify = FALSE)
-  }else{
-    if(sum(!sapply(disp.formulas, is.null)) != K)
-      stop("Need to supply dispersion formulas for all responses even if not required for all K responses\n",
-           "(You can just fill-in ~1 for those with no wanted dispersion model.)")
-  }
-  
   # Necessary parameters & data generation ----
-  if(regular.times){
+  if(unif.times){
     time <- seq(0, fup, length.out = ntms)
     tau <- fup + 0.1
   }else{
@@ -206,21 +191,17 @@ simData <- function(n = 250, ntms = 10, fup = 5,
   cont <- rnorm(n); bin <- rbinom(n, 1, 0.5)  # Continuous and binary covariates.
   
   df <- data.frame(id = rep(1:n, each = ntms),
-                   time = if(regular.times) rep(time, n) else time,
+                   time = if(unif.times) rep(time, n) else time,
                    cont = rep(cont, each = ntms),
                    bin = rep(bin, each = ntms))
   
   # Design matrices, used across ALL responses ----
   X <- model.matrix(~ time + cont + bin, data = df)
-  W <- lapply(disp.formulas, function(x) model.matrix(x, data = df))
   if(!is.null(random.formula)){
     Z <- lapply(random.formula, function(x) model.matrix(x, data = df))
   }else{
     Z <- replicate(K, model.matrix(~ 1 + time, data = df), simplify = F) # assume all intslopes.
   }
-  # Check that the supplied disp.formulas match with elements of sigma
-  if(!all(sapply(1:K, function(k) ncol(W[[k]])==length(sigma[[k]]))))
-    stop("Mis-specified sigma or disp.formulas.\n")
 
   # Random effects specification
   if(is.infinite(dof)) 
@@ -244,19 +225,17 @@ simData <- function(n = 250, ntms = 10, fup = 5,
     f <- family[[k]]; Zk <- Z[[k]]
     betak <- beta[k,,drop=T]
     etak <- X %*% betak + rowSums(Zk * b[df$id, b.inds[[k]]])
-    phik <- W[[k]] %*% sigma[[k]]
     switch(f, 
-           gaussian = Y <- rnorm(n * ntms, mean = etak, sd = sqrt(phik[1])),
+           gaussian = Y <- rnorm(n * ntms, mean = etak, sd = sqrt(sigma[k])),
            binomial = Y <- rbinom(n * ntms, 1, plogis(etak)),
            poisson = Y <- rpois(n * ntms, exp(etak)),
-           Gamma = Y <- rgamma(n * ntms, shape = exp(phik), scale = exp(etak)/exp(phik)),
-           negbin = Y <- MASS::rnegbin(n * ntms, mu = exp(etak), theta = exp(phik)),
+           Gamma = Y <- rgamma(n * ntms, shape = sigma[k], scale = exp(etak)/sigma[k]),
            genpois = {
              maxtry <- 5
              try <- 1
              e <- T
              while(e){ # genpois can be quite sensitive in simulation part; repeat sim up to 5 times.
-               Y <- tryCatch(rgenpois(exp(etak), phik),
+               Y <- tryCatch(rgenpois(exp(etak), sigma[k]),
                              error = function(e) NA)
                e <- any(is.na(Y))
                try <- try + 1
@@ -313,7 +292,7 @@ simData <- function(n = 250, ntms = 10, fup = 5,
   
   out.data <- merge(df, surv.data, by = 'id')
   out.data <- out.data[out.data$time < out.data$survtime, ]
-  cat(sprintf("%.2f%% failure rate.\n", 100 * sum(surv.data$status)/n))
+  message(round(100 * sum(surv.data$status)/n), '% failure rate')
   
   out <- list(data =  out.data, 
               surv.data =  out.data[!duplicated(out.data[,'id']), c('id', 'survtime', 'status', 'cont', 'bin')])

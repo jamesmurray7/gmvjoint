@@ -29,56 +29,55 @@
 #' }
 summary.joint <- function(object, ...){
   if(!inherits(object, 'joint')) stop("Only usable with object of class 'joint'.")
-  if(is.null(object$SE)) stop('Rerun with control(post.process = TRUE).')
+  if(is.null(object$SE)) stop('Rerun with post.process = TRUE.')
   qz <- qnorm(.975)
   
   # Extract things to ModelInfo
   M <- object$ModelInfo
-  K <- M$K                                         # Number of responses
-  responses <- M$Resps                             # Response names only
+  K <- length(M$ResponseInfo)                      # Number of responses
+  responses <- lapply(sapply(M$ResponseInfo,       # Response names only
+                             strsplit, '\\s\\('), el, 1)
   families <- unlist(M$family)                     # Families only
   nobs <- M$nobs; n <- M$n; nev <- M$nev           # Data stuff
   long.formulas <- M$long.formulas                 # Sub-models
-  surv.formula <- M$surv.formula 
-  disp.formulas <- M$disp.formulas                 # (+ dispersion)
-  inds.beta <- M$inds$R$beta; inds.b <- M$inds$R$b # indices
+  surv.formula <- M$surv.formulas
+  inds.beta <- M$inds$beta; inds.b <- M$inds$b     # indices
   
   # Parameter estimates and standard errors.
   SE <- object$SE
   coeffs <- object$coeffs
   D <- coeffs$D
   betas <- coeffs$beta
-  sigmas <- coeffs$sigma
+  sigmas <- unlist(coeffs$sigma)
   gammas <- coeffs$gamma
   zetas <- coeffs$zeta
   
   # Longitudinal parts
   Longits <- setNames(lapply(1:K, function(k){
     
-    beta <- betas[inds.beta[[k]]]
-    beta.SE <- SE[match(names(beta), names(SE))]
-    beta.lb <- beta - qz * beta.SE; beta.ub <- beta + qz * beta.SE
+    beta <- betas[grepl(responses[[k]], names(betas))]
+    sigma <- setNames(sigmas[k], 
+                      if(families[k] == "genpois")
+                        paste0("phi_", k)
+                      else if(families[k] == 'Gamma')
+                        paste0("shape_", k)
+                      else if(families[k] == 'gaussian')
+                        paste0('sigma^2_', k)
+                      else
+                        'NO DISP')
     
-    if(families[k] %in% c("gaussian", "genpois", "Gamma", "negbin")){
-      sigma <- sigmas[[k]]
-      sigma.SE <- SE[match(names(sigma), names(SE))]
-      sigma.lb <- sigma - qz * sigma.SE; sigma.ub <- sigma + qz * sigma.SE
-      if(families[k] %in% c("Gamma", "negbin")){
-        sigma <- exp(sigma)
-        sigma.SE <- sigma.SE * sigma
-        sigma.lb <- exp(sigma.lb); sigma.ub <- exp(sigma.ub)
-      }
-    }else{
-      sigma <- sigma.SE <- sigma.lb <- sigma.ub <- NULL
-    }
+    betak <- c(beta)
+    if(sigma != 0.0) betak <- c(betak, sigma)
+    parameter <- names(betak)
     
-    beta <- c(beta, sigma); rSE <- c(beta.SE, sigma.SE); lb <- c(beta.lb, sigma.lb); ub <- c(beta.ub, sigma.ub)
-    parameter <- names(beta)
+    rSE <- SE[match(names(betak), names(SE))]#SE associated with these coeffs
     
-    z <- beta/rSE
+    lb <- betak - qz * rSE; ub <- betak + qz * rSE
+    
+    z <- betak/rSE
     p <- 2 * (pnorm(abs(z), lower.tail = F))
     
-    this.out <- setNames(data.frame(beta, rSE, z, p, lb, ub),
+    this.out <- setNames(data.frame(betak, rSE, z, p, lb, ub),
                          c('Estimate', 'SE', "Z", "p-value", '2.5%', '97.5%'))
     this.out
   }), unlist(M$ResponseInfo))
@@ -96,10 +95,12 @@ summary.joint <- function(object, ...){
   Survs <- setNames(data.frame(survs, surv.SE, z, p, lb, ub),
                        c('Estimate', 'SE', 'Z', 'p-value', '2.5%', '97.5%'))
   
+  
   # Other items to return
   et <- object$elapsed.time; iter <- unname(as.integer(et['iterations'])); et <- et[-which(names(et) == 'iterations')]
   haz <- object$hazard
   ll <- object$logLik
+  
   
   out <- list(
     # Model stuff
@@ -154,6 +155,7 @@ print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   # Survival coefficients
   cat(sprintf('\nEvent-time sub-model: ----\nCall: %s\n', deparse(x$surv.formula)))
   print(cbind(x$Survs[,1], apply(x$Survs[,-1],2,.round)))
+  
   
   
   # Computation summary

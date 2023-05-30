@@ -1,41 +1,70 @@
 #include <math.h>
 #include <RcppArmadillo.h>
-#include "LOGLIK.h"
-#include "COMPDATASCORE.h"
-#include "BETAUPDATES.h"
-
-
 // [[Rcpp::depends("RcppArmadillo")]]
+
 using namespace Rcpp;
 using namespace arma;
+static double const log2pi = std::log(2.0 * M_PI);
 
-// Create etas for subject i
-// [[Rcpp::export]]
-List make_eta(const List& X, const List& Z, const vec& beta, const vec& b,
-              const List& beta_inds, const List& b_inds){
-  uword K = X.size();
-  List out(K);
-  for(uword k = 0; k < K; k++){
-    uvec beta_inds_k = beta_inds[k], b_inds_k = b_inds[k];
-    mat X_k = X[k], Z_k = Z[k];
-    vec beta_k = beta.elem(beta_inds_k), b_k = b.elem(b_inds_k);
-    out[k] = X_k * beta_k + Z_k * b_k;
+// Log-likelihoods --------------------------------------------------------
+// Gaussian
+double gaussian_ll(const arma::vec& Y,  const arma::vec& eta, const double sigma){ // important/misleading - sigma is the __variance__!!
+  int mi = Y.size();
+  vec out = vec(mi);
+  for(int i = 0; i < mi; i++){
+    out[i] = R::dnorm(Y[i], eta[i], sqrt(sigma), 1);
   }
-  return out;
+  return sum(out);
 }
 
-// Create taus for subject i
-// [[Rcpp::export]]
-List make_tau(const List& Z, const List& Sigma){
-  uword K = Sigma.size();
-  List out(K);
-  for(uword k = 0; k < K; k++){
-    mat Zk = Z[k], Sk = Sigma[k];
-    out[k] = sqrt(diagvec(Zk * Sk * Zk.t()));
+// Binomial
+double binomial_ll(const arma::vec& Y, const arma::vec& eta){
+  vec mu = exp(eta)/(1.0 + exp(eta));
+  int mi = Y.size();
+  vec out = vec(mi);
+  for(int i = 0; i < mi; i++){
+    out[i] = R::dbinom(Y[i], 1, mu[i], 1);
   }
-  return out;
+  return sum(out);
 }
 
+// Poisson
+double poisson_ll(const arma::vec& Y, const arma::vec& eta){
+  int mi = Y.size();
+  vec out = vec(mi);
+  for(int i = 0; i < mi; i++){
+    out[i] = R::dpois(Y[i], exp(eta[i]), 1);
+  }
+  return sum(out);
+}
+
+// Gamma
+//' @keywords internal
+// [[Rcpp::export]]
+double ll_Gamma(const arma::vec& Y, const double& shape, const arma::vec& mu){
+  vec out = (shape - 1.) * log(Y) - lgamma(shape) - shape * log(mu) + 
+    shape * log(shape) - (shape * Y)/mu;
+  return sum(out);
+}
+
+double ll_Gamma2(const arma::vec& Y, const double& shape, const arma::vec& scale){
+  int n = Y.size();
+  vec out(n);
+  for(int i = 0; i < n; i++){
+    out[i]  = R::dgamma(Y[i], shape, scale[i], 1);
+  }
+  return sum(out);
+}
+
+// https://www.tandfonline.com/doi/pdf/10.1080/03610926.2011.564742?needAccess=true
+//' @keywords internal
+// [[Rcpp::export]]
+double ll_genpois(const arma::vec& eta, const double phi, arma::vec& Y){
+  vec mu = exp(eta);
+  vec frac = (mu + phi * Y) / (1. + phi);
+  vec out = log(mu) + (Y - 1.) % log(mu + phi * Y) - lgamma(Y + 1.) - Y * log(1. + phi) - frac;
+  return sum(out);
+}
 
 //' @keywords internal
 // [[Rcpp::export]]
@@ -49,324 +78,497 @@ double logfti(const arma::vec& b, const arma::rowvec& S, const arma::mat& SS, co
   );
 }
 
+//' @keywords internal
 // [[Rcpp::export]]
-double joint_density(const arma::vec& b, 
-                     const List& Y, const List& X, const List& Z, const List& W,
-                     const arma::vec& beta, const arma::mat& D, const List& sigma, const List& family,
+double joint_density(const arma::vec& b, const List Y, const List X, const List Z,                  // Longitudinal + Random effects.
+                     const arma::vec& beta, const arma::mat& D, const List sigma, const List family,
                      const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, const double l0i,
                      const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, 
                      const arma::vec& gamma_rep, const arma::vec& zeta,
-                     const List& beta_inds, const List& b_inds, const uword K){
+                     const List beta_inds, const List b_inds, const int K){
   double ll = 0.0; // Compile longitudinal parts ---------
-  List eta = make_eta(X, Z, beta, b, beta_inds, b_inds);
-  for(uword k = 0; k < K; k++){
+  for(int k = 0; k < K; k++){
     vec Yk = Y[k];
+    mat Xk = X[k];
+    mat Zk = Z[k];
     std::string f = family[k];
-    vec sigmak = sigma[k];
-    vec eta_k = eta[k];
+    double sigmak = sigma[k];
+    uvec beta_k_inds = beta_inds[k];
+    uvec b_k_inds = b_inds[k];
+    vec beta_k = beta.elem(beta_k_inds);  // ensure indices on R side are indexed from zero.
+    vec b_k = b.elem(b_k_inds);
+    vec eta = Xk * beta_k + Zk * b_k;
     if(f == "gaussian"){
-      ll += ll_Gaussian(eta_k, Yk, as_scalar(sigmak));
+      ll += gaussian_ll(Yk, eta, sigmak);
     }else if(f == "binomial"){
-      ll += ll_Binomial(trunc_exp(eta_k)/(1. + trunc_exp(eta_k)), Yk);
+      ll += binomial_ll(Yk, eta);
     }else if(f == "poisson"){
-      ll += ll_Poisson(trunc_exp(eta_k), Yk);
-    }else if(f == "negbin"){
-      mat W_k = W[k];
-      ll += ll_NegBin(trunc_exp(eta_k), Yk, trunc_exp(W_k * sigmak));
+      ll += poisson_ll(Yk, eta);
     }else if(f == "genpois"){
-      mat W_k = W[k];
-      ll += ll_GenPois(trunc_exp(eta_k), Yk, W_k * sigmak);
+      ll += ll_genpois(eta, sigmak, Yk);
     }else if(f == "Gamma"){
-      mat W_k = W[k];
-      ll += ll_Gamma(trunc_exp(eta_k), Yk, trunc_exp(W_k * sigmak)); 
+      vec mu = exp(eta);
+      ll += ll_Gamma2(Yk, sigmak, mu/sigmak); // == ll_Gamma(Yk, Sigmak, exp(eta)).
     }
   }
-  uword q = b.size();
-  rowvec zz = zeros<rowvec>(q);
-  
+  // Rcout << "ll: " << ll << std::endl;
+  int q = b.size();
+ 
   double ll_Ti = logfti(b, S, SS, Fi, Fu, l0i, haz, Delta, gamma_rep, zeta);
-  double ll_RE = as_scalar(dmvnrm_arma_fast(b.t(), zz, D, true));
-  
-  return -1.0 * (ll + ll_RE + ll_Ti);
+
+  return -1.0 * (ll + as_scalar(-(double)q/2.0 * log2pi - 0.5 * log(det(D)) - 0.5 * b.t() * D.i() * b + ll_Ti));;
 }
 
+// Quadrature - standard deviation of N(mu, tau^2).
+//' @keywords internal
 // [[Rcpp::export]]
-vec joint_density_ddb(const arma::vec& b, 
-                      const List& Y, const List& X, const List& Z, const List& W,
-                      const arma::vec& beta, const arma::mat& D, const List& sigma, const List& family,
-                      const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, const double l0i,
-                      const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, 
-                      const arma::vec& gamma_rep, const arma::vec& zeta,
-                      const List& beta_inds, const List& b_inds, const uword K){
-  uword q = b.size();
-  vec Score(q);
-  List eta = make_eta(X, Z, beta, b, beta_inds, b_inds);
-  for(uword k = 0; k < K; k++){
-    vec Yk = Y[k];
-    std::string f = family[k];
-    vec sigmak = sigma[k];
-    vec eta_k = eta[k];
-    mat Z_k = Z[k];
-    uvec b_inds_k = b_inds[k];
-    if(f == "gaussian"){
-      Score.elem(b_inds_k) += Z_k.t() * score_Gaussian(eta_k, Yk, as_scalar(sigmak));
-    }else if(f == "binomial"){
-      Score.elem(b_inds_k) += Z_k.t() * score_Binomial(eta_k, Yk);
-    }else if(f == "poisson"){
-      Score.elem(b_inds_k) += Z_k.t() * score_Poisson(eta_k, Yk);
-    }else if(f == "negbin"){
-      mat W_k = W[k];
-      Score.elem(b_inds_k) += Z_k.t() * score_NegBin(eta_k, Yk, trunc_exp(W_k * sigmak));
-    }else if(f == "genpois"){
-      mat W_k = W[k];
-      Score.elem(b_inds_k) += Z_k.t() * score_GenPois(eta_k, Yk, W_k * sigmak);
-    }else if(f == "Gamma"){
-      mat W_k = W[k];
-      Score.elem(b_inds_k) += Z_k.t() * score_Gamma(eta_k, Yk, trunc_exp(W_k * sigmak));
-    }
+List maketau(const List& S, const List& Z){
+  int K = S.size();
+  List out = List(K);
+  for(int k = 0; k < K; k++){
+    mat Zk = Z[k], Sk = S[k];
+    out[k] = sqrt(diagvec(Zk * Sk * Zk.t()));
   }
-  
-  vec Score_Ti_b = Score_Ti(b, S, SS, Fi, Fu, l0i, haz, Delta, gamma_rep, zeta);
-  vec Score_b = grad_b(b, D);
-  
-  return -1.0 * (Score + Score_b + Score_Ti_b);
+  return out;
 }
 
-// Update to beta ---------------------------------------------------------
+// Derivatives ------------------------------------------------------------
+// Scores of the linear predictors eta = X(t)*beta+Z(t)*b;
+arma::vec Score_eta_gauss(const arma::vec& eta, const arma::vec& Y, const double sigma){ // sigma = variance!
+  int m = Y.size();
+  mat V = mat(m, m, fill::eye);
+  V *= sigma;
+  return V.i() * (Y - eta);
+}
+
+// NB: Gaussian is __same__ with quadrature.
+
+vec Score_eta_binom(const vec& eta, const vec& Y){
+  return Y - exp(eta) / (exp(eta) + 1.0);
+}
+
+// Binomial d/d{eta} taken with quadrature.
+vec Score_eta_binom_quad(const vec& eta, const vec& Y,
+                         const vec& tau, const vec& w, const vec& v){
+  int mi = Y.size(), gh = w.size();
+  mat exp_part = mat(mi, gh);
+  for(int l = 0; l < gh; l++){
+    exp_part.col(l) = w[l] * exp(eta + tau * v[l]) / (exp(eta + tau * v[l]) + 1.);
+  }
+  return Y - sum(exp_part, 1);
+}
+
+vec Score_eta_poiss(const vec& eta, const vec& Y){
+  return Y - exp(eta);
+}
+
+// Poisson d/d{eta} taken with quadrature
+vec Score_eta_poiss_quad(const vec& eta, const vec& Y, const vec& tau){
+  vec tau2 = vec(tau.size(), fill::zeros);
+  vec Eexpmu = exp(eta + tau2 * .5);
+  return Y - Eexpmu;
+}
+
+vec Score_eta_genpois(const vec& eta, const vec& Y, const double phi, const mat& design){
+  int q = design.n_cols;
+  vec mu = exp(eta), grad = vec(q);
+  for(int qq = 0; qq < q; qq++){
+    vec x = design.col(qq);
+    grad[qq] = sum(x + (Y - 1.) % (x % mu)/(mu + phi * Y) - x % mu / (phi + 1.));
+  }
+  return grad;
+}
+
+// GP1 d/d{eta} taken with quadrature
+vec Score_eta_genpois_quad(const vec& eta, const vec& Y, const double phi, const mat& design,
+                           const vec& tau, const vec& w, const vec& v){
+  int q = design.n_cols, gh = w.size(), mi = Y.size();
+  vec mu = exp(eta), grad = vec(q);
+  vec exp_part1 = vec(mi), exp_part2 = vec(mi);
+  // Work out parts we need to via quadrature.
+  for(int l = 0; l < gh; l++){
+    vec mu = exp(eta + tau * v[l]);
+    exp_part1 += w[l] * mu / (phi * Y + mu);
+    exp_part2 += w[l] * mu;
+  }
+  for(int qq = 0; qq < q; qq++){ // Work out column-by-column in {design}.
+    vec x = design.col(qq);
+    grad[qq] = sum(x + (Y - 1.) % (x % exp_part1) - x % exp_part2 / (phi + 1.));
+  }
+  return grad;
+}
+
+vec Score_eta_Gamma(const vec& eta, const vec& Y, const double shape, const mat& design){
+  int q = design.n_cols;
+  vec mu = exp(eta), grad = vec(q);
+  for(int qq = 0; qq < q; qq++){
+    vec x = design.col(qq);
+    grad[qq] = sum(shape * x % Y/mu - shape * x);
+  }
+  return grad;
+}
+
+// TO DO:: Gamma quad version.
+
+// Obtain kth derivative of log-likelihood wrt design matrix {X, Z}
+// (Exploiting the structure of d/dbeta == d/db besides the design measure.)
+vec get_long_score(const vec& eta, const vec& Y, const std::string family, const double sigma,
+                   const mat& design){
+  int p = design.n_cols;
+  vec Score = vec(p);
+  if(family == "poisson"){
+    Score += design.t() * Score_eta_poiss(eta, Y);
+  }else if(family == "gaussian"){
+    Score += design.t() * Score_eta_gauss(eta, Y, sigma);
+  }else if(family == "binomial"){
+    Score += design.t() * Score_eta_binom(eta, Y);
+  }else if(family == "genpois"){
+    Score += Score_eta_genpois(eta, Y, sigma, design);
+  }else if(family == "Gamma"){
+    Score += Score_eta_Gamma(eta, Y, sigma, design);
+  }
+  return Score;
+}
+
+// For quadrature (Can't think of a neat way to do one function 25/11/22).
+vec get_long_score_quad(const vec& eta, const vec& Y, const std::string family, const double sigma,
+                        const mat& design, const vec& tau, const vec& w, const vec& v){
+  int p = design.n_cols;
+  vec Score = vec(p);
+  if(family == "poisson"){
+    Score += design.t() * Score_eta_poiss_quad(eta, Y, tau);
+  }else if(family == "binomial"){
+    Score += design.t() * Score_eta_binom_quad(eta, Y, tau, w, v);
+  }else if(family == "genpois"){
+    Score += Score_eta_genpois_quad(eta, Y, sigma, design, tau, w, v);
+  }else if(family == "Gamma"){
+    Score += Score_eta_Gamma(eta, Y, sigma, design);
+  }
+  return Score;
+}
+
+//' @keywords internal
 // [[Rcpp::export]]
-vec Sbeta(const vec& beta, const List& X, const List& Y, const List& Z, const List& W,
-          const vec& b, const List& sigma, const List& family, 
-          const List& beta_inds, const List& b_inds, const uword& K,
-          const List& tau, const vec& w, const vec& v){
-  uword P = beta.size();
-  vec Score(P);
-  List eta = make_eta(X, Z, beta, b, beta_inds, b_inds);
-  for(uword k = 0; k < K; k++){
-    vec Yk = Y[k], sigmak = sigma[k], tauk = tau[k], etak = eta[k];
-    mat Wk = W[k], Xk = X[k];
-    uvec k_inds = beta_inds[k];
-    std::string ff = family[k];
-    if(ff == "gaussian"){
-      Score.elem(k_inds) += Xk.t() * d_eta_Gaussian(etak, Yk, as_scalar(sigmak));
-    }else if(ff == "poisson"){
-      Score.elem(k_inds) += Xk.t() * d_eta_Poisson(etak, Yk);
-    }else if(ff == "binomial"){
-      Score.elem(k_inds) += Xk.t() * d_eta_Binomial(etak, Yk, tauk, w, v);
-    }else if(ff == "negbin"){
-      vec phi = trunc_exp(Wk * sigmak);
-      Score.elem(k_inds) += Xk.t() * d_eta_NegBin(etak, Yk, phi, tauk, w, v);
-    }else if(ff == "Gamma"){
-      vec shape = trunc_exp(Wk * sigmak);
-      Score.elem(k_inds) += Xk.t() * d_eta_Gamma(etak, Yk, shape, tauk, w, v);
-    }else if(ff == "genpois"){
-      vec phi = Wk * sigmak;
-      Score.elem(k_inds) += Xk.t() * d_eta_GenPois(etak, Yk, phi, tauk, w, v);
+arma::vec joint_density_ddb(const arma::vec& b, const List Y, const List X, const List Z,                  // Longitudinal + Random effects.
+                            const arma::vec& beta, const arma::mat& D, const List sigma, const List family,
+                            const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, const double l0i,
+                            const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, 
+                            const arma::vec& gamma_rep, const arma::vec& zeta,
+                            const List beta_inds, const List b_inds, const int K){
+  vec Score = vec(b.size());
+  for(int k = 0; k < K; k++){
+    vec Yk = Y[k];
+    mat Xk = X[k];
+    mat Zk = Z[k];
+    std::string f = family[k];
+    double sigmak = sigma[k];
+    uvec beta_k_inds = beta_inds[k];
+    uvec b_k_inds = b_inds[k];
+    vec beta_k = beta.elem(beta_k_inds); // Ensure indexing from zero!!
+    vec b_k = b.elem(b_k_inds);
+    vec eta = Xk * beta_k + Zk * b_k;
+    Score.elem(b_k_inds) += get_long_score(eta, Yk, f, sigmak, Zk);
+  }
+  return -Score + -1.0 * (-D.i() * b + Delta * (Fi.t() % gamma_rep) - 
+                          gamma_rep % (Fu.t() * (haz.t() % exp(SS * zeta + Fu * (gamma_rep % b)))));
+}
+
+// Second derivative of joint density is found by BFGS method in maximisation step.
+
+//' @keywords internal
+// [[Rcpp::export]]
+arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& b, 
+                const List& sigma, const List& family, const List& beta_inds, const int K,
+                const bool quad, const List& tau, const arma::vec& w, const arma::vec& v){
+  int p = beta.size();
+  vec Score = vec(p);
+  
+  for(int k = 0; k < K; k++){
+    vec Yk = Y[k];
+    mat Xk = X[k];
+    mat Zk = Z[k];
+    std::string f = family[k];
+    uvec beta_k_inds = beta_inds[k];
+    vec beta_k = beta.elem(beta_k_inds); 
+    vec b_k = b[k];
+    vec eta = Xk * beta_k + Zk * b_k;
+    double sigmak = sigma[k];
+    if(f=="poisson"||f=="binomial"){
+      vec tauk = tau[k]; 
+      Score.elem(beta_k_inds) += get_long_score_quad(eta, Yk, f, sigmak, Xk,
+                 tauk, w, v);
+      
     }else{
-      Rcout << "Unknown family " << ff << std::endl;
-      continue;
+      Score.elem(beta_k_inds) += get_long_score(eta, Yk, f, sigmak, Xk);
     }
   }
   return Score;
 }
 
+// Hessian matrices for distns. of longit. part.
+mat Hess_eta_gauss(const vec& eta, const vec& Y, const double sigma, const mat& design){
+  int m = Y.size();
+  mat V = mat(m, m, fill::eye);
+  V *= sigma;
+  return design.t() * -V.i() * design;
+}
+
+// Hess_eta_gauss is the __same__ with quadrature!  
+
+mat Hess_eta_poiss(const vec& eta, const vec& Y, const mat& design){
+  int mi = design.n_rows, q = design.n_cols;
+  vec lambda = exp(eta);
+  mat H = zeros<mat>(q, q);
+  for(int j = 0; j < mi; j++){
+    rowvec xjT = design.row(j);
+    vec xj = xjT.t();
+    H += (-1. * lambda[j]) * xj * xjT;
+  }
+  return H;
+}
+
+// Poisson d2/d{eta}2 taken with quadrature
+arma::mat Hess_eta_poiss_quad(const arma::vec& eta, const arma::vec& Y, const arma::mat& design,
+                              const arma::vec& tau){
+  //int mi = design.n_rows, q = design.n_cols;
+  //mat H = zeros<mat>(q, q);
+  vec tau2 = vec(tau.size(), fill::zeros);
+  vec Eexpmu = exp(eta + tau2 * .5);
+  //for(int j = 0; j < mi; j ++){
+  //  rowvec xjT = design.row(j);
+  //  vec xj = xjT.t();
+  //  H -= Eexpmu.at(j) * xj * xjT;
+  //}
+  mat diagpart = diagmat(Eexpmu);
+  mat H = -(diagpart * design).t() * design;	
+  return H;
+}
+
+mat Hess_eta_binom(const vec& eta, const vec& Y, const mat& design){
+  int mi = design.n_rows, q = design.n_cols;
+  //vec mu = exp(eta);
+  //vec denom = square(mu);
+  vec expeta = exp(eta);
+  vec cont = -1. * (expeta/(1. + expeta) - (expeta % expeta)/(square(1. + expeta)));
+  mat H = zeros<mat>(q, q);
+  for(int j = 0; j < mi; j++){
+    rowvec xjT = design.row(j);
+    vec xj = xjT.t();
+//    H += (-mu[j]/(1. + denom[j])) * xj * xjT;
+    H += cont.at(j) * xj * xjT;
+  }
+  return H;
+}
+
+// Binomial d2/d{eta}^2 taken with quadrature
+mat Hess_eta_binom_quad(const arma::vec& eta, const arma::vec& Y, const arma::mat& design,
+                        const arma::vec& tau, const arma::vec& w, const arma::vec& v){
+  int mi = design.n_rows, q = design.n_cols, gh = w.size();
+  mat H = zeros<mat>(q, q);
+  vec exp_part = vec(mi), ones = vec(mi, fill::ones);
+  for(int l = 0; l < gh; l++){
+      vec exp_part_l = exp(eta + tau * v[l]);
+      exp_part += w[l] * (exp_part_l/(ones + exp_part_l) % (ones - exp_part_l/(ones + exp_part_l)));
+  }
+  for(int j = 0; j < mi; j ++){
+    rowvec xjT = design.row(j);
+    vec xj = xjT.t();
+    H -= exp_part.at(j) * xj * xjT;
+  }
+  return H;
+}
+
+arma::mat Hess_eta_genpois(const arma::vec& eta, const arma::vec& Y, const double phi, const arma::mat& design){
+  int mi = design.n_rows, q = design.n_cols;
+  vec mu = exp(eta);
+  mat H = zeros<mat>(q, q);
+  vec inner_part = square(mu + phi * Y);
+  for(int j = 0; j < mi; j++){
+    rowvec xjT = design.row(j);
+    vec xj = xjT.t();
+    H += (phi * (Y[j] - 1.) * Y[j] / (inner_part[j]) - mu[j] / (phi + 1.)) * xj * xjT;
+  }
+  return H;
+}
+
+mat Hess_eta_genpois_quad(const vec& eta, const vec& Y, const double phi, const mat& design,
+                          const vec& tau, const vec& w, const vec& v){
+  int mi = design.n_rows, q = design.n_cols, gh = w.size();
+  mat H = zeros<mat>(q, q);
+  vec exp_part1a = vec(mi), exp_part1b = vec(mi), exp_part2 = vec(mi);
+  for(int l = 0; l < gh; l++){
+    vec eta_l = eta + v[l] * tau;
+    exp_part2 += w[l] * exp(eta_l);
+    exp_part1a += w[l] * exp(eta_l);
+    exp_part1b += w[l] * square(exp(eta_l) + phi * Y);
+  }
+  for(int j = 0; j < mi; j++){
+    rowvec xjT = design.row(j);
+    vec xj = xjT.t();
+    H += (phi * Y[j] * (Y[j] - 1.) * exp_part1a[j]/exp_part1b[j] - exp_part2[j] / (phi + 1.)) * xj * xjT;
+  }
+  return H;
+}
+                          
+mat Hess_eta_Gamma(const vec& eta, const vec& Y, const double shape, const mat& design){
+  int mi = design.n_rows, q = design.n_cols;
+  vec mu = exp(eta);
+  mat H = zeros<mat>(q, q);
+  for(int j = 0; j < mi; j++){
+    rowvec xjT = design.row(j);
+    vec xj = xjT.t();
+    H += (-shape * Y[j] / mu[j]) * xj * xjT;
+  }
+  return H;
+}
+
+// TODO:: Hessian for Gamma with quadrature.
+
+mat get_long_hess(const vec& eta, const vec& Y, const std::string family, const double sigma, 
+                  const mat& design){
+  int p = design.n_cols;
+  mat H = zeros<mat>(p, p);
+  if(family == "poisson"){
+    H += Hess_eta_poiss(eta, Y, design);
+  }else if(family == "gaussian"){
+    H += Hess_eta_gauss(eta, Y, sigma, design);
+  }else if(family == "binomial"){
+    H += Hess_eta_binom(eta, Y, design);
+  }else if(family == "genpois"){
+    H += Hess_eta_genpois(eta, Y, sigma, design);
+  }else if(family == "Gamma"){
+    H += Hess_eta_Gamma(eta, Y, sigma, design);
+  }
+  return H;
+}
+
+mat get_long_hess_quad(const vec& eta, const vec& Y, const std::string family, const double sigma,
+                       const mat& design, const vec& tau, const vec& w, const vec& v){
+  int p = design.n_cols;
+  mat H = zeros<mat>(p, p);
+  if(family == "poisson"){
+    H += Hess_eta_poiss_quad(eta, Y, design, tau);
+  }else if(family == "binomial"){
+    H += Hess_eta_binom_quad(eta, Y, design, tau, w, v);
+  }else if(family == "genpois"){
+    H += Hess_eta_genpois_quad(eta, Y, sigma, design, tau, w, v);
+  }else if(family == "Gamma"){
+    H += Hess_eta_Gamma(eta, Y, sigma, design); //, tau2, w, v); // NYI
+  }
+  return H;
+}
+
+//' @keywords internal
 // [[Rcpp::export]]
-mat Hbeta(const vec& beta, const List& X, const List& Y, const List& Z, const List& W,
-          const vec& b, const List& sigma, const List& family, 
-          const List& beta_inds, const List& b_inds, const uword& K,
-          const List& tau, const vec& w, const vec& v){
-  uword P = beta.size();
-  mat Hessian(P, P);
-  List eta = make_eta(X, Z, beta, b, beta_inds, b_inds);
-  for(uword k = 0; k < K; k++){
-    vec Yk = Y[k], sigmak = sigma[k], tauk = tau[k], etak = eta[k];
-    mat Wk = W[k], Xk = X[k];
-    uvec k_inds = beta_inds[k];
-    std::string ff = family[k];
-    if(ff == "gaussian"){
-      Hessian.submat(k_inds, k_inds) = Xk.t() * d2_eta_Gaussian(Yk, as_scalar(sigmak)) * Xk;
-    }else if(ff == "poisson"){
-      Hessian.submat(k_inds, k_inds) = form_hess(d2_eta_Poisson(etak, Yk), Xk);
-    }else if(ff == "binomial"){
-      Hessian.submat(k_inds, k_inds) = form_hess(d2_eta_Binomial(etak, tauk, w, v), Xk);
-    }else if(ff == "negbin"){
-      vec phi = trunc_exp(Wk * sigmak);
-      Hessian.submat(k_inds, k_inds) = form_hess(d2_eta_NegBin(etak, Yk, phi, tauk, w, v), Xk);
-    }else if(ff == "Gamma"){
-      vec shape = trunc_exp(Wk * sigmak);
-      Hessian.submat(k_inds, k_inds) = form_hess(d2_eta_Gamma(etak, Yk, shape, tauk, w, v), Xk);
-    }else if(ff == "genpois"){
-      vec phi = Wk * sigmak;
-      Hessian.submat(k_inds, k_inds) = form_hess(d2_eta_GenPois(etak, Yk, phi, tauk, w, v), Xk);
+arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& b, 
+                const List& sigma, const List& family, const List& beta_inds, const int K,
+                const bool& quad, const List& tau, const arma::vec& w, const arma::vec& v){
+  int P = beta.size();
+  mat H = zeros<mat>(P, P);
+  for(int k = 0; k < K; k++){
+    vec Yk = Y[k];
+    mat Xk = X[k];
+    mat Zk = Z[k];
+    std::string f = family[k];
+    double sigmak = sigma[k];
+    uvec beta_k_inds = beta_inds[k];
+    int start = min(beta_k_inds), end = max(beta_k_inds);
+    vec beta_k = beta.elem(beta_k_inds); // Ensure indexing from zero!!
+    vec b_k = b[k];
+    vec eta = Xk * beta_k + Zk * b_k;
+//    if(f == "gaussian" || !quad || f != "binomial"){
+    if(f == "poisson" || f == "binomial"){
+      vec tauk = tau[k];
+      H(span(start, end), span(start, end)) = get_long_hess_quad(eta, Yk, f, sigmak, Xk,
+        tauk, w, v);
     }else{
-      Rcout << "Unknown family " << ff << std::endl;
-      continue;
+      H(span(start, end), span(start, end)) = get_long_hess(eta, Yk, f, sigmak, Xk);
     }
-  }
-  return Hessian;
+  } // Return the (psuedo-) block diagonal.
+  return H;
 }
 
-// Update to shape/dispersion parameter sigma -----------------------------
+// Updates for dispersion parameters --------------------------------------
 
-// Take three by central differencing (via pracma::grad and pracma::hessian)
-// Gamma, shape = exp{W * sigma}
+//' @keywords internal
 // [[Rcpp::export]]
-double appxE_Gammasigma(const vec& sigma, const vec& eta, const vec& Y, const vec& tau, const mat& W,
-                        const vec& w, const vec& v){
-  uword gh = w.size();
-  vec shape = trunc_exp(W * sigma);
-  double out = 0.;
-  for(uword l = 0; l < gh; l++){
-    vec this_mu = trunc_exp(eta + tau * v[l]);
-    out += w[l] * ll_Gamma(this_mu, Y, shape);
-  }
-  return out;
-}
-
-// NegBin, (over)dispersion = exp{W * sigma}
-// [[Rcpp::export]]
-double appxE_NegBinsigma(const vec& sigma, const vec& eta, const vec& Y, const vec& tau, const mat& W,
-                         const vec& w, const vec& v){
-  uword gh = w.size(), m = eta.size();
-  vec phi = trunc_exp(W * sigma), Exp(m);
-  vec p1 = lgamma(Y + phi) - lgamma(phi) - lgamma(Y + 1.) + phi % log(phi);
-  for(uword l = 0; l < gh; l++){
-    vec this_eta = eta + tau * v[l];
-    Exp += w[l] * log(trunc_exp(this_eta) + phi);
-  }
-  return sum(p1 - (phi + Y) % Exp);
-}
-
-// GenPois, dispersion = W * sigma
-// [[Rcpp::export]]
-double appxE_GenPoissigma(const vec& sigma, const vec& eta, const vec& Y, const vec& tau, const mat& W,
-                          const vec& w, const vec& v){
-  uword gh = w.size(), m = eta.size();
-  vec phi = W * sigma, Exp(m);
-  vec lfac = lgamma(Y + 1.), 
-      frac_rhs = phi % Y/(1. + phi),
-      frac_lhs = trunc_exp(eta + square(tau)/2.);
-  for(uword l = 0; l < gh; l++){
-    vec this_eta = eta + tau * v[l];
-    Exp += w[l] * log(trunc_exp(this_eta) + phi % Y);
-  }
-  return sum(eta + (Y - 1.) % Exp - Y % log(1. + phi) - lfac - (frac_lhs % frac_rhs));
-}
-
-// Update Gaussian by finding contribution from each individual i.d.
-// Gaussian, variance = sigma (i.e. sigma \equiv simga^2_\epsilon)
-// [[Rcpp::export]]
-double sigma2_Gaussian_update(const arma::vec& eta, const arma::vec& Y, const arma::vec& tau, const arma::vec& w, const arma::vec& v){
-  uword gh = w.size();
+double vare_update(const arma::mat& X, const arma::vec& Y, const arma::mat& Z, const arma::vec& b, 
+                   const arma::vec& beta, const arma::vec& tau, const arma::vec& w, const arma::vec& v){
+  vec eta = X * beta + Z * b;
+  int gh = w.size();
   double out = 0.0;
-  for(uword l = 0; l < gh; l++){
+  for(int l = 0; l < gh; l++){
     vec rhs = Y - eta - tau * v[l];
     out += w[l] * as_scalar(rhs.t() * rhs);
   }
   return out;
 }
 
-// The baseline hazard ----------------------------------------------------
-// Update to \lambda (i.e. before usage in gamma update)
-//' @keywords internal, this assumes mu_surv, tau_surv not calculated prior.
-// [[Rcpp::export]]
-arma::vec lambda_hat(Rcpp::List b, Rcpp::List Fu, Rcpp::List SS, Rcpp::List Sigma,
-                     arma::vec& gamma_rep, arma::vec& zeta, 
-                     arma::vec& nev, arma::vec& w, arma::vec& v){
-  uword n = b.size(), gh = w.size(), unique_times = nev.size();
-  vec out = zeros<arma::vec>(unique_times);
-  mat g = diagmat(gamma_rep);
-  
-  for(uword i = 0; i < n; i++){
-   
-   vec b_i = b[i];
-   mat SS_i = SS[i], Fu_i = Fu[i], S_i = Sigma[i];
-   mat Q = Fu_i * g;
-   mat A = Q * S_i * Q.t();
-   
-   // mu, tau.
-   vec mu = exp(SS_i * zeta + Q * b_i), tau = sqrt(diagvec(A));
-   
-   int ui = Fu_i.n_rows;
-   for(uword l = 0; l < gh; l++){
-     out.subvec(0, ui - 1) += w[l] * mu % exp(tau * v[l]);
-   }
-   
-  }
-  return nev/out;
-}
-
-// Update to \lambda (i.e. after gamma updated)
 //' @keywords internal
 // [[Rcpp::export]]
-arma::vec lambda_update(Rcpp::List b, Rcpp::List Fu, Rcpp::List SS, Rcpp::List Sigma,
-                        Rcpp::List survtimes,
-                        arma::vec& gamma_rep, arma::vec& zeta, 
-                        arma::vec& nev, arma::vec& w, arma::vec& v){
-  uword n = b.size(), gh = w.size(), unique_times = nev.size();
-  vec out = zeros<arma::vec>(unique_times);
-  mat g = diagmat(gamma_rep);
- 
- for(uword i = 0; i < n; i++){
-   
-   vec b_i = b[i], st_i = survtimes[i];
-   mat SS_i = SS[i], Fu_i = Fu[i], S_i = Sigma[i];
-   mat Q = Fu_i * g;
-   mat A = Q * S_i * Q.t();
-   
-   int num_survived = st_i.size();
-   if(num_survived == 0) continue;
-   
-   // mu, tau.
-   vec mu = exp(SS_i * zeta + Q * b_i), tau = sqrt(diagvec(A));
-   
-   int ui = Fu_i.n_rows;
-   for(uword l = 0; l < gh; l++){
-     out.subvec(0, ui - 1) += w[l] * mu % exp(tau * v[l]);
-   }
-   
- }
- return nev/out;
+List phi_update(const arma::vec& b, const arma::mat& X, const arma::vec& Y, const arma::mat& Z, 
+                const arma::vec& beta, const double phi,
+                const arma::vec& w, const arma::vec& v, const arma::vec& tau){
+  int gh = w.size();
+  vec eta = X * beta + Z * b;
+  vec tau2 = tau;
+  double rhs = sum(Y)/(1.+phi), lhs = sum(Y)/(pow(1.+phi,2.)), Score = 0., Hess = 0.;
+  for(int l = 0; l < gh; l++){
+    vec eta_l = eta + tau2 * v[l];
+    vec mu = exp(eta_l);
+    Score += w[l] * sum(
+      ((Y - 1.) % Y)/(mu + phi * Y) + (mu - Y)/(pow(phi + 1., 2.))
+    );
+    Hess += w[l] * sum(
+      (2. * (Y - mu))/(pow(phi + 1., 3.)) - (square(Y) % (Y - 1.))/(square(mu + phi * Y))
+    );
+  }
+  return List::create(_["Score"] = Score - rhs, _["Hessian"] = lhs + Hess);
+}  
+
+// Updates for the survival pair (gamma, zeta) ----------------------------
+// Define the conditional expectation and then take Score AND Hessian via forward differencing
+//' @keywords internal
+// [[Rcpp::export]]
+double Egammazeta(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
+		   arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi,
+		   arma::vec& haz, int Delta, arma::vec& w, arma::vec& v, Rcpp::List b_inds, int K){
+	int gh = w.size(), q = Fu.n_cols; 
+	vec g = gammazeta.head(K);
+	vec z = gammazeta.subvec(K, gammazeta.size() - 1);
+	vec gammas = vec(q);
+	for(int k = 0; k < K; k++){
+		double gk = g[k];
+		uvec bk = b_inds[k];
+		gammas.elem(bk) += gk;
+	}
+	rowvec gammas2 = gammas.t();
+	mat Fugamma2 = Fu.each_row() % gammas2;
+	mat A = Fugamma2 * Sigma * Fugamma2.t();
+	vec mu = SS * z + Fu * (b % gammas);
+	vec tau = sqrt(diagvec(A));
+	double rhs = 0.;
+	for(int l = 0; l < gh; l++){
+		rhs += w[l] * as_scalar(haz.t() * exp(mu + v[l] * tau));
+	}
+	return as_scalar(Delta * (S * z + Fi * (b % gammas))) - rhs;
 }
 
-// (gamma, zeta) ----------------------------------------------------------
-// [[Rcpp::export]]
-double Egammazeta(const vec& gammazeta, const vec& b, const mat& Sigma,
-                  const rowvec& S, const mat& SS, const mat& Fu, const rowvec& Fi,
-                  const vec& haz, const int Delta, const vec& w, const vec& v, 
-                  const List& inds, const uword K){
-  uword gh = w.size(), q = Fu.n_cols;
-  vec g = gammazeta.head(K), z = gammazeta.subvec(K, gammazeta.size() - 1), gammas(q);
-  for(uword k = 0; k < K; k++){
-    double gk = g[k];
-    uvec inds_k = inds[k];
-    gammas.elem(inds_k) += gk;
-  }
-  mat gmat = diagmat(gammas);
-  mat Q = Fu * gmat;
-  mat A = Q * Sigma * Q.t();
-  vec mu = SS * z + Q * b, tau = sqrt(diagvec(A));
-  double store = 0.;
-  for(uword l = 0; l < gh; l++){
-    store += w[l] * as_scalar(haz.t() * exp(mu + tau * v[l]));
-  }
-  return as_scalar(Delta * (S * z + Fi * (b % gammas))) - store;
-}
 
 //' @keywords internal
- // [[Rcpp::export]]
- arma::vec Sgammazeta(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
-                      arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi,
-                      arma::vec& haz, int Delta, arma::vec& w, arma::vec& v, Rcpp::List b_inds, int K, double eps){
+// [[Rcpp::export]]
+arma::vec Sgammazeta(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
+                     arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi,
+                     arma::vec& haz, int Delta, arma::vec& w, arma::vec& v, Rcpp::List b_inds, int K, long double eps){
   int ps = gammazeta.size();
-  vec out = vec(ps), epsvec = vec(ps);
+  vec out = vec(ps);
+  double f0 = Egammazeta(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
   for(int i = 0; i < ps; i++){
-   epsvec[i] = eps;
-   double xi = 1.;//std::max(1.0, std::abs(gammazeta[i]));
-   vec ge1 = gammazeta + xi * epsvec, ge2 = gammazeta - xi * epsvec;
-   double f1 = Egammazeta(ge1, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
-          f2 = Egammazeta(ge2, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
-   out[i] = (f1 - f2) / (2 * eps);
-   epsvec[i] = 0.;
+    vec ge = gammazeta;
+    double xi = std::max(ge[i], 1.0);
+    ge[i] = gammazeta[i] + xi * eps;
+    double fdiff = Egammazeta(ge, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K) - f0;
+    out[i] = fdiff/(ge[i]-gammazeta[i]);
   }
   return out;
 }
@@ -375,43 +577,240 @@ double Egammazeta(const vec& gammazeta, const vec& b, const mat& Sigma,
 // [[Rcpp::export]]
 arma::mat Hgammazeta(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
                      arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi,
-                     arma::vec& haz, int Delta, arma::vec& w, arma::vec& v, Rcpp::List b_inds, int K, double eps){
+                     arma::vec& haz, int Delta, arma::vec& w, arma::vec& v, Rcpp::List b_inds, int K, 
+                     long double Seps, long double Heps){
   int ps = gammazeta.size();
   mat out = zeros<mat>(ps, ps);
-  vec epsvec = vec(ps, fill::value(eps));
-  mat epsmat = diagmat(epsvec);
-  double eps2 = pow(eps, 2.), eps42 = 4. * pow(eps, 2.);
-  double f0 = Egammazeta(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
-  for(int i = 0; i < (ps - 1); i++){
-    vec eps_i = epsmat.col(i);
-    // Diagonal terms
-    vec ge_i1 = gammazeta + eps_i, ge_i2 = gammazeta - eps_i;
-    double f1 = Egammazeta(ge_i1, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
-           f2 = Egammazeta(ge_i2, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
-    out(i,i) = (f1 - 2. * f0 + f2)/eps2;
+  vec f0 = Sgammazeta(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, Seps);
+  for(int i = 0; i < ps; i++){
+    vec ge = gammazeta;
+    double xi = std::max(ge[i], 1.0);
+    ge[i] = gammazeta[i] + xi * Heps;
+    vec fdiff = Sgammazeta(ge, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, Seps) - f0;
+    out.col(i) = fdiff/(ge[i] - gammazeta[i]);
+  }
+  return 0.5 * (out + out.t());
+}
+
+//' @keywords internal
+// [[Rcpp::export]]
+arma::vec Sgammazeta_cd(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
+                        arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi,
+                        arma::vec& haz, int Delta, arma::vec& w, arma::vec& v, Rcpp::List b_inds, int K, double eps){
+  int ps = gammazeta.size();
+  vec out = vec(ps), epsvec = vec(ps);
+  for(int i = 0; i < ps; i++){
+    epsvec[i] = eps;
+    double xi = 1.;//std::max(1.0, std::abs(gammazeta[i]));
+    vec ge1 = gammazeta + xi * epsvec, ge2 = gammazeta - xi * epsvec;
+    double f1 = Egammazeta(ge1, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
+           f2 = Egammazeta(ge2, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
+    
+    out[i] = (f1 - f2) / (2 * eps);
+    epsvec[i] = 0.;
+  }
+  return out;
+}
+
+//' @keywords internal
+// [[Rcpp::export]]
+ arma::mat Hgammazeta_cd(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
+                         arma::rowvec& S, arma::mat& SS, arma::mat& Fu, arma::rowvec& Fi,
+                         arma::vec& haz, int Delta, arma::vec& w, arma::vec& v, Rcpp::List b_inds, int K, double eps){
+   int ps = gammazeta.size();
+   mat out = zeros<mat>(ps, ps);
+   vec epsvec = vec(ps, fill::value(eps));
+   mat epsmat = diagmat(epsvec);
+   // epsmat.print();
+   double f0 = Egammazeta(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
+   for(int i = 0; i < (ps - 1); i++){
+     vec eps_i = epsmat.col(i);
+     double xi_i = 1. ;// std::max(1.0, std::abs(gammazeta[i]));
+     // Diagonal terms
+     vec ge_i1 = gammazeta + xi_i * eps_i, ge_i2 = gammazeta - xi_i * eps_i;
+     double f1 = Egammazeta(ge_i1, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
+            f2 = Egammazeta(ge_i2, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
+     out(i,i) = (f1 - 2. * f0 + f2)/pow(eps, 2.);
     // Off-diagonal
     for(int j = (i + 1); j < ps; j++){
       vec eps_j = epsmat.col(j);
-      vec ge_ij1 = gammazeta + eps_i + eps_j,
-          ge_ij2 = gammazeta + eps_i - eps_j,
-          ge_ij3 = gammazeta - eps_i + eps_j,
-          ge_ij4 = gammazeta - eps_i - eps_j;
+      double xi_j = 1.; //std::max(1.0, std::abs(gammazeta[j]));
+      vec ge_ij1 = gammazeta + xi_i * eps_i + xi_j * eps_j,
+          ge_ij2 = gammazeta + xi_i * eps_i - xi_j * eps_j,
+          ge_ij3 = gammazeta - xi_i * eps_i + xi_j * eps_j,
+          ge_ij4 = gammazeta - xi_i * eps_i - xi_j * eps_j;
       double f1 = Egammazeta(ge_ij1, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
              f2 = Egammazeta(ge_ij2, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
              f3 = Egammazeta(ge_ij3, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
              f4 = Egammazeta(ge_ij4, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
-      out(i,j) = (f1 - f2 - f3 + f4)/eps42;
+      out(i,j) = (f1 - f2 - f3 + f4)/(4. * pow(eps, 2.));
       out(j,i) = out(i,j);
     }
+   }
+   // Calculate ps, psth item
+   int last = ps-1;
+   vec eps_i = epsmat.col(ps-1);
+   double xi_i = 1.;//std::max(1.0, std::abs(gammazeta[last]));
+   vec ge_i1 = gammazeta + xi_i * eps_i, ge_i2 = gammazeta - xi_i * eps_i;
+   double f1 = Egammazeta(ge_i1, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
+          f2 = Egammazeta(ge_i2, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
+   out(last, last) = (f1 - 2. * f0 + f2)/pow(eps, 2.);
+   return out;
+ }
+
+
+//' @keywords internal
+// [[Rcpp::export]]
+arma::mat lambdaUpdate(Rcpp::List survtimes, arma::mat& ft, arma::vec& gamma, arma::vec& zeta,
+                       Rcpp::List S, Rcpp::List Sigma, Rcpp::List b, 
+                       arma::vec& w, arma::vec& v, Rcpp::List b_inds){
+  int gh = w.size(), n = S.size(), K = b_inds.size(), q = ft.n_cols;
+  // Initialise store
+  mat store = zeros<mat>(ft.n_rows, n);
+  // Produce gamma vec
+  vec gammas = vec(q);
+  for(int k = 0; k < K; k++){   
+    double gk = gamma.at(k);
+    uvec bk = b_inds[k];
+    gammas.elem(bk) += gk;
   }
-  // Calculate ps, psth item
-  int last = ps-1;
-  vec eps_i = epsmat.col(ps-1);
-  vec ge_i1 = gammazeta + eps_i, ge_i2 = gammazeta - eps_i;
-  double f1 = Egammazeta(ge_i1, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K),
-         f2 = Egammazeta(ge_i2, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K);
-  out(last, last) = (f1 - 2. * f0 + f2)/eps2;
-  return out;
+  mat ftg = ft.each_row() % gammas.t();
+  // Loop over subjects
+  for(int i = 0; i < n; i++){ // This could be rewritten; don't have the time currently.
+    vec survtimes_i = survtimes[i];
+    mat Sigma_i = Sigma[i];
+    vec b_i = b[i];
+    rowvec S_i = S[i];
+    mat A = ftg * Sigma_i * ftg.t();
+    int ui = survtimes_i.size();
+    if(ui == 0) continue;
+    // Loop over subject i's survived failure times.
+    for(int j = 0; j < ui; j++){
+      rowvec Fst = ft.row(j), Fstg = ftg.row(j);
+      double mu = as_scalar(exp(S_i * zeta + Fst * (gammas % b_i)));
+      double tau = sqrt(A.at(j,j));
+      // Loop over GH nodes.
+      for(int l = 0; l < gh; l++){
+        store(j, i) += as_scalar(w[l] * mu * exp(v[l] * tau));
+      }
+    }
+  }
+  return store;
 }
 
+// This is a lot slower than simply calculating everything within the function
+// (i.e. _noprecalc). Kept in this .cpp file for now, though...
+arma::vec lambdaUpdate_precalc(Rcpp::List mu_surv, Rcpp::List tau_surv, arma::vec& nev,
+                               arma::vec& w, arma::vec& v){
+  int n = mu_surv.size(), gh = w.size(), unique_times = nev.size();
+  vec out = zeros<arma::vec>(unique_times);
+  
+  for(int i = 0; i < n; i++){
+    
+    vec mu = mu_surv[i], tau = tau_surv[i];
+    int ui = mu.size();
+    
+    for(int l = 0; l < gh; l++){
+      out.subvec(0, ui - 1) += w[l] * mu % exp(tau * v[l]);
+    }
+    
+  }
+  
+  return nev/out;
+}
 
+//' @keywords internal, this assumes mu_surv, tau_surv not calculated prior.
+ // [[Rcpp::export]]
+ arma::vec lambdaUpdate_noprecalc(Rcpp::List b, Rcpp::List Fu, Rcpp::List SS, Rcpp::List Sigma,
+                                  arma::vec& gamma_rep, arma::vec& zeta, 
+                                  arma::vec& nev,
+                                  arma::vec& w, arma::vec& v){
+   int n = b.size(), gh = w.size(), unique_times = nev.size();
+   vec out = zeros<arma::vec>(unique_times);
+   mat g = diagmat(gamma_rep);
+   
+   for(int i = 0; i < n; i++){
+     
+     vec b_i = b[i];
+     mat SS_i = SS[i], Fu_i = Fu[i], S_i = Sigma[i];
+     mat Q = Fu_i * g;
+     mat A = Q * S_i * Q.t();
+     
+     // mu, tau.
+     vec mu = exp(SS_i * zeta + Q * b_i), tau = sqrt(diagvec(A));
+     
+     int ui = Fu_i.n_rows;
+     for(int l = 0; l < gh; l++){
+       out.subvec(0, ui - 1) += w[l] * mu % exp(tau * v[l]);
+     }
+     
+   }
+   
+   return nev/out;
+ }
+
+//' @keywords internal
+// [[Rcpp::export]]
+arma::mat joint_density_sdb(const arma::vec& b, const List Y, const List X, const List Z,                  // Longitudinal + Random effects.
+                            const arma::vec& beta, const arma::mat& D, const List sigma, const List family,
+                            const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, const double l0i,
+                            const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, 
+                            const arma::vec& gamma_rep, const arma::vec& zeta,
+                            const List beta_inds, const List b_inds, const int K, double eps){
+  int n = b.size();
+  mat out = zeros<mat>(n, n);
+  vec f0 = joint_density_ddb(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K);
+  for(int i = 0; i < n; i++){
+    vec bb = b;
+    double xi = std::max(b[i], 1.0);
+    bb[i] = b[i] + (eps * xi);
+    vec fdiff = joint_density_ddb(bb, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K) - f0;
+    out.col(i) = fdiff/(bb[i]-b[i]);
+  }
+  return 0.5 * (out + out.t()); // Ensure symmetry
+}
+
+//' @keywords internal
+// [[Rcpp::export]]
+List metropolis(const arma::vec& b, const List Omega, const List Y, const List X, const List Z,
+                const List family, const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, const double l0i,
+                const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, 
+                const arma::vec& gamma_rep, const List beta_inds, const List b_inds, const int K, const int q,
+                const int burnin, const int N, const arma::mat& Sigma, const double tune){
+  // Unpack Omega
+  mat D = Omega["D"];
+  List sigma = Omega["sigma"];
+  vec beta = Omega["beta"];
+  vec zeta = Omega["zeta"];
+  // MC stuff
+  int iters = burnin + N;
+  mat out = mat(q, iters);
+  // Start
+  int j = 1, num_accepts = 0;
+  while(j < iters){
+    double U = randu();
+    vec b_current = out.col(j - 1);
+    vec b_proposal = mvnrnd(b_current, tune * Sigma);
+    double logf_current = -1. * joint_density(b_current, Y, X, Z, beta, D, sigma, family, Delta,
+                                              S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K);
+    double logf_proposal = -1. * joint_density(b_proposal, Y, X, Z, beta, D, sigma, family, Delta,
+                                               S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K);
+    double P = std::min(exp(logf_proposal - logf_current), 1.);
+    if(U < P){
+      b_current = b_proposal;
+      if(j > burnin) num_accepts ++;
+    }
+    out.col(j) = b_current;
+    j++ ;
+  }
+  
+  // Remove burnin -----------
+  out.shed_cols(0, burnin - 1);
+  return List::create(_["walks"] = out,
+                      _["burnin"] = burnin,
+                      _["N"] = N,
+                      _["AcceptanceRate"] = (double)num_accepts/(double)N);
+}
+/* *****
+ * END-*
+ * *****/
