@@ -373,8 +373,8 @@ joint <- function(long.formulas, surv.formula,
     out$REs <- REs
   }else{
     REs <- do.call(rbind, b)
-    attr(REs, 'Var') <- do.call(rbind, lapply(II$Sigma, diag))
-    attr(REs, 'vcov') <- do.call(rbind, lapply(II$Sigma, vech))
+    attr(REs, 'Var') <- do.call(rbind, lapply(update$Sigma, diag))
+    attr(REs, 'vcov') <- do.call(rbind, lapply(update$Sigma, vech))
     out$REs <- REs
   }
   comp.time <- round(proc.time()[3] - start.time, 3)
