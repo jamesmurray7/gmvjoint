@@ -2,6 +2,9 @@
 #' @keywords internal
 vech <- function(x) x[lower.tri(x, T)]
 
+#' @keywords internal
+is.not.SPD <- function(x) any(eigen(x)$values < 0) | det(x) <= 0
+
 # Parsing input formula
 #' @keywords internal
 #' @importFrom glmmTMB splitForm

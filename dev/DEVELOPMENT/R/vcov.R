@@ -16,10 +16,10 @@ obs.emp.I <- function(Omega, dmats, surv, sv, family,
           beta_inds = inds$Cpp$beta, b_inds = inds$Cpp$b, K = dmats$K,
           method = 'BFGS', hessian = TRUE)
   }, b = b, Y = dmats$Y, X = dmats$X, Z = dmats$Z, W = dmats$W, Delta = surv$Delta, 
-  S = sv$S, Fi = sv$Fi, l0i = sv$l0i, SS = sv$SS, Fu = sv$Fu, l0u = sv$l0u)
+  S = sv$S, Fi = sv$Fi, l0i = l0i, SS = sv$SS, Fu = sv$Fu, l0u = l0u)
   
-  b.hat <- lapply(b.update, el, 1)
   Sigma <- lapply(b.update, function(x) solve(x$hessian))
+  b.hat <- lapply(b.update, el, 1)
   
   SigmaSplit <- lapply(Sigma, function(x) lapply(inds$R$b, function(y) as.matrix(x[y,y])))
   
@@ -51,9 +51,16 @@ obs.emp.I <- function(Omega, dmats, surv, sv, family,
     b = b.hat, S = Sigma,
     SIMPLIFY = TRUE)
   }
-  
+
   sD <- sapply(1:nrow(vech.indices), sDi)
   sD <- lapply(1:nrow(sD), function(x) sD[x, ]) # Cast to list
+  
+  # Below gets the same result
+  # postmult <- diag(1, nrow = sv$q, ncol = sv$q)
+  # postmult[postmult == 0] <- 2
+  # EbbT <- Map(function(b, S) S + tcrossprod(b), b = b.hat, S = Sigma)
+  # term <- lapply(EbbT, function(x) 0.5 * Dinv %*% x %*% Dinv - 0.5 * Dinv)
+  # sD <- lapply(term, function(x) vech(0.5 * (t(x) + x)) * vech(postmult))
   
   # \beta =====================================
   tau <- Map(make_tau, Z = dmats$Z, S = SigmaSplit)

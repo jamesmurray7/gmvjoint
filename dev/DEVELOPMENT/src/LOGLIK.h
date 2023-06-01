@@ -13,7 +13,7 @@ static double log2pi = log(2.0 * M_PI);
 // Gaussian
 double ll_Gaussian(const vec& mu, const vec& Y, const double& sigma){
   uword m_i = Y.size();
-  vec S(m_i, fill::value(sigma));
+  vec S(m_i, fill::value(sqrt(sigma)));
   vec out = log_normpdf(Y, mu, S); // This is from Armadillo
   return sum(out);
 }

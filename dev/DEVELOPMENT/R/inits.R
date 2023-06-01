@@ -120,17 +120,20 @@ Longit.inits <- function(long.formulas, disp.formulas, data, family){
 }
 
 #' @keywords internal
-.ToRanefForm <- function(time, random.formula){
+.ToRanefForm <- function(time, random.formula, inits.long.frame){
   if(attr(random.formula, 'special') == 'none'){
     out <- model.matrix(as.formula(paste0('~', random.formula)), as.data.frame(time))
   }else if(attr(random.formula, 'special') == 'spline'){
-    out <- model.matrix(as.formula(paste0('~', random.formula)), as.data.frame(time))
+    ww <- which(sapply(lapply(inits.long.frame, class), function(x) "basis"%in%x))
+    frame <- inits.long.frame[,ww]
+    # out <- model.matrix(as.formula(paste0('~', random.formula)), as.data.frame(time))
+    out <- predict(frame, time)
   }
   as.data.frame(out)
 }
 
 #' @keywords internal
-TimeVarCox <- function(data, b, surv, formulas, b.inds){
+TimeVarCox <- function(data, b, surv, formulas, b.inds, inits.long){
   # Prepare data
   Tvar <- surv$survtime; Dvar <- surv$status
   ss <- .ToStartStop(data, Tvar); q <- ncol(b) # send to Start-Stop (ss) format
@@ -142,7 +145,9 @@ TimeVarCox <- function(data, b, surv, formulas, b.inds){
   ss3 <- ss3[!duplicated.matrix(ss3), ]
   
   # Create gamma variable
-  lhs <- lapply(formulas, function(x) .ToRanefForm(ss3[,'time1'], x$random))
+  lhs <- lapply(seq_along(formulas), function(x){
+    .ToRanefForm(ss3[,'time1'], formulas[[x]]$random, inits.long$fits[[x]]$frame)
+  })
   gamma <- lapply(1:K, function(k){
     unname(rowSums(lhs[[k]] * b[ss3$id, b.inds[[k]]]))
   })

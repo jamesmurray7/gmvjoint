@@ -65,7 +65,7 @@ double joint_density(const arma::vec& b,
     vec sigmak = sigma[k];
     vec eta_k = eta[k];
     if(f == "gaussian"){
-      ll += ll_Gaussian(eta_k, Yk, sqrt(as_scalar(sigmak)));
+      ll += ll_Gaussian(eta_k, Yk, as_scalar(sigmak));
     }else if(f == "binomial"){
       ll += ll_Binomial(trunc_exp(eta_k)/(1. + trunc_exp(eta_k)), Yk);
     }else if(f == "poisson"){
@@ -81,11 +81,13 @@ double joint_density(const arma::vec& b,
       ll += ll_Gamma(trunc_exp(eta_k), Yk, trunc_exp(W_k * sigmak)); 
     }
   }
-  uword q = b.size();
+  // uword q = b.size();
+  int q = b.size();
   rowvec zz = zeros<rowvec>(q);
   
   double ll_Ti = logfti(b, S, SS, Fi, Fu, l0i, haz, Delta, gamma_rep, zeta);
-  double ll_RE = as_scalar(dmvnrm_arma_fast(b.t(), zz, D, true));
+  // double ll_RE = as_scalar(dmvnrm_arma_fast(b.t(), zz, D, true));
+  double ll_RE = as_scalar(-(double)q/2. * log2pi - 0.5 * log(det(D)) - 0.5 * b.t() * D.i() * b);
   
   return -1.0 * (ll + ll_RE + ll_Ti);
 }

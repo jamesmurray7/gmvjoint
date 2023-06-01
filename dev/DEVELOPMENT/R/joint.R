@@ -198,7 +198,7 @@ joint <- function(long.formulas, surv.formula,
   conname <- names(con)
   con[(conname <- names(control))] <- control
   if(any(!names(control)%in%names(con))){
-    warning("Supplied control arguments do not match with possible names:\n", paste0(names(con), collapse=', '))
+    warning("Supplied control arguments do not match with possible names:\n", paste0(conname, collapse=', '))
   }
   
   # Ensure supplied families are character, not functions
@@ -246,7 +246,7 @@ joint <- function(long.formulas, surv.formula,
     Cpp = list(b = lapply(b.inds, function(x) x - 1), beta = lapply(beta.inds, function(x) x - 1))
   )
   
-  inits.surv <- TimeVarCox(data, inits.long$b, surv, formulas, b.inds)
+  inits.surv <- TimeVarCox(data, inits.long$b, surv, formulas, b.inds, inits.long)
   
   # Longitudinal parameters
   beta <- inits.long$beta.init
@@ -260,7 +260,7 @@ joint <- function(long.formulas, surv.formula,
   gamma <- inits.surv$inits[grepl('gamma\\_', names(inits.surv$inits))]
   
   # Survival data objects 
-  sv <- surv.mod(surv, formulas, inits.surv$l0.init)
+  sv <- surv.mod(surv, formulas, inits.surv$l0.init, inits.long)
   
   # Parameter vector and list ----
   Omega <- list(D=D, beta = beta, sigma = sigma, gamma = gamma, zeta = zeta)
@@ -272,7 +272,7 @@ joint <- function(long.formulas, surv.formula,
   # Gauss-Hermite Quadrature ----
   GH <- statmod::gauss.quad.prob(con$gh.nodes, 'normal', sigma = con$gh.sigma)
   w <- GH$w; v <- GH$n
-  
+
   # Begin EM ----
   diff <- 100; iter <- 0;
   # Convergence criteria setup
@@ -345,6 +345,9 @@ joint <- function(long.formulas, surv.formula,
                               assigned.id = id.assign$assign)
   out$ModelInfo <- ModelInfo
   
+  if(is.not.SPD(coeffs$D)) warning("Covariance matrix D is not positive semi-definite at convergence,",
+                                   " potential model misspecification or lower tolerance options required.")
+  
   # Post processing ----
   if(con$post.process){
     if(con$verbose) cat('Post-processing...\n')
@@ -373,8 +376,8 @@ joint <- function(long.formulas, surv.formula,
     out$REs <- REs
   }else{
     REs <- do.call(rbind, b)
-    attr(REs, 'Var') <- do.call(rbind, lapply(update$Sigma, diag))
-    attr(REs, 'vcov') <- do.call(rbind, lapply(update$Sigma, vech))
+    attr(REs, 'Var') <- do.call(rbind, lapply(II$Sigma, diag))
+    attr(REs, 'vcov') <- do.call(rbind, lapply(II$Sigma, vech))
     out$REs <- REs
   }
   comp.time <- round(proc.time()[3] - start.time, 3)
@@ -382,7 +385,7 @@ joint <- function(long.formulas, surv.formula,
                         `Post processing` = if(con$post.process) unname(postprocess.time) else NULL,
                         `Total Computation time` = unname(comp.time),
                         `iterations` = iter)
-  if(con$post.process) sv <- surv.mod(surv, formulas, l0)
+  if(con$post.process) sv <- surv.mod(surv, formulas, l0, inits.long)
   dmats <- list(long = dmats, surv = sv, ph = surv)
   if(con$return.dmats) out$dmats <- dmats
   
