@@ -106,7 +106,7 @@ summary.joint <- function(object, ...){
     responses = responses,
     families = families,
     long.formulas = long.formulas, surv.formula = surv.formula,
-    nobs = nobs, n = n, nev = nev,
+    nobs = nobs, n = n, nev = nev, ModelInfo = M,
     # Coefficients
     Longits = Longits, Survs = Survs, haz = haz, SE = SE, D = D,
     et = et, iter = iter, ll = ll
@@ -121,11 +121,20 @@ summary.joint <- function(object, ...){
 print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   if(!inherits(x, 'summary.joint')) stop("Only usable with object of class 'summary.joint'.")
   .round <- function(X) round(X, digits) # Show all to <digits> only.
-  K <- length(x$families)
+  M <- x$ModelInfo
+  K <- M$K
   
   # Print data information
-  cat(sprintf("\nNumber of subjects: %d\n", x$n))
-  cat(sprintf("Number of events: %d (%.2f%%)\n", x$nev, 100 * x$nev/x$n))
+  cat(sprintf("\nNumber of subjects: %d\n", M$n))
+  cat(sprintf("Number of events: %d (%.2f%%)\n", M$nev, 100 * M$nev/M$n))
+  cat(sprintf("Number of responses: %d; dimension of random effects: %d\n", K, M$Pcounts$q))
+  nobs <- M$mi[1,]
+  qnobs <- quantile(nobs)
+  if(qnobs[3] == qnobs[2] && qnobs[3] == qnobs[4])
+    cat(sprintf("Median profile length: %d\n", qnobs[3]))
+  else
+    cat(sprintf("Median [IQR] profile length: %d [%d, %d]\n", qnobs[3], qnobs[2], qnobs[4]))
+  
   
   # Print log-likelihood
   cat("\nModel fit statistics ----\n")

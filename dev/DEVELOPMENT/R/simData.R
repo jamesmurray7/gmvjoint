@@ -37,6 +37,8 @@ rgenpois <- function(mu, phi){
     while(rand > kum){
       ans <- ans + 1
       kum <- kum + dgenpois(ans, mu[j], phi[j])
+      # For debugging
+      if(is.infinite(kum) || is.nan(kum)) cat(sprintf("NaN/Infinite kum: mu = %.2f, phi = %.2f", mu[j], phi[j]))
     }
     out[j] <- ans
   }
@@ -54,9 +56,9 @@ rgenpois <- function(mu, phi){
 #' @param fup the maximum follow-up time, such that t = [0, ..., fup] with length \code{ntms}. 
 #' In instances where subject \eqn{i} \emph{doesn't} fail before \code{fup}, their censoring
 #' time is set as \code{fup + 0.1}.
-#' @param family a \eqn{K}-list of families, see \strong{details}.
-#' @param sigma a \eqn{K}-vector of dispersion parameters corresponding to the order of 
-#' \code{family}; see \strong{details}.
+#' @param family a \eqn{K}-\code{list} of families, see \strong{details}.
+#' @param sigma a \eqn{K}-\code{list} of dispersion parameters corresponding to the order of 
+#' \code{family}, and matching \code{disp.formulas} specification; see \strong{details}.
 #' @param beta a \eqn{K \times 4} matrix specifying fixed effects for each \eqn{K} parameter, 
 #' in the order (Intercept), time, continuous, binary.
 #' @param D a positive-definite matrix specifying the variance-covariance matrix for the random
@@ -75,19 +77,25 @@ rgenpois <- function(mu, phi){
 #' used to generate the random effects. If specified, this t-distribution is used. If left
 #' at the default \code{dof=Inf} then the random effects are drawn from a multivariate normal
 #' distribution.
-#' @param random.formula allows user to specify if an intercept-and-slope (\code{~ time}) or 
-#' intercept-only (\code{~1}) random effects structure should be used. defaults to the former.
+#' @param random.formulas allows user to specify if an intercept-and-slope (\code{~ time}) or 
+#' intercept-only (\code{~1}) random effects structure should be used on a response-by-response
+#' basis. Defaults to an intercept-and-slope for all responses.
+#' @param disp.formulas allows user to specify the dispersion model simulated. Inteded use is
+#' to allow swapping between intercept only (the default) and a time-varying one (\code{~ time}).
+#' Note that this should be a \eqn{K}-\code{list} of formula objects, so if only one dispersion 
+#' model is wanted, then an intercept-only should be specified for remaining sub-models. The
+#' corresponding item in list of \code{sigma} parameters should be of appropriate size. Defaults
+#' to an intercept-only model.
 #' @param return.ranefs a logical determining whether the \emph{true} random effects should be 
 #' returned. This is largely for internal/simulation use. Default \code{return.ranefs = FALSE}.
-#'   
+#'
 #' @returns A list of two \code{data.frame}s: One with the full longitudinal data, and another 
 #' with only survival data. If \code{return.ranefs=TRUE}, a matrix of the true \eqn{b} values is
 #' also returned.
 #'
 #' @details \code{simData} simulates data from a multivariate joint model with a mixture of 
-#' families for each \eqn{K=1,\dots,3} response. Currently, the argument \code{random.formula}
-#' specifies the association structure for \strong{all} responses. The specification of 
-#' \code{family} changes requisite dispersion parameter, if applicable. The \code{family} list can
+#' families for each \eqn{K=1,\dots,3} response. The specification of \code{family} changes
+#' requisite dispersion parameter \code{sigma}, if applicable. The \code{family} list can
 #' (currently) contain: 
 #'   
 #'   \describe{
@@ -98,12 +106,15 @@ rgenpois <- function(mu, phi){
 #'   can be anything, as it doesn't impact simulation.}
 #'   \item{\code{"binomial"}}{Simulated with logit link, corresponding dispersion in \code{sigma} 
 #'   can be anything, as it doesn't impact simulation.}
+#'   \item{\code{"negbin"}}{Simulated with a log link, corresponding item in \code{sigma} will be
+#'   the \strong{overdispersion} defined on the log scale. Simulated variance is 
+#'   \eqn{\mu+\mu^2/\varphi}.}
 #'   \item{\code{"genpois"}}{Simulated with a log link, corresponding item in \code{sigma} will be
 #'   the \strong{dispersion}. Values < 0 correspond to under-dispersion, and values > 0 over-
 #'   dispersion. See \code{\link{rgenpois}} for more information. Simulated variance is 
 #'   \eqn{(1+\varphi)^2\mu}.}
 #'   \item{\code{"Gamma"}}{Simulated with a log link, corresponding item in \code{sigma} will be
-#'   the \strong{shape}.}
+#'   the \strong{shape} parameter, defined on the log-scale.}
 #'   
 #'   }
 #'   
@@ -132,12 +143,13 @@ rgenpois <- function(mu, phi){
 #'
 #' @examples
 #' 
+#' 
 #' # K = 3 mixture of families with dispersion parameters
 #' beta <- do.call(rbind, replicate(3, c(2, -0.1, 0.1, -0.2), simplify = FALSE))
 #' gamma <- c(0.3, -0.3, 0.3)
 #' D <- diag(c(0.25, 0.09, 0.25, 0.05, 0.25, 0.09))
-#' family <- list('gaussian', 'genpois', 'Gamma')
-#' sigma <- c(.16, 1.5, 1.5)
+#' family <- list('gaussian', 'genpois', 'negbin')
+#' sigma <- list(.16, 1.5, log(1.5))
 #' sim.data <- simData(ntms=15, family = family, sigma = sigma, beta = beta, D = D, gamma = gamma,
 #'                     theta = c(-3, 0.2), zeta = c(0,-.2))
 #' 
@@ -146,9 +158,18 @@ rgenpois <- function(mu, phi){
 #' gamma <- c(-0.75, 0.3, -0.6, 0.5)
 #' D <- diag(c(0.25, 0.09, 0.25, 0.05, 0.25, 0.09, 0.16, 0.02))
 #' family <- list('gaussian', 'poisson', 'binomial', 'gaussian')
-#' sigma <- c(.16, 0, 0, .05)
+#' sigma <- list(.16, 0, 0, .05) # 0 can be anything here, as it is ignored internally.
 #' sim.data <- simData(ntms=15, family = family, sigma = sigma, beta = beta, D = D, gamma = gamma,
 #'                     theta = c(-3, 0.2), zeta = c(0,-.2))
+#'                     
+#' # Bivariate joint model with two dispersion models.
+#' disp.formulas <- list(~time, ~time)
+#' sigma <- list(c(0.00, -0.10), c(0.10, 0.15))
+#' D <- diag(c(.25, 0.04, 0.50, 0.10))
+#' sim.data <- simData(family = list("genpois", "negbin"), sigma = sigma, D = D,
+#'                     beta = rbind(c(0, 0.05, -0.15, 0.00), 1 + c(0, 0.25, 0.15, -0.20)),
+#'                     gamma = c(1.5, 1.5),
+#'                     disp.formulas = disp.formulas, fup = 5)                     
 simData <- function(n = 250, ntms = 10, fup = 5, 
                     family = list('gaussian', 'gaussian'), 
                     sigma = list(0.16, 0.16),
@@ -260,8 +281,13 @@ simData <- function(n = 250, ntms = 10, fup = 5,
                              error = function(e) NA)
                e <- any(is.na(Y))
                try <- try + 1
-               if(try > maxtry) stop("Issues creating genpois response with beta values ", c(betak), 
-                                     " and mean(b)", c(round(mean(b[df$id, b.inds[[k]]]), 3)))
+               if(try > maxtry){
+                 stop(sprintf("Issues creating genpois response, this could be due to large values for mu (range: %.2f-%.2f),",
+                              range(exp(etak))[1], range(exp(etak))[2]),
+                      sprintf(" or dispersion (range: %.2f, %.2f); it's recommended that this value is between", 
+                              range(phik)[1], range(phik)[2]),
+                      sprintf(" %.2f and %.2f.\n", max(-1, -max(exp(etak)/4)), 1))
+               }
              }
              Y
            })
