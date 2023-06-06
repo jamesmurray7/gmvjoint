@@ -131,9 +131,9 @@ print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   cat("\nModel fit statistics ----\n")
   ll <- x$ll
   print(c("log.Lik" = c(ll),
-          "df" = c(attr(ll, 'df')),
           "AIC" = c(attr(ll, 'AIC')),
           "BIC" = c(attr(ll, 'BIC'))))
+  cat(sprintf("Degrees of freedom: %d\n", attr(ll, 'df')))
   
   # Print variance-covariance matrix on REs
   if(printD){
@@ -157,7 +157,7 @@ print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   
   
   # Computation summary
-  cat('\nComputation summary ----\n')
+  cat('\nComputation summary: ----\n')
   cat(sprintf("Number of EM iterations: %d,\nTime spent in EM algorithm: %.2fs\nTotal computation time: %.2fs.\n", 
               x$iter, x$et['EM time'], x$et['Total Computation time']))
   

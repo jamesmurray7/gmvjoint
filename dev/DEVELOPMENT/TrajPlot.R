@@ -83,10 +83,10 @@ PBC %>%
   scale_x_continuous(breaks = scales::pretty_breaks(10)) +
   scale_color_brewer(palette = "Dark2") +
   labs(y = NULL,
-       x = 'Time (years) from death (0: time of death)',
+       x = 'Time (years)',
        colour = "") + 
   theme_csda() + 
   theme(strip.placement = 'outside', legend.position = 'bottom',
         strip.text = element_text(vjust = 1))
   
-
+ggsave("~/Downloads/aaa.png", width = 190, height = 120, units = 'mm')
