@@ -1,4 +1,3 @@
-#' @importFrom mvtnorm dmvnorm
 #' @keywords internal
 joint.log.lik <- function(coeffs, dmats, surv, sv, family, b, l0i, l0u, inds, Sigma){
   beta <- coeffs$beta; D <- coeffs$D; sigma <- coeffs$sigma; zeta <- coeffs$zeta; gamma <- coeffs$gamma
@@ -30,7 +29,7 @@ joint.log.lik <- function(coeffs, dmats, surv, sv, family, b, l0i, l0u, inds, Si
   
   structure(ll.obs,
             'df' = df, 'df.residual' = df.residual,
-            'Conditional loglikelihood' = ll.cond,
+            'conditional' = ll.cond,
             'AIC' = -2 * ll.obs + 2 * df,
             'BIC' = -2 * ll.obs + log(N) * df)
 }
@@ -138,7 +137,7 @@ extractAIC.joint <- function(fit, scale, k = 2, conditional = FALSE, ...){
   L <- x$logLik
   df <- attr(L, 'df')
   if(conditional){
-    ll <- c(attr(L, 'Conditional loglikelihood'))
+    ll <- c(attr(L, 'conditional'))
   }else{
     ll <- c(L)
   }

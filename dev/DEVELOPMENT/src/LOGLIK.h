@@ -23,7 +23,7 @@ double ll_Poisson(const vec& mu, const vec& Y){
   uword m_i = Y.size();
   vec out(m_i);
   for(uword i = 0; i < m_i; i++){
-    out.at(i) = R::dpois(Y.at(i), mu.at(i), 1);
+    out[i] = R::dpois(Y[i], mu[i], 1);
   }
   return sum(out);
 }
@@ -33,7 +33,7 @@ double ll_Binomial(const vec& mu, const vec& Y){
   uword m_i = Y.size();
   vec out(m_i);
   for(uword i = 0; i < m_i; i++){
-    out.at(i) = R::dbinom(Y.at(i), 1, mu.at(i), 1);
+    out[i] = R::dbinom(Y[i], 1, mu[i], 1);
   }
   return sum(out);
 }
@@ -44,7 +44,7 @@ double ll_Gamma(const vec& mu, const vec& Y, const vec& shape){
   uword n = Y.size();
   vec out(n);
   for(uword i = 0; i < n; i++){
-    out.at(i)  = R::dgamma(Y.at(i), shape.at(i), scale.at(i), 1);
+    out[i]  = R::dgamma(Y[i], shape[i], scale[i], 1);
   }
   return sum(out);
 }
@@ -54,7 +54,7 @@ double ll_NegBin(const vec& mu, const vec& Y, const vec& phi){
   uword m_i = Y.size();
   vec out(m_i);
   for(uword i = 0; i < m_i; i++){
-    out.at(i) = R::dnbinom_mu(Y.at(i), phi.at(i), mu.at(i), 1);
+    out[i] = R::dnbinom_mu(Y[i], phi[i], mu[i], 1);
   }
   return sum(out);
 }
@@ -75,7 +75,7 @@ void inplace_tri_mat_mult(arma::rowvec &x, arma::mat const &trimat){
   for(unsigned j = n; j-- > 0;){
     double tmp(0.);
     for(unsigned i = 0; i <= j; ++i)
-      tmp += trimat.at(i, j) * x[i];
+      tmp += trimat(i, j) * x[i];
     x[j] = tmp;
   }
 }

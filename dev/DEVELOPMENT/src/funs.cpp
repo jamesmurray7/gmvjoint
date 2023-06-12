@@ -11,7 +11,7 @@ using namespace arma;
 
 // Create etas for subject i
 // [[Rcpp::export]]
-List make_eta(const List& X, const List& Z, const vec& beta, const vec& b,
+List make_eta(const List& X, const List& Z, const arma::vec& beta, const arma::vec& b,
               const List& beta_inds, const List& b_inds){
   uword K = X.size();
   List out(K);
@@ -56,7 +56,7 @@ double joint_density(const arma::vec& b,
                      const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, const double l0i,
                      const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, 
                      const arma::vec& gamma_rep, const arma::vec& zeta,
-                     const List& beta_inds, const List& b_inds, const uword K){
+                     const List& beta_inds, const List& b_inds, const arma::uword K){
   double ll = 0.0; // Compile longitudinal parts ---------
   List eta = make_eta(X, Z, beta, b, beta_inds, b_inds);
   for(uword k = 0; k < K; k++){
@@ -93,13 +93,13 @@ double joint_density(const arma::vec& b,
 }
 
 // [[Rcpp::export]]
-vec joint_density_ddb(const arma::vec& b, 
-                      const List& Y, const List& X, const List& Z, const List& W,
-                      const arma::vec& beta, const arma::mat& D, const List& sigma, const List& family,
-                      const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, const double l0i,
-                      const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, 
-                      const arma::vec& gamma_rep, const arma::vec& zeta,
-                      const List& beta_inds, const List& b_inds, const uword K){
+arma::vec joint_density_ddb(const arma::vec& b, 
+                            const List& Y, const List& X, const List& Z, const List& W,
+                            const arma::vec& beta, const arma::mat& D, const List& sigma, const List& family,
+                            const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, const double l0i,
+                            const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, 
+                            const arma::vec& gamma_rep, const arma::vec& zeta,
+                            const List& beta_inds, const List& b_inds, const arma::uword K){
   uword q = b.size();
   vec Score(q);
   List eta = make_eta(X, Z, beta, b, beta_inds, b_inds);
@@ -136,10 +136,10 @@ vec joint_density_ddb(const arma::vec& b,
 
 // Update to beta ---------------------------------------------------------
 // [[Rcpp::export]]
-vec Sbeta(const vec& beta, const List& X, const List& Y, const List& Z, const List& W,
-          const vec& b, const List& sigma, const List& family, 
-          const List& beta_inds, const List& b_inds, const uword& K,
-          const List& tau, const vec& w, const vec& v){
+arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& W,
+                const arma::vec& b, const List& sigma, const List& family, 
+                const List& beta_inds, const List& b_inds, const arma::uword& K,
+                const List& tau, const arma::vec& w, const arma::vec& v){
   uword P = beta.size();
   vec Score(P);
   List eta = make_eta(X, Z, beta, b, beta_inds, b_inds);
@@ -172,10 +172,10 @@ vec Sbeta(const vec& beta, const List& X, const List& Y, const List& Z, const Li
 }
 
 // [[Rcpp::export]]
-mat Hbeta(const vec& beta, const List& X, const List& Y, const List& Z, const List& W,
-          const vec& b, const List& sigma, const List& family, 
-          const List& beta_inds, const List& b_inds, const uword& K,
-          const List& tau, const vec& w, const vec& v){
+arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List& Z, const List& W,
+                const arma::vec& b, const List& sigma, const List& family, 
+                const List& beta_inds, const List& b_inds, const arma::uword& K,
+                const List& tau, const arma::vec& w, const arma::vec& v){
   uword P = beta.size();
   mat Hessian(P, P);
   List eta = make_eta(X, Z, beta, b, beta_inds, b_inds);
@@ -212,8 +212,9 @@ mat Hbeta(const vec& beta, const List& X, const List& Y, const List& Z, const Li
 // Take three by central differencing (via pracma::grad and pracma::hessian)
 // Gamma, shape = exp{W * sigma}
 // [[Rcpp::export]]
-double appxE_Gammasigma(const vec& sigma, const vec& eta, const vec& Y, const vec& tau, const mat& W,
-                        const vec& w, const vec& v){
+double appxE_Gammasigma(const arma::vec& sigma, const arma::vec& eta, const arma::vec& Y, 
+                        const arma::vec& tau, const arma::mat& W,
+                        const arma::vec& w, const arma::vec& v){
   uword gh = w.size();
   vec shape = trunc_exp(W * sigma);
   double out = 0.;
@@ -226,8 +227,9 @@ double appxE_Gammasigma(const vec& sigma, const vec& eta, const vec& Y, const ve
 
 // NegBin, (over)dispersion = exp{W * sigma}
 // [[Rcpp::export]]
-double appxE_NegBinsigma(const vec& sigma, const vec& eta, const vec& Y, const vec& tau, const mat& W,
-                         const vec& w, const vec& v){
+double appxE_NegBinsigma(const arma::vec& sigma, const arma::vec& eta, const arma::vec& Y, 
+                         const arma::vec& tau, const arma::mat& W,
+                         const arma::vec& w, const arma::vec& v){
   uword gh = w.size(), m = eta.size();
   vec phi = trunc_exp(W * sigma), Exp(m);
   vec p1 = lgamma(Y + phi) - lgamma(phi) - lgamma(Y + 1.) + phi % log(phi);
@@ -240,8 +242,9 @@ double appxE_NegBinsigma(const vec& sigma, const vec& eta, const vec& Y, const v
 
 // GenPois, dispersion = W * sigma
 // [[Rcpp::export]]
-double appxE_GenPoissigma(const vec& sigma, const vec& eta, const vec& Y, const vec& tau, const mat& W,
-                          const vec& w, const vec& v){
+double appxE_GenPoissigma(const arma::vec& sigma, const arma::vec& eta, const arma::vec& Y, 
+                          const arma::vec& tau, const arma::mat& W,
+                          const arma::vec& w, const arma::vec& v){
   uword gh = w.size(), m = eta.size();
   vec phi = W * sigma, Exp(m);
   vec lfac = lgamma(Y + 1.), 
@@ -257,7 +260,8 @@ double appxE_GenPoissigma(const vec& sigma, const vec& eta, const vec& Y, const 
 // Update Gaussian by finding contribution from each individual i.d.
 // Gaussian, variance = sigma (i.e. sigma \equiv simga^2_\epsilon)
 // [[Rcpp::export]]
-double sigma2_Gaussian_update(const arma::vec& eta, const arma::vec& Y, const arma::vec& tau, const arma::vec& w, const arma::vec& v){
+double sigma2_Gaussian_update(const arma::vec& eta, const arma::vec& Y, const arma::vec& tau, 
+                              const arma::vec& w, const arma::vec& v){
   uword gh = w.size();
   double out = 0.0;
   for(uword l = 0; l < gh; l++){
@@ -332,10 +336,10 @@ arma::vec lambda_update(Rcpp::List b, Rcpp::List Fu, Rcpp::List SS, Rcpp::List S
 
 // (gamma, zeta) ----------------------------------------------------------
 // [[Rcpp::export]]
-double Egammazeta(const vec& gammazeta, const vec& b, const mat& Sigma,
-                  const rowvec& S, const mat& SS, const mat& Fu, const rowvec& Fi,
-                  const vec& haz, const int Delta, const vec& w, const vec& v, 
-                  const List& inds, const uword K){
+double Egammazeta(const arma::vec& gammazeta, const arma::vec& b, const arma::mat& Sigma,
+                  const arma::rowvec& S, const arma::mat& SS, const arma::mat& Fu, 
+                  const arma::rowvec& Fi, const arma::vec& haz, const int Delta, 
+                  const arma::vec& w, const arma::vec& v, const List& inds, const arma::uword K){
   uword gh = w.size(), q = Fu.n_cols;
   vec g = gammazeta.head(K), z = gammazeta.subvec(K, gammazeta.size() - 1), gammas(q);
   for(uword k = 0; k < K; k++){
@@ -416,14 +420,15 @@ arma::mat Hgammazeta(arma::vec& gammazeta, arma::vec& b, arma::mat& Sigma,
   return out;
 }
 
+// Metropolis algorithm for sampling from f(b_i|...; Omega) ---------------
 //' @keywords internal
 // [[Rcpp::export]]
 List metropolis(const arma::vec& b, const List& Omega, 
                 const List& Y, const List& X, const List& Z, const List& W,
                 const List& family, const int Delta, const arma::rowvec& S, const arma::rowvec& Fi, 
                 const double l0i, const arma::mat& SS, const arma::mat& Fu, const arma::rowvec& haz, 
-                const arma::vec& gamma_rep, const List& beta_inds, const List& b_inds, const uword K, 
-                const uword q, const int burnin, const int N, const arma::mat& Sigma, const double tune){
+                const arma::vec& gamma_rep, const List& beta_inds, const List& b_inds, const arma::uword K, 
+                const arma::uword q, const int burnin, const int N, const arma::mat& Sigma, const double tune){
   // Unpack Omega
   mat D = Omega["D"];
   List sigma = Omega["sigma"];
@@ -459,4 +464,22 @@ List metropolis(const arma::vec& b, const List& Omega,
                       _["AcceptanceRate"] = (double)num_accepts/(double)N);
 }
 
+// Fast dmvnorm and dmvt for use with dynpred-draws.R ---------------------
+// (basically wrappers)
+//' @keywords internal
+// [[Rcpp::export]]
+double dmvn_fast(const arma::vec& x, const arma::vec& mn,
+                  const arma::mat& Sigma, const bool log__ = true){
+   return as_scalar(
+     dmvnrm_arma_fast(x.t(), mn.t(), Sigma, log__)
+   );
+ }
 
+//' @keywords internal
+// [[Rcpp::export]]
+double dmvt_fast(const arma::vec& x, const arma::vec& mn,
+                  const arma::mat& Sigma, const double df, const bool log__ = true){
+   return as_scalar(
+     dmvt_arma_fast(x.t(), mn.t(), Sigma, df, log__)
+   );
+ }

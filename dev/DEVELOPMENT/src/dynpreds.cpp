@@ -1,6 +1,5 @@
 #include <RcppArmadillo.h>
 #include <math.h>
-#include "LOGLIK.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 using namespace Rcpp;
@@ -27,21 +26,6 @@ arma::mat duplication_matrix(const int &n) {
 arma::mat vech2mat(const arma::vec& x, const int q){
   vec xx = duplication_matrix(q) * x;
   return reshape(xx, q, q);
-}
-
-// dmvn/dmvt --------------------------------------------------------------
-//' @keywords internal
-// [[Rcpp::export]]
-double dmvn_fast(const arma::vec& x, const arma::vec& mean, const arma::mat& Sigma,
-                 const bool log__ = true){
-  return as_scalar(dmvnrm_arma_fast(x.t(), mean.t(), Sigma, log__));
-}
-
-//' @keywords internal
-// [[Rcpp::export]]
-double dmvt_fast(const arma::vec& x, const arma::vec& mean, const arma::mat& Sigma,
-                 const double df, const bool log__ = true){
-  return as_scalar(dmvt_arma_fast(x.t(), mean.t(), Sigma, df, log__));
 }
 
 // S(u)/S(t) --------------------------------------------------------------

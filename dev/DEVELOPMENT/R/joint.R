@@ -7,9 +7,12 @@
 #' @param surv.formula A formula specifying the time-to-event sub-model. Must be usable by 
 #'   \code{\link[survival]{coxph}}.
 #' @param data A \code{data.frame} containing all covariates and responses.
-#' @param family A list of families corresponding in order to \code{long.formula}.
-#' @param post.process Logical, should post processing be done to obtain standard errors and 
-#'   log-likelihood? Defaults to \code{TRUE}.
+#' @param family A list of length \eqn{K} containing strings denoting the exponential families 
+#' for each longitudinal sub-model, corresponding in order to \code{long.formulas}. For choices 
+#' of \code{family}, see \strong{details}.
+#' @param disp.formulas An optional list of length \eqn{K} specifying the dispersion models
+#' wanted for each longitudinal sub-model, corresponding in order to \code{long.formulas}. Defaults
+#' to \code{disp.formulas = NULL}. See \strong{details} for more information.
 #' @param control A list of control values: \describe{
 #' 
 #'   \item{\code{verbose}}{Logical: If \code{TRUE}, at each iteration parameter information will 
@@ -29,23 +32,22 @@
 #'   be estimated and used in determination of model convergence? Default is 
 #'   \code{correlated=TRUE}. A choice of \code{correlated=FALSE} is equivalent to imposing the 
 #'   belief that deviations in longitudinal trajectories are not correlated across responses, but
-#'   can \strong{greatly decrease} computation time.}
+#'   can decrease computation time, particularly for large \eqn{K}.}
 #'   \item{\code{gh.nodes}}{Integer: Number of weights and abscissae to use in gauss-hermite 
 #'   quadrature. Defaults to \code{gh.nodes=3}, which is usually sufficient.}
 #'   \item{\code{gh.sigma}}{Numeric: Standard deviation for gauss-hermite approximation of normal
 #'   distribution. Defaults to \code{gh.sigma=1}. This should rarely (if ever) need altering.}
-#'   \item{\code{hessian}}{Character: Determines if the variance-covariance matrix for 
-#'   \eqn{\hat{b}_i}, \eqn{\hat{\Sigma}_i} should be calculated as part of the \code{optim} step
-#'   in minimising the negative log-likelihood, or calculated post-hoc using forward differencing.
-#'   Default is \code{hessian="auto"} for the former, with \code{hessian="manual"} the 
-#'   option for the latter.}
 #'   \item{\code{return.dmats}}{Logical: Should data matrices be returned? Defaults to 
 #'   \code{return.dmats=TRUE}. Note that some S3 methods for \code{\link{joint.object}}s
-#'   greatly benefit from inclusion of these data matrices.}
+#'   require the returned object to include these data matrices.}
 #'   \item{\code{return.inits}}{Logical: Should a list of inital conditons be returned? 
 #'   Defaults to \code{return.inits=FALSE}.}
-#'   \item{\code{center.ph}}{Should the survival covariates be mean-centered? Defaults
+#'   \item{\code{center.ph}}{Logical: Should the survival covariates be mean-centered? Defaults
 #'   to \code{center.ph=TRUE}.}
+#'   \item{\code{post.process}}{Logical: Should model post-processing be carried out (assumes
+#'   that the model has converged). Defaults to \code{post.process = TRUE} which then returns
+#'   posterior modes and their variance for the random effects, as well as approximated standard
+#'   error. This is largely for internal use (i.e. if bootstrapping to obtain SEs instead).}
 #' 
 #' }
 #' 
@@ -83,14 +85,30 @@
 #'     Ismail (2012): \eqn{\varphi>0}: Over-dispersion; \eqn{\varphi<0}: Under-dispersion.
 #'     \eqn{Var[Y]=(1+\varphi)^2\mu}.}
 #'     \item{\code{'Gamma'}}{For continuous data where a Gamma distribution might be sensible.
-#'     The log link is used. A term \eqn{\sigma_k} is be estimated, denoting the shape of the
-#'     distribution.}
+#'     The log link is used. A term \eqn{\sigma_k} is be estimated, denoting the (log) shape of 
+#'     the distribution, which is then reported as \eqn{\varphi_k=\exp\{\sigma_k\}}.}
+#'     \item{\code{"negbin"}}{For count data types where overdispersion is modelled. A log link
+#'     is used. A term \eqn{\sigma_k} is estimated, which is then reported as 
+#'     \eqn{\varphi_k=\exp\{\sigma_k\}} which is the overdispersion. The variance of the response
+#'     is \eqn{Var[Y]=\mu+\mu^2/\varphi}.}
 #'   
 #'   } 
 #'   
-#'   For families where dispersion is estimated, this is \strong{always} specified by an 
-#'   "intercept-only" formula only. This might change in future.
-#'   
+#'  For families \code{"negbin"}, \code{"Gamma"}, \code{"genpois"}, the user can define the 
+#'  dispersion model desired in \code{disp.formulas}. For the \code{"negbin"} and \code{"Gamma"}
+#'  cases, we define \eqn{\varphi_i=\exp\{W_i\sigma_i\}} (i.e. the exponent of the linear 
+#'  predictor of the dispersion model; and for \code{"genpois"} the identity of the linear
+#'  is used.
+#' 
+#' @section Dispersion models:
+#'   The \code{disp.formulas} in the function call allows the user to model the dispersion for
+#'   a given sub-model if wanted. The default value \code{disp.formulas = NULL} simply imposes
+#'   an 'intercept only' model. If the \eqn{k}th item in \code{disp.formulas} corresponds to 
+#'   a longitudinal sub-model with no dispersion term, then it is simply ignored. With this in 
+#'   mind then, if a dispersion model is only required for, say, one sub-model, then the 
+#'   corresponding item in this list of models should be specified as such, with the others set to
+#'   \code{~1}.
+#'
 #' @section Standard error estimation: 
 #'   We follow the approximation of the observed empirical information matrix detailed by 
 #'   Mclachlan and Krishnan (2008), and later used in \code{joineRML} (Hickey et al., 2018).
@@ -151,12 +169,12 @@
 #' family <- list('gaussian', 'poisson')
 #' data <- simData(ntms = 10, beta = beta, D = D, n = 100,
 #'                 family = family, zeta = c(0, -0.2),
-#'                 sigma = c(0.16, 0), gamma = gamma)$data
+#'                 sigma = list(0.16, 0), gamma = gamma)$data
 #'
 #' # Specify formulae and target families
 #' long.formulas <- list(
 #'   Y.1 ~ time + cont + bin + (1 + time|id),  # Gaussian
-#'   Y.2 ~ time + cont + bin + (1 + time|id)  # Poisson
+#'   Y.2 ~ time + cont + bin + (1 + time|id)   # Poisson
 #' )
 #' surv.formula <- Surv(survtime, status) ~ bin
 #' 
@@ -165,8 +183,6 @@
 #' \donttest{
 #' # 2) Fit on PBC data -----------------------------------------------------
 #' data(PBC)
-#' PBC$serBilir <- log(PBC$serBilir)
-#'
 #' # Subset data and remove NAs
 #' PBC <- subset(PBC, select = c('id', 'survtime', 'status', 'drug', 'time',
 #'                               'serBilir', 'albumin', 'spiders', 'platelets'))
@@ -174,7 +190,7 @@
 #' 
 #' # Specify GLMM sub-models, including interaction and quadratic time terms
 #' long.formulas <- list(
-#'   serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
+#'   log(serBilir) ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
 #'   albumin ~ drug * time + (1 + time|id),
 #'   platelets ~ drug * time + (1 + time|id),
 #'   spiders ~ drug * time + (1|id)
@@ -186,6 +202,31 @@
 #'               control = list(verbose = TRUE))
 #' fit
 #' }
+#' \donttest{
+#' # 3) Fit with dispersion modles ----------------------------------------
+#' beta <- do.call(rbind, replicate(2, c(2, -0.1, 0.1, -0.2), simplify = FALSE))
+#' gamma <- c(0.3, -0.3)
+#' D <- diag(c(0.25, 0.09, 0.25, 0.05))
+#' family <- list('negbin', 'poisson')   # As an example; only requires one dispersion model.
+#' sigma <- list(c(1, 0.2), 0)           # Need to specify the model in simData call too.
+#' disp.formulas = list(~time, ~1)       # Even though poisson doesn't model dispersion, need to
+#'                                       # populate this element in disp.formulas!
+#' # Simulate some data
+#' data <- simData(ntms = 10, beta = beta, D = D, n = 500,
+#'                 family = family, zeta = c(0, -0.2), sigma = sigma,
+#'                 disp.formulas = disp.formulas, gamma = gamma)$data
+#'
+#' # Now fit using joint
+#' long.formulas <- list(
+#'   Y.1 ~ time + cont + bin + (1+time|id),
+#'   Y.2 ~ time + cont + bin + (1+time|id),
+#'   Y.3 ~ time + cont + bin + (1+time|id)
+#' )
+#' fit <- joint(
+#'   long.formulas, Surv(survtime, status) ~ bin,
+#'   data, family, disp.formulas = disp.formulas
+#' )
+#' }
 joint <- function(long.formulas, surv.formula, 
                   data, family,
                   disp.formulas = NULL, 
@@ -193,8 +234,7 @@ joint <- function(long.formulas, surv.formula,
   
   con <- list(correlated = T, gh.nodes = 3, gh.sigma = 1, center.ph = T,
               tol.abs = 1e-3, tol.rel = 1e-2, tol.thr = 1e-1, tol.den = 1e-3,
-              maxit = 200, conv = 'sas', verbose = F, hessian = 'auto',
-              numdiff = 'central', return.inits = F, return.dmats = T, post.process = T)
+              maxit = 200, conv = 'sas', verbose = F, return.inits = F, return.dmats = T, post.process = T)
   conname <- names(con)
   con[(conname <- names(control))] <- control
   if(any(!names(control)%in%names(con))){
@@ -203,24 +243,30 @@ joint <- function(long.formulas, surv.formula,
   
   # Ensure supplied families are character, not functions
   if(!is.list(family) | !all(sapply(family, function(x) is.character(x) & !is.function(x))))
-    stop("'family' must be supplied as a list of character strings")
+    stop(sQuote("family"), " must be supplied as a list of character strings")
   
   start.time <- proc.time()[3]
   
   # Initial parsing ----
+  pf <- parent.frame()
   if("factor"%in%class(data$id)) data$id <- as.numeric(as.character(data$id))
   formulas <- lapply(long.formulas, parseFormula)
   surv <- parseCoxph(surv.formula, data, con$center.ph)
   n <- surv$n; K <- length(family)
-  if(K!=length(long.formulas)) stop('Mismatched lengths of "family" and "long.formulas".')
+  if(K!=length(long.formulas)) stop('Mismatched lengths of ', sQuote("family"), " and ", sQuote("long.formulas"),'.')
   # Parse dispersion formulas
   if(is.null(disp.formulas)){
     disp.formulas <- replicate(K, ~1, simplify = FALSE)
   }else{
     if(sum(!sapply(disp.formulas, is.null)) != K)
       stop("Need to supply dispersion formulas for all responses even if not required for all K responses\n",
-           "(You can just fill-in ~1 for those with no wanted dispersion model.)")
+           "(You can just fill-in ", sQuote("~1"), " for those with no wanted dispersion model.)")
   }
+  # Reduce memory overheads, particularly for returned object(s) ?
+  disp.formulas <- lapply(disp.formulas, function(x){
+    environment(x) <- pf
+    x
+  })
   
   # Initial conditons ----
   inits.long <- Longit.inits(long.formulas, disp.formulas, data, family)
@@ -317,6 +363,9 @@ joint <- function(long.formulas, surv.formula,
   EMend <- proc.time()[3]
   coeffs <- Omega
   coeffs$beta <- setNames(c(Omega$beta), names.beta)
+  if(is.not.SPD(coeffs$D)) warning("Covariance matrix D is not positive semi-definite at convergence,",
+                                   " potential model misspecification or lower tolerance options required.")
+  
   out <- list(coeffs = coeffs,
               hazard = cbind(ft = sv$ft, haz = l0, nev = sv$nev))
   
@@ -344,9 +393,6 @@ joint <- function(long.formulas, surv.formula,
   ModelInfo$id.assign <- list(original.id = id.assign$id,
                               assigned.id = id.assign$assign)
   out$ModelInfo <- ModelInfo
-  
-  if(is.not.SPD(coeffs$D)) warning("Covariance matrix D is not positive semi-definite at convergence,",
-                                   " potential model misspecification or lower tolerance options required.")
   
   # Post processing ----
   if(con$post.process){
@@ -404,7 +450,7 @@ print.joint <- function(x, ...){
   M <- x$ModelInfo
   K <- M$K # Number of responses
   fams <- M$family
-  dpsL <- sapply(M$long.formulas, deparse)
+  dpsL <- sapply(M$long.formulas, long.formula.to.print, 1)
   dpsD <- sapply(M$disp.formulas, deparse)
   dpsS <- deparse(M$surv.formula)
   
@@ -432,7 +478,7 @@ print.joint <- function(x, ...){
   
   cat("\n\nAssociation parameter estimates: \n")
   print(setNames(x$coeffs$gamma,
-        M$ResponseInfo))
+        M$Resps))
   cat("\n")
   invisible(x)
 }

@@ -154,13 +154,8 @@ dynPred <- function(data, id, fit, u = NULL, nsim = 200, progress = TRUE,
       MH.accept <- MH.accept + b.sim$accept
       St <- S_(data.t$surv, rep(O$gamma, sapply(b.inds, length)), O$zeta, b.current)
       for(uu in seq_along(u)){
-        # cat('uu:', uu, '; u[uu]:', u[uu],  # uncomment for loop debugging
-        #     '\nb:', b.current,'.\n')
         data.u <- prepareData(newdata, fit = fit, u = u[uu])
-        pi[i, uu] <- S_(data.u$surv, rep(O$gamma, sapply(b.inds, length)), O$zeta, b.current)/(St)# + 1e-6)
-        # cat('pi(uu):', 
-        #     Surv_(data.u$surv, rep(O$gamma, sapply(b.inds, length)), O$zeta, b.current)/(St),
-        #     '\n.pi[i, uu]:', pi[i,uu], '.\n')
+        pi[i, uu] <- S_(data.u$surv, rep(O$gamma, sapply(b.inds, length)), O$zeta, b.current)/(St)
       }
       if(progress) utils::setTxtProgressBar(pb, i)
     }

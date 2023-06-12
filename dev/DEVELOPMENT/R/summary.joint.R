@@ -154,8 +154,8 @@ print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   
   # Print K coefficients for longitudinal estimates.
   lapply(1:K, function(k){
-    cat(sprintf("\n%s (%s)\nCall:\n", x$responses[[k]], x$families[k]))
-    cat(deparse(x$long.formulas[[k]]), '\n')
+    cat(sprintf("\n%s (%s)\nCall:\n", x$responses[[k]], neat.family.name(x$families[k])))
+    cat(long.formula.to.print(x$long.formulas[[k]], 2), '\n')
     L <- x$Longits[[k]]
     print(cbind(L[,1], apply(L[,-1], 2, .round)))
   })
@@ -163,7 +163,6 @@ print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   # Survival coefficients
   cat(sprintf('\nEvent-time sub-model: ----\nCall: %s\n', deparse(x$surv.formula)))
   print(cbind(x$Survs[,1], apply(x$Survs[,-1],2,.round)))
-  
   
   # Computation summary
   cat('\nComputation summary: ----\n')

@@ -14,21 +14,27 @@ prepareLongData <- function(data, fit){
   # Truncate at max. time value in `data`, which should look like
   # data[data$time == x, ].
   
-  trunc.time <- max(data$time)
+  # trunc.time <- max(data$time)
+  ln <- nrow(data)
+  
   X <- lapply(1:K, function(k){
     Xk <- X[[k]]
-    Xk[Xk[, 'time'] <= trunc.time, , drop = F]
+    # Xk[Xk[, 'time'] <= trunc.time, , drop = F]
+    Xk[1:ln, , drop=F]
   })
   Z <- lapply(1:K, function(k){
     Zk <- Z[[k]]
-    Zk[Zk[, 'time'] <= trunc.time, , drop = F]
+    # Zk[Zk[, 'time'] <= trunc.time, , drop = F]
+    Zk[1:ln, , drop = F]
   })
   Y <- lapply(1:K, function(k){
-    Y[[k]][1:nrow(X[[k]])]
+    # Y[[k]][1:nrow(X[[k]])]
+    Y[[k]][1:ln]
   })
   W <- lapply(1:K, function(k){
     Wk <- W[[k]]
-    Wk[1:nrow(X[[k]])]
+    # Wk[1:nrow(X[[k]]),,drop=F]
+    Wk[1:ln,,drop=F]
   })
   
   list(X = X, Y = Y, Z = Z, W = W)

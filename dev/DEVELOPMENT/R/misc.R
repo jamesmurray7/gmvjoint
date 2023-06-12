@@ -2,8 +2,31 @@
 #' @keywords internal
 vech <- function(x) x[lower.tri(x, T)]
 
+# check if a matrix is NOT positive semi definite
 #' @keywords internal
 is.not.SPD <- function(x) any(eigen(x)$values < 0) | det(x) <= 0
+
+# This is only for printed summaries
+#' @keywords internal
+long.formula.to.print <- function(x, OPT){
+  ac <- as.character(x)
+  if(OPT == 1) 
+    return(paste(ac[1], ac[3]))
+  else
+    return(paste(ac[2], ac[1], ac[3]))
+}
+
+# Neatened family names for printing
+#' @keywords internal
+neat.family.name <- function(f){
+  switch(f,
+         gaussian = "Gaussian",
+         poisson = "Poisson",
+         binomial = "Binomial",
+         negbin = "Negative binomial",
+         genpois = "Generalised Poisson",
+         Gamma = "Gamma")
+}
 
 # Parsing input formula
 #' @keywords internal
@@ -45,6 +68,7 @@ parseFormula <- function(formula){
   ))
 }
 
+# Checking convergence and printing new parameter estimates (if wanted).
 #' @keywords internal
 converge.check <- function(params.old, params.new, criteria, iter, Omega, verbose){
   

@@ -1,3 +1,4 @@
+#' @importFrom pracma grad hessian
 #' @keywords internal
 EMupdate <- function(Omega, family, dmats, b,                # Params; families; dmats; REs;
                      sv, surv, w, v,                         # Survival; quadrature;

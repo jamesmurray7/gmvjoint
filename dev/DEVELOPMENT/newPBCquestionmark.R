@@ -1,20 +1,19 @@
 rm(list=ls())
-source(".Rprofile")
 library(splines)
 library(xtable)
 data(PBC, package = 'gmvjoint')
 
 # Some issues with Ascites -- Cov matrix seems fairly volatile.
-unlist(with(PBC, tapply(ascites, id, function(x) table(unique(x)))))
 table(with(PBC, tapply(ascites, id, function(x){
   sum(x==1)/length(x)
 })))
-sum(PBC$ascites==1,na.rm=T)/nrow(gmvjoint::PBC)
-sum(PBC$hepatomegaly==1)/nrow(PBC)
+sum(PBC$ascites==1,na.rm=T)/nrow(PBC) # Very low prevalence
+
+sum(PBC$hepatomegaly==1, na.rm = T)/nrow(PBC)
 table(with(PBC, tapply(hepatomegaly, id, function(x){
   sum(x==1)/length(x)
 })))
-sum(PBC$spiders==1)/nrow(PBC)
+sum(PBC$spiders==1, na.rm = T)/nrow(PBC)
 table(with(PBC, tapply(spiders, id, function(x){
   sum(x==1)/length(x)
 })))
@@ -22,32 +21,41 @@ table(with(PBC, tapply(spiders, id, function(x){
 PBC <- na.omit(PBC[,c("id", "survtime", "status", "drug", "sex", "age", "time",
                       "hepatomegaly", "spiders", "serBilir",
                       "albumin", "alkaline", "SGOT", "platelets", "prothrombin")])
-PBC$serBilir <- log(PBC$serBilir)
-# PBC$prothrombin <- (PBC$prothrombin * .1)^ (-4)
-PBC$AST <- log(PBC$SGOT)
 
+# Can either define the transformed variables in-place (i.e. below) or prior (the next, 
+# which we continue with)...
+
+# Gaussian.long.formulas <- list(
+#   log(serBilir) ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
+#   albumin ~ drug * time + (1 + time|id),
+#   prothrombin ~ drug * time + (1 + time|id),
+#   log(SGOT)~drug * time + (1 + time|id)
+# )
+
+# Transform and continue 
+PBC$serBilir <- log(PBC$serBilir)
+PBC$AST <- log(PBC$SGOT)
 Gaussian.long.formulas <- list(
   serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
   albumin ~ drug * time + (1 + time|id),
-  # prothrombin ~ drug * ns(time, knots = c(1, 4)) + (1 + ns(time,knots = c(1, 4))|id),
   prothrombin ~ drug * time + (1 + time|id),
-  # AST ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id)
-  AST~drug * time + (1 + time|id)
+  AST ~ drug * time + (1 + time|id)
 )
 
+# Poisson
 Poisson.long.formulas <- list(
   # platelets ~ drug * time  + (1 + time|id),
   platelets ~ drug * ns(time, knots = c(1,4)) + (1 + ns(time, knots = c(1, 4))|id),
   alkaline ~ drug * time  + (1 + time|id)
 )
 
+# Binomial
 Binomial.long.formulas <- list(
   hepatomegaly ~ drug * time  + (1|id),
   spiders ~ drug * time  + (1|id)
 )
 
 surv.formula <- Surv(survtime, status) ~ drug
-control <- list(verbose=T)
 
 # 4 variate Gaussian
 Gaussians <- joint(Gaussian.long.formulas, surv.formula, PBC, 
@@ -57,24 +65,28 @@ summary(Gaussians)
 xtable(Gaussians, vcov = TRUE, max.row = 14, size = "footnotesize", booktabs = FALSE)
 # Take forward: serBilir, albumin and AST
 
+# Bivariate Poisson
 Poissons <- joint(Poisson.long.formulas,
                   surv.formula, PBC, list("poisson", "poisson"))
-
 xtable(Poissons, vcov = TRUE, size = 'footnotesize', max.row = 10, booktabs = FALSE)
 
+# Aside: negbin fits Alkaline a lot better!
+# Poissons2 <- joint(Poisson.long.formulas,
+#                   surv.formula, PBC, list("poisson", "negbin"),
+#                     disp.formulas = list(~0, ~time))
+# plot(resid(Poissons2))
+
+# Bivariate binomial
 Binomials <- joint(Binomial.long.formulas, surv.formula,
                    PBC, list("binomial", "binomial"))
 xtable(Binomials, vcov = TRUE, size = 'footnotesize', max.row = 7, booktabs = FALSE)
 
-# Take Gaussian: {serBilir, albumin, prothrombin}, 
+# Take Gaussian: {serBilir, albumin, AST}, 
 # Poisson: {platelets} and Binomial {hepatomegaly} forward...
 reduced.long <- list(
   serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
   albumin ~ drug * time + (1 + time|id),
   AST ~ drug * time  + (1 + time|id),
-  # prothrombin ~ drug * ns(time, 3) + (1 + ns(time, 3)|id),
-  # prothrombin ~ ti
-  # platelets ~ drug * time  + (1 + time|id),
   platelets ~ drug * ns(time, knots = c(1,4)) + (1 + ns(time, knots = c(1, 4))|id),
   hepatomegaly ~ drug * time  + (1|id)
 )
@@ -82,12 +94,6 @@ reduced.long <- list(
 reduced.model <- joint(reduced.long,
                        surv.formula, PBC, list("gaussian", "gaussian", "gaussian",
                                                "poisson", "binomial"))
-
-# Relative conv crit to more params.
-reduced.model.lower.tol <- joint(reduced.long,
-                                 surv.formula, PBC, list("gaussian", "gaussian", "gaussian",
-                                                         "poisson", "binomial"),
-                                 control = list(tol.thr = 0.01))
 
 summary(reduced.model)
 xtable(reduced.model, vcov = TRUE, size = 'footnotesize',
@@ -225,6 +231,7 @@ library(dplyr)
 
 
 # SATURATED ---------------------------------------------------------------
+# This fits _a lot_ faster, hard to justify removal of spiders, though!
 saturated7 <- joint(
   list(serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
        albumin ~ drug * time + (1 + time|id),
@@ -240,39 +247,51 @@ saturated7 <- joint(
 )
 
 
-saturated8 <- joint(
+sa5turated8 <- joint(
   list(serBilir ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id),
        albumin ~ drug * time + (1 + time|id),
        AST ~ drug * time  + (1 + time|id),
        prothrombin ~ drug * time  + (1 + time|id),
        platelets ~ drug * ns(time, knots = c(1,4)) + (1 + ns(time, knots = c(1, 4))|id),
-       alkaline ~ drug * time  + (1 + time|id),
-       hepatomegaly ~ drug * time + (1|id),
-       spiders ~ drug * time  + (1|id)),
+       alkaline ~ drug * time + (1 + time|id),
+       hepatomegaly ~ drug * time  + (1|id),
+       spiders ~drug * time+(1|id)
+  ),
   surv.formula,
   PBC,
   family = list("gaussian", "gaussian", "gaussian", "gaussian",
-                "poisson", "poisson", "binomial", "binomial")
+                "poisson", "poisson", "binomial", "binomial"),
+  control = list(tol.thr = 0.00)
 )
 
+summary(sa5turated8)
+xtable(sa5turated8, vcov = F, booktabs = F, max.row = 20)
 
+# Print covariance matrix $D$ separately, with upper triangle the correlation
+D8 <- sa5turated8$coeffs$D
+rn <- rownames(D8)
+rownames(D8) <- colnames(D8) <- NULL
+r8 <- cov2cor(D8)
 
+D8 <- round(D8, 3)
+r8 <- round(r8, 3)
 
+out <- D8
+out[upper.tri(out)] <- r8[upper.tri(r8, F)]
 
+inds <- sa5turated8$ModelInfo$inds$Cpp$b
+rn.new <- unlist(lapply(seq_along(inds), function(k){
+  paste0("$\\D_{", k, ',', 0:(length(inds[[k]])-1), '}$')
+}))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+out <- format(out, nsmall = 3)
+rownames(out) <- colnames(out) <- rn.new
+diag(out) <- paste0("\\cbb{", diag(out), '}')
+xt <- xtable(out)
+print(xt, 
+      sanitize.text.function = identity,
+      sanitize.rownames.function = identity, 
+      sanitize.colnames.function = identity)
 
 # INLA -- DOESNT WORK -----------------------------------------------------
 # library(INLAjoint)
@@ -308,6 +327,6 @@ saturated8 <- joint(
 #   id = 'id', timeVar = 'year', corLong = TRUE,
 #   family = c("gaussian", "gaussian", "gaussian", "poisson", "binomial"),
 #   link = rep("default", 5),
-#   assoc = as.list(rep("CV", 5)), basRisk = "rw1",
+#   assoc = as.list(rep("CV", 5)), basRisk = "rw1",  # "SRE" instantly fails, CV gets a bit further.
 #   control = list(int.strategy = 'eb', cfg = TRUE), NbasRisk = 15,
 # )

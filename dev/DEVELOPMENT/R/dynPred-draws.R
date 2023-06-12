@@ -16,16 +16,19 @@ Omega.draw <- function(x){
     ), names(x$SE))
   
   # Draw from N(Omega.mean, Omega.Var)
-  draw <- MASS::mvrnorm(n = 1, mu = Omega.mean, Sigma = Omega.Var)
-  
-  # Re-construct Omega at this draw.
-  D <- matrix(0, nrow(co$D), ncol(co$D)) # Need to check this works for K>1.
-  D[lower.tri(D, T)] <- draw[grepl('^D\\[', names(draw))]
-  D[upper.tri(D)] <- t(D)[upper.tri(D)]
-  # Check this is pos-definite and transform if not.
-  if(any(eigen(D)$values < 0) || (det(D) <= 0)){ 
-    D <- pracma::nearest_spd(D)
+  non.invertible <- TRUE            # Temporary fix --> ensure we get a variance covariance matrix which is invertible
+  attempts <- 0
+  while(non.invertible){
+    draw <- MASS::mvrnorm(n = 1, mu = Omega.mean, Sigma = Omega.Var)
+    # Re-construct Omega at this draw.
+    D <- vech2mat(x = draw[grepl("^D\\[", names(draw))], x$ModelInfo$Pcounts$q)
+    # Check this is pos-definite and transform if not.
+    if(is.not.SPD(D)) D <- pracma::nearest_spd(D)
+    non.invertible <- inherits(try(solve(D), silent = T), 'try-error')
+    attempts <- attempts + 1
   }
+  
+  
   beta <- draw[match(names(co$beta), names(draw))]
   gamma <- draw[match(names(co$gamma), names(draw))]
   zeta <- draw[match(names(co$zeta), names(draw))]
@@ -88,7 +91,7 @@ b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, beta.inds, b.inds, 
     prop.dens <- as.double(dmvn_fast(b.prop.l, b.hat.t, Sigma.t, T))
   }else{
     #' Draw from shifted t distribution at \hat{b}, \hat{\Sigma} for subject|T_i>t
-    b.prop.l <- mvtnorm::rmvt(n = 1, sigma = Sigma.t, df = df, delta = b.hat.t)
+    b.prop.l <- c(mvtnorm::rmvt(n = 1, sigma = Sigma.t, df = df, delta = b.hat.t))
     current.dens <- as.double(dmvt_fast(b.current, b.hat.t, Sigma.t, df = df))
     prop.dens <- as.double(dmvt_fast(b.prop.l, b.hat.t, Sigma.t, df = df))
   }
@@ -103,12 +106,18 @@ b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, beta.inds, b.inds, 
   accept <- 0
   a <- exp(diff.joint.ll - diff.dens)
   if(is.nan(a)){
-    message("Error in b.mh!!\nInformation on current values:\n\n")
-    cat(paste0('jointll.diff:', diff.joint.ll, '\n',
-               'dens.diff:', diff.dens,'\n'))
-    cat(paste0('b.prop: ', b.prop.l,'\nb.current: ', b.current,'\n',
-               'joint b.prop: ', logLik.b(b.prop.l, long, surv, O, beta.inds, b.inds, fit), '\n',
-               'joint b.current: ', logLik.b(b.current, long, surv, O, beta.inds, b.inds, fit), '\n'))
+    message("\n\nError in b.mh\nInformation on current values:")
+    cat("\n--------\n")
+    cat("Current value of b:", round(b.current, 3), '\n')
+    cat("Value f(b current|D):", round(current.dens, 3), "\n")
+    cat("Current join density:", round(current.joint.ll))
+    cat("\n--------\n")
+    cat("Proposal value of b:", round(b.prop.l, 3), '\n')
+    cat("Value f(b proposal|D): ", round(prop.dens, 3), "\n")
+    cat("Proposal join density:", round(proposed.joint.ll))
+    cat("\n--------\n")
+    tt <- try(solve(O$D), silent = TRUE)
+    if(inherits(tt, 'try-error')) cat("Generated covariance matrix D non-invertible --> likely issue.\n")
   }
   a <- min(1, a)
   U <- runif(1)

@@ -38,7 +38,7 @@
 #' cond.b
 #' plot(cond.b)
 #' }
-cond.ranefs <- function(fit, burnin = 500L, N = 3500L, tune = 2., progress = TRUE){
+cond.ranefs <- function(fit, burnin = 500L, N = 3500L, tune = 2.){
   if(!inherits(fit, "joint")) stop("Only usable with object of class 'joint'.")
   if(is.null(fit$dmats)) stop("Need dmats, rerun with appropriate control arguments.")
   # Unpack dmats
@@ -57,7 +57,7 @@ cond.ranefs <- function(fit, burnin = 500L, N = 3500L, tune = 2., progress = TRU
   Del <- surv$Delta
   Fu <- sv$Fu; Fi <- sv$Fi
   S <- sv$S; SS <- sv$SS
-  X <- dm$X; Y <- dm$Y; Z <- dm$Z; W <- dm$W
+  X <- dm$X; Y <- dm$Y; Z <- dm$Z
   # Other
   beta.inds <- M$inds$Cpp$beta
   b.inds <- M$inds$Cpp$b
@@ -70,23 +70,22 @@ cond.ranefs <- function(fit, burnin = 500L, N = 3500L, tune = 2., progress = TRU
   Sigmas <- lapply(Sigmas, vech2mat, q)
   iters <- burnin + N
   out <- vector('list', M$n); accepts <- numeric(M$n)
-  if(progress) pb <- utils::txtProgressBar(max = M$n, style = 3)
+  pb <- utils::txtProgressBar(max = M$n, style = 3)
   start.time <- proc.time()[3]
   for(i in 1:M$n){
-    this <- metropolis(b[[i]], Omega, Y[[i]], X[[i]], Z[[i]], W[[i]], ff, 
+    this <- metropolis(b[[i]], Omega, Y[[i]], X[[i]], Z[[i]], ff, 
                        Del[[i]], S[[i]], Fi[[i]], l0i[[i]], SS[[i]], 
                        Fu[[i]], l0u[[i]], gamma.rep, beta.inds, b.inds, 
                        K, q, burnin, N, Sigmas[[i]], tune)
-    if(progress) utils::setTxtProgressBar(pb, i)
+    utils::setTxtProgressBar(pb, i)
     out[[i]] <- t(this$walks)
     accepts[i] <- this$AcceptanceRate
   }
   end.time <- proc.time()[3]
-  if(progress) close(pb)
+  close(pb)
   out <- list(walks = out, acceptance = accepts, M = M, bhats = do.call(rbind, b),
               q = q, K = K, qnames = colnames(fit$coeffs$D),
               burnin = burnin, N = N, tune = tune, nobs = nobs,
-              Omega = Omega,
               elapsed.time = end.time-start.time)
   class(out) <- 'cond.b.joint'
   out
@@ -139,7 +138,7 @@ plot.cond.b.joint <- function(x, D = NULL, nrow = NULL, ncol = NULL, title = NUL
   if(is.null(nrow) & !is.null(ncol) | !is.null(nrow) & is.null(ncol)) 
     stop("Define either both 'nrow' and 'ncol', or leave both unspecified.")
   if(is.null(nrow) & is.null(ncol)){ # Plot as if intercept and slope by default.
-    nrow <- max(cumsum(unlist(x$M$ind$R$b)%%2))
+    nrow <- max(cumsum(unlist(x$M$ind$b)%%2))
     ncol <- 2
   }
   par(mfrow = c(nrow, ncol))
