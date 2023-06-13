@@ -203,7 +203,7 @@
 #' fit
 #' }
 #' \donttest{
-#' # 3) Fit with dispersion modles ----------------------------------------
+#' # 3) Fit with dispersion models ----------------------------------------
 #' beta <- do.call(rbind, replicate(2, c(2, -0.1, 0.1, -0.2), simplify = FALSE))
 #' gamma <- c(0.3, -0.3)
 #' D <- diag(c(0.25, 0.09, 0.25, 0.05))
@@ -219,8 +219,7 @@
 #' # Now fit using joint
 #' long.formulas <- list(
 #'   Y.1 ~ time + cont + bin + (1+time|id),
-#'   Y.2 ~ time + cont + bin + (1+time|id),
-#'   Y.3 ~ time + cont + bin + (1+time|id)
+#'   Y.2 ~ time + cont + bin + (1+time|id)
 #' )
 #' fit <- joint(
 #'   long.formulas, Surv(survtime, status) ~ bin,
@@ -238,7 +237,8 @@ joint <- function(long.formulas, surv.formula,
   conname <- names(con)
   con[(conname <- names(control))] <- control
   if(any(!names(control)%in%names(con))){
-    warning("Supplied control arguments do not match with possible names:\n", paste0(conname, collapse=', '))
+    warning("Supplied control arguments do not match with possible names:\n", 
+            paste0(sapply(conname, sQuote), collapse=', '), '.')
   }
   
   # Ensure supplied families are character, not functions
@@ -422,8 +422,8 @@ joint <- function(long.formulas, surv.formula,
     out$REs <- REs
   }else{
     REs <- do.call(rbind, b)
-    attr(REs, 'Var') <- do.call(rbind, lapply(II$Sigma, diag))
-    attr(REs, 'vcov') <- do.call(rbind, lapply(II$Sigma, vech))
+    attr(REs, 'Var') <- do.call(rbind, lapply(update$Sigma, diag))
+    attr(REs, 'vcov') <- do.call(rbind, lapply(update$Sigma, vech))
     out$REs <- REs
   }
   comp.time <- round(proc.time()[3] - start.time, 3)
@@ -467,7 +467,7 @@ print.joint <- function(x, ...){
   
   for(k in 1:K){
     cat(sprintf("%s: %s\n", M$ResponseInfo[k], dpsL[k]))
-    if(fams[[1]] %in% c("Gamma", "negbin", "genpois"))
+    if(fams[[k]] %in% c("Gamma", "negbin", "genpois"))
       cat(sprintf("Dispersion model: %s\n",
                   if(dpsD[k]=="~1") "(Intercept) model" else dpsD[k]
       ))

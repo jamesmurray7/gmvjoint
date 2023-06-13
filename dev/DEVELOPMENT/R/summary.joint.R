@@ -130,11 +130,14 @@ print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   cat(sprintf("Number of responses: %d; dimension of random effects: %d\n", K, M$Pcounts$q))
   nobs <- M$mi[1,]
   qnobs <- quantile(nobs)
-  if(qnobs[3] == qnobs[2] && qnobs[3] == qnobs[4])
+  if(qnobs[3] == qnobs[2] && qnobs[3] == qnobs[4]){
     cat(sprintf("Median profile length: %d\n", qnobs[3]))
-  else
-    cat(sprintf("Median [IQR] profile length: %d [%d, %d]\n", qnobs[3], qnobs[2], qnobs[4]))
-  
+  }else{
+    if(all(sapply(qnobs, function(x) abs(x-round(x)) < 1e-5)))
+      cat(sprintf("Median [IQR] profile length: %d [%d, %d]\n", qnobs[3], qnobs[2], qnobs[4]))
+    else
+      cat(sprintf("Median [IQR] profile length: %.1f [%.1f, %.1f]\n", qnobs[3], qnobs[2], qnobs[4]))
+  }
   
   # Print log-likelihood
   cat("\nModel fit statistics ----\n")

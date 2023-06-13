@@ -1,0 +1,30 @@
+Package: DEVgmvjoint
+Type: Package
+Title: Joint Models of Survival and Multivariate Longitudinal Data
+Version: 0.2.2
+Date: 2023-05-17
+Authors@R: person("James", "Murray", email = "j.murray7@ncl.ac.uk", role = c("aut", "cre"))
+Description: Fit joint models of survival and multivariate longitudinal data. The longitudinal
+    data is specified by generalised linear mixed models. The joint models are fit via maximum
+    likelihood using an approximate expectation maximisation algorithm. 
+    Bernhardt (2015) <doi:10.1016/j.csda.2014.11.011>.
+License: GPL-3
+Depends:
+  R (>= 3.6.0),
+  glmmTMB,
+  survival
+Imports: 
+  Rcpp (>= 1.0.6),
+  MASS,
+  methods,
+  mvtnorm,
+  pracma,
+  stats,
+  statmod,
+  xtable
+LinkingTo: Rcpp, RcppArmadillo
+Encoding: UTF-8
+RoxygenNote: 7.2.2
+LazyData: true
+URL: https://github.com/jamesmurray7/gmvjoint
+BugReports: https://github.com/jamesmurray7/gmvjoint/issues
