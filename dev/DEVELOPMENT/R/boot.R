@@ -2,7 +2,7 @@
 #' 
 #' @description Use an existing model fit by \code{joint} along with the data object originally
 #' used and obtain a mean estimate, standard errors and 95\% confidence interval using the
-#' bootstrap. The original data is resampled by subject, not by observations.
+#' bootstrap. The original data is resampled by subject, not by observation.
 #' 
 #' @param fit a joint model fit by the \code{\link{joint}} function.
 #' @param data the original data used to fit the above joint model.
@@ -16,12 +16,13 @@
 #' @param progress logical, should a text progress bar showing overall progress be shown
 #' and updated after each successful bootstrapped model fit? Defaults to \code{progress=TRUE}.
 #' @param control a list of control arguments, with same possible arguments as shown in 
-#' \code{\link{joint}}. Note that the items \code{return.dmats} \code{post.process} and
-#' \code{verbose} are all set to \code{FALSE} in \code{bootjoint} in order to reduce memory
-#' overheads and computation time, so these do not need to be re-specified. Instead, the user
-#' could speed up this computationally intensive algorithm by changing convergence criteria
-#' items e.g. \code{conv}, \code{tol.rel}, \code{tol.abs}, \code{tol.thr} in order to speed-up
-#' convergence of the \code{nboot} individual bootstrapped model fits.
+#' \code{\link{joint}}. Note that by default the \emph{same} \code{control} arguments used in the
+#' \code{joint} \code{fit} parameter are carried forwards, besides the items \code{return.dmats},
+#' \code{post.process}, and \code{verbose} which are all set to \code{FALSE} in \code{boot.joint}
+#' in order to reduce memory overheads and computation time. Instead, the user
+#' could lessen computational burden of this intensive bootstrapping by changing convergence 
+#' criteria items e.g. \code{conv}, \code{tol.rel}, \code{tol.abs}, \code{tol.thr} in order to 
+#' speed-up convergence of the \code{nboot} individual bootstrapped model fits.
 #' 
 #' @return A list of class \code{boot.joint} which contains the MLEs from supplied \code{joint}
 #' object, as well as the bootstrapped summaries and some model/computation information.

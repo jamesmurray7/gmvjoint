@@ -93,7 +93,6 @@ CoxSnellResids <- function(object){
 #' @description returns the Pearson residuals values from a \code{joint} object.
 #' 
 #' @param object a joint model fit by \code{\link{joint}} function.
-#' @param data the \emph{original} data set (i.e. that used in the \code{joint} call).
 #' @param what character string. Should the \code{"long"}itudinal process(es) be extracted,
 #' or the \code{"surv"}ival ones?
 #' @param type character. The residual type for \code{what = "long"} residuals only. Choices are

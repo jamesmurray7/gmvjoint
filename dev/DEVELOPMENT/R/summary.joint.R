@@ -128,7 +128,7 @@ print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   cat(sprintf("\nNumber of subjects: %d\n", M$n))
   cat(sprintf("Number of events: %d (%.2f%%)\n", M$nev, 100 * M$nev/M$n))
   cat(sprintf("Number of responses: %d; dimension of random effects: %d\n", K, M$Pcounts$q))
-  nobs <- M$mi[1,]
+  nobs <- if(K > 1) M$mi[1,] else M$mi
   qnobs <- quantile(nobs)
   if(qnobs[3] == qnobs[2] && qnobs[3] == qnobs[4]){
     cat(sprintf("Median profile length: %d\n", qnobs[3]))
