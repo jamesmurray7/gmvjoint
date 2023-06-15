@@ -238,11 +238,11 @@ joint <- function(long.formulas, surv.formula,
               tol.abs = 1e-3, tol.rel = 1e-2, tol.thr = 1e-1, tol.den = 1e-3,
               maxit = 200, conv = 'sas', verbose = F, return.inits = F, return.dmats = T, post.process = T)
   conname <- names(con)
-  con[(conname <- names(control))] <- control
-  if(any(!names(control)%in%names(con))){
+  if(any(!names(control)%in%conname)){
     warning("Supplied control arguments do not match with possible names:\n", 
             paste0(sapply(conname, sQuote), collapse=', '), '.')
   }
+  con[(conname <- names(control))] <- control
   
   # Ensure supplied families are character, not functions
   if(!is.list(family) | !all(sapply(family, function(x) is.character(x) & !is.function(x))))
