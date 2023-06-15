@@ -4,9 +4,18 @@
 #' or to a specified save location
 #'
 #' @param x a joint model fit by the \code{joint} function.
+#' @param caption character, specifies the \code{caption} argument of \code{xtable}. By default
+#' this takes value \code{NULL}, which results in a generic caption being generated.
+#' @param label character, specifies the \code{label} argument of \code{xtable}.
+#' @param align character, specifies the \code{align} argument of \code{xtable}. Note by default
+#' this is \code{NULL}, as alignment is done internally.
+#' @param digits integer, specifies the \code{digits} argument of \code{xtable}. Note by default
+#' this is \code{NULL}, as argument \code{dp} controls this (but can be specified through this, 
+#' too).
+#' @param display character, specifies the \code{display} argument of \code{xtable}.
+#' @param auto logical, specifies the \code{auto} argument of \code{xtable}. Defaults to 
+#' \code{FALSE}. Not recommended to change.
 #' @param p.val logical, should p-values be returned? Defaults to \code{p.val = FALSE}.
-#' @param caption logical, should a generic caption be attached to the printed table?
-#' Defaults to \code{caption = TRUE}.
 #' @param max.row integer, the number of rows after which the table is `broken' vertically
 #' and merged horizontally; useful for long tables. Defaults to \code{max.row = NULL} which
 #' results in one long table. Note that this can be quite finicky, so trial and error may be 
@@ -18,7 +27,7 @@
 #' @param capture logical, should the printed \code{xtable} output be saved anywhere instead
 #' of just printed to the console? Defaults to \code{capture = FALSE}.
 #' @param capture.location character, if \code{capture = TRUE}, this should specify what
-#' file it should be saved in. Defaults to \code{capture.location = ""}.
+#' \emph{file} it should be saved in. Defaults to \code{capture.location = ""}.
 #' @param hlines character, specifies which horizontal lines are used in the outputted
 #' LaTeX table. Supply a character string which contains \code{"top"}, \code{"middle"} and/or
 #' \code{"bottom"} (in any order) to specify a \code{toprule}; \code{midrule} and 
@@ -50,13 +59,15 @@
 #' family <- list("gaussian", "gaussian")
 #' fit <- joint(long.formula, surv.formula, data, family)
 #' xtable(fit)
-#' # Example of arguments: remove caption, add p-values.
-#' xtable(fit, p.val = TRUE, dp = 4, caption = FALSE)
+#' # Example of arguments: add dummy caption, add p-values.
+#' xtable(fit, p.val = TRUE, dp = 4, caption = "This is a caption")
 #' # Change size, place horizontal lines everywhere
 #' xtable(fit, size = "normalsize", hlines = c("top-middle-bottom"))
 #' # Make a wider table without booktabs 
 #' xtable(fit, booktabs = FALSE, max.row = 6)
-xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 3,
+xtable.joint <- function(x, caption = NULL, label = NULL, align = NULL, digits = NULL, # Default arguments
+                         display = NULL, auto = FALSE,                                 # (Needed for S3 consistency)
+                         p.val = FALSE, max.row = NULL, dp = 3,
                          vcov = FALSE, capture = FALSE, capture.location = "", 
                          hlines = "middle-bottom", booktabs = TRUE, size = "footnotesize",
                          ...){
@@ -67,6 +78,7 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
     stop("'xtable' is required.\n")
   # Random stuff
   qz <- qnorm(.975)
+  if(!is.null(digits) & is.null(dp)) dp <- digits # Safety in case digits supplied for some reason.
   .toXdp <- function(x) format(round(x, dp), nsmall = dp)
   
   # Model fit info
@@ -183,7 +195,7 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
     align <- gsub("\\|", "", align)
   }
 
-  if(caption){
+  if(is.null(caption)){
     resps <- unlist(responses)
     if(K >= 2){
       resps2 <- paste0(resps[-K], collapse=', ')
@@ -196,10 +208,8 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
     
     caption <- sprintf("Parameter estimates (SE: standard error) for the joint analysis of %s. Elapsed time for the approximate EM algorithm to converge and SE calculation was %.3f seconds. Total Computation time was %.3f seconds.",
                        report.resps, x$elapsed.time['EM time'] + x$elapsed.time["Post processing"], x$elapsed.time["Total Computation time"])
-    xt <- xtable::xtable(tab3, align = align,
-                         caption = caption)
   }else{
-    xt <- xtable::xtable(tab3, align = align)
+    caption <- caption
   }
   # Work out hline input
   hline.after <- c(-1, 0, nrow(tab3))
@@ -207,6 +217,10 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
   if(!grepl("middle", hlines)) hline.after[2] <- NA
   if(!grepl("bottom", hlines)) hline.after[3] <- NA
   hline.after <- hline.after[!is.na(hline.after)]
+  
+  # Create the xtable
+  xt <- xtable::xtable(tab3, caption = caption, label = label, align = align, 
+                       digits = digits, display = display, auto = auto)
   
   if(capture){
     if(nchar(capture.location)==0L) stop("Please specify capture.location.")

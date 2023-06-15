@@ -6,8 +6,13 @@
 \usage{
 \method{xtable}{joint}(
   x,
+  caption = NULL,
+  label = NULL,
+  align = NULL,
+  digits = NULL,
+  display = NULL,
+  auto = FALSE,
   p.val = FALSE,
-  caption = TRUE,
   max.row = NULL,
   dp = 3,
   vcov = FALSE,
@@ -22,10 +27,24 @@
 \arguments{
 \item{x}{a joint model fit by the \code{joint} function.}
 
-\item{p.val}{logical, should p-values be returned? Defaults to \code{p.val = FALSE}.}
+\item{caption}{character, specifies the \code{caption} argument of \code{xtable}. By default
+this takes value \code{NULL}, which results in a generic caption being generated.}
 
-\item{caption}{logical, should a generic caption be attached to the printed table?
-Defaults to \code{caption = TRUE}.}
+\item{label}{character, specifies the \code{label} argument of \code{xtable}.}
+
+\item{align}{character, specifies the \code{align} argument of \code{xtable}. Note by default
+this is \code{NULL}, as alignment is done internally.}
+
+\item{digits}{integer, specifies the \code{digits} argument of \code{xtable}. Note by default
+this is \code{NULL}, as argument \code{dp} controls this (but can be specified through this, 
+too).}
+
+\item{display}{character, specifies the \code{display} argument of \code{xtable}.}
+
+\item{auto}{logical, specifies the \code{auto} argument of \code{xtable}. Defaults to 
+\code{FALSE}. Not recommended to change.}
+
+\item{p.val}{logical, should p-values be returned? Defaults to \code{p.val = FALSE}.}
 
 \item{max.row}{integer, the number of rows after which the table is `broken' vertically
 and merged horizontally; useful for long tables. Defaults to \code{max.row = NULL} which
@@ -42,7 +61,7 @@ matrix be reported? Default is \code{vcov = FALSE}.}
 of just printed to the console? Defaults to \code{capture = FALSE}.}
 
 \item{capture.location}{character, if \code{capture = TRUE}, this should specify what
-file it should be saved in. Defaults to \code{capture.location = ""}.}
+\emph{file} it should be saved in. Defaults to \code{capture.location = ""}.}
 
 \item{hlines}{character, specifies which horizontal lines are used in the outputted
 LaTeX table. Supply a character string which contains \code{"top"}, \code{"middle"} and/or
@@ -79,8 +98,8 @@ surv.formula <- Surv(survtime, status) ~ cont + bin
 family <- list("gaussian", "gaussian")
 fit <- joint(long.formula, surv.formula, data, family)
 xtable(fit)
-# Example of arguments: remove caption, add p-values.
-xtable(fit, p.val = TRUE, dp = 4, caption = FALSE)
+# Example of arguments: add dummy caption, add p-values.
+xtable(fit, p.val = TRUE, dp = 4, caption = "This is a caption")
 # Change size, place horizontal lines everywhere
 xtable(fit, size = "normalsize", hlines = c("top-middle-bottom"))
 # Make a wider table without booktabs 
