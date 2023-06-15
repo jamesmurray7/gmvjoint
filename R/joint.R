@@ -156,7 +156,8 @@
 #' 
 #' @seealso \code{\link{summary.joint}}, \code{\link{logLik.joint}}, 
 #' \code{\link{extractAIC.joint}}, \code{\link{fixef.joint}}, \code{\link{ranef.joint}},
-#' \code{\link{vcov.joint}}, \code{\link{joint.object}} and \code{\link{xtable.joint}}.
+#' \code{\link{vcov.joint}}, \code{\link{joint.object}} and \code{\link{xtable.joint}}. For
+#' data simulation see \code{\link{simData}}.
 #' 
 #' @export
 #'

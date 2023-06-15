@@ -17,7 +17,8 @@ dgenpois <- function(x, mu, phi, log = FALSE){
 #' will be under-dispersed and overdispersed if \eqn{\varphi>0}.
 #' 
 #' @details Follows the "GP-1" implementation of the generalised Poisson distribution outlined 
-#' in Zamani & Ismail (2012). The variance of produced \eqn{Y} is \eqn{(1+\varphi)^2\mu}.
+#' in Zamani & Ismail (2012). The variance of produced \eqn{Y} is \eqn{(1+\varphi)^2\mu}. As such
+#' the dispersion parameter is bounded (i.e. not in positive reals as with CMP distribution).
 #' 
 #' @return An appropriately-dimensioned vector of count data.
 #' 
@@ -80,7 +81,7 @@ rgenpois <- function(mu, phi){
 #' @param random.formulas allows user to specify if an intercept-and-slope (\code{~ time}) or 
 #' intercept-only (\code{~1}) random effects structure should be used on a response-by-response
 #' basis. Defaults to an intercept-and-slope for all responses.
-#' @param disp.formulas allows user to specify the dispersion model simulated. Inteded use is
+#' @param disp.formulas allows user to specify the dispersion model simulated. Intended use is
 #' to allow swapping between intercept only (the default) and a time-varying one (\code{~ time}).
 #' Note that this should be a \eqn{K}-\code{list} of formula objects, so if only one dispersion 
 #' model is wanted, then an intercept-only should be specified for remaining sub-models. The
@@ -91,10 +92,11 @@ rgenpois <- function(mu, phi){
 #'
 #' @returns A list of two \code{data.frame}s: One with the full longitudinal data, and another 
 #' with only survival data. If \code{return.ranefs=TRUE}, a matrix of the true \eqn{b} values is
-#' also returned.
+#' also returned. By default (i.e. no arguments provided), a bivariate Gaussian set of joint
+#' data is returned.
 #'
 #' @details \code{simData} simulates data from a multivariate joint model with a mixture of 
-#' families for each \eqn{K=1,\dots,3} response. The specification of \code{family} changes
+#' families for each \eqn{k=1,\dots,K} response. The specification of \code{family} changes
 #' requisite dispersion parameter \code{sigma}, if applicable. The \code{family} list can
 #' (currently) contain: 
 #'   
@@ -118,6 +120,12 @@ rgenpois <- function(mu, phi){
 #'   
 #'   }
 #'   
+#'  Therefore, for families \code{"negbin"}, \code{"Gamma"}, \code{"genpois"}, the user can
+#'  define the dispersion model desired in \code{disp.formulas}, which creates a data matrix 
+#'  \eqn{W}. For the \code{"negbin"} and \code{"Gamma"} cases, we define 
+#'  \eqn{\varphi_i=\exp\{W_i\sigma_i\}} (i.e. the exponent of the linear predictor of the 
+#'  dispersion model); and for \code{"genpois"} the identity of the linear is used.
+#'   
 #' @section Baseline hazard: 
 #'  
 #'   When simulating the survival time, the baseline hazard is a Gompertz distribution controlled 
@@ -132,6 +140,7 @@ rgenpois <- function(mu, phi){
 #' 
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #' @keywords simulation
+#' @seealso \code{\link{joint}}
 #' 
 #' @references 
 #' 
@@ -142,34 +151,62 @@ rgenpois <- function(mu, phi){
 #' @export 
 #'
 #' @examples
+#' # 1) A set of univariate data ------------------------------------------
+#' beta <- c(2.0, 0.33, -0.25, 0.15)
+#' # Note that by default arguments are bivariate, so need to specify the univariate case
+#' univ.data <- simData(beta = beta,    
+#'                      gamma = 0.15, sigma = list(0.2), family = list("gaussian"), 
+#'                      D = diag(c(0.25, 0.05)))
+#'                      
+#' # 2) Univariate data, with failure rate controlled ---------------------
+#' # In reality, many facets contribute to the simulated failure rate, in 
+#' # this example, we'll just atler the baseline hazard via 'theta'.
+#' univ.data.highfail <- simData(beta = beta,
+#'                               gamma = 0.15, sigma = list(0.0), family = list("poisson"),
+#'                               D = diag(c(0.40, 0.08)), theta = c(-2, 0.1))
 #' 
-#' 
-#' # K = 3 mixture of families with dispersion parameters
+#' # 3) Trivariate (K = 3) mixture of families with dispersion parameters -
 #' beta <- do.call(rbind, replicate(3, c(2, -0.1, 0.1, -0.2), simplify = FALSE))
 #' gamma <- c(0.3, -0.3, 0.3)
 #' D <- diag(c(0.25, 0.09, 0.25, 0.05, 0.25, 0.09))
 #' family <- list('gaussian', 'genpois', 'negbin')
 #' sigma <- list(.16, 1.5, log(1.5))
-#' sim.data <- simData(ntms=15, family = family, sigma = sigma, beta = beta, D = D, gamma = gamma,
-#'                     theta = c(-3, 0.2), zeta = c(0,-.2))
+#' triv.data <- simData(ntms=15, family = family, sigma = sigma, beta = beta, D = D, 
+#'                      gamma = gamma, theta = c(-3, 0.2), zeta = c(0,-.2))
 #' 
-#' # K = 4 mixture of families with/out dispersion
+#' # 4) K = 4 mixture of families with/out dispersion ---------------------
 #' beta <- do.call(rbind, replicate(4, c(2, -0.1, 0.1, -0.2), simplify = FALSE))
 #' gamma <- c(-0.75, 0.3, -0.6, 0.5)
 #' D <- diag(c(0.25, 0.09, 0.25, 0.05, 0.25, 0.09, 0.16, 0.02))
 #' family <- list('gaussian', 'poisson', 'binomial', 'gaussian')
 #' sigma <- list(.16, 0, 0, .05) # 0 can be anything here, as it is ignored internally.
-#' sim.data <- simData(ntms=15, family = family, sigma = sigma, beta = beta, D = D, gamma = gamma,
+#' mix.data <- simData(ntms=15, family = family, sigma = sigma, beta = beta, D = D, gamma = gamma,
 #'                     theta = c(-3, 0.2), zeta = c(0,-.2))
 #'                     
-#' # Bivariate joint model with two dispersion models.
-#' disp.formulas <- list(~time, ~time)
-#' sigma <- list(c(0.00, -0.10), c(0.10, 0.15))
+#' # 5) Bivariate joint model with two dispersion models. -----------------
+#' disp.formulas <- list(~time, ~time)          # Two time-varying dispersion models
+#' sigma <- list(c(0.00, -0.10), c(0.10, 0.15)) # specified in form of intercept, slope
 #' D <- diag(c(.25, 0.04, 0.50, 0.10))
-#' sim.data <- simData(family = list("genpois", "negbin"), sigma = sigma, D = D,
-#'                     beta = rbind(c(0, 0.05, -0.15, 0.00), 1 + c(0, 0.25, 0.15, -0.20)),
-#'                     gamma = c(1.5, 1.5),
-#'                     disp.formulas = disp.formulas, fup = 5)                     
+#' disp.data <- simData(family = list("genpois", "negbin"), sigma = sigma, D = D,
+#'                      beta = rbind(c(0, 0.05, -0.15, 0.00), 1 + c(0, 0.25, 0.15, -0.20)),
+#'                      gamma = c(1.5, 1.5),
+#'                      disp.formulas = disp.formulas, fup = 5)            
+#'
+#' # 6) Trivariate joint model with mixture of random effects models ------
+#' # It can be hard to e.g. fit a binomial model on an intercept and slope, since e.g.
+#' # glmmTMB might struggle to accurately fit it (singular fits, etc.). To that end, could
+#' # swap the corresponding random effects specification to be an intercept-only.
+#' family <- list("gaussian", "binomial", "gaussian")
+#' # A list of formulae, even though we want to change the second sub-model's specification
+#' # we need to specify the rest of the items, too (same as disp.formulas, sigma).
+#' random.formulas <- list(~time, ~1, ~time)
+#' beta <- rbind(c(2, -0.2, 0.5, -0.25), c(0, 0.5, 1, -1), c(-2, 0.2, -0.5, 0.25))
+#' # NOTE that the specification of RE matrix will need to match.
+#' D <- diag(c(0.25, 0.09, 1, 0.33, 0.05))
+#' # Simulate data, and return REs as a sanity check...
+#' mix.REspec.data <- simData(beta = beta, D = D, family = family,
+#'                            gamma = c(-0.5, 1, 0.5), sigma = list(0.15, 0, 0.15),
+#'                            random.formulas = random.formulas, return.ranefs = TRUE)
 simData <- function(n = 250, ntms = 10, fup = 5, 
                     family = list('gaussian', 'gaussian'), 
                     sigma = list(0.16, 0.16),
@@ -193,6 +230,7 @@ simData <- function(n = 250, ntms = 10, fup = 5,
   family <- lapply(family, function(f) match.arg(f, c('gaussian', 'binomial', 'poisson', 'genpois', 'Gamma', 'genpois', 'negbin'), several.ok = F))
   funlist <- unlist(family)
   # Fixed effects
+  if(!"matrix"%in%class(beta)) beta <- t(beta) # Assume if a vector is passed as beta, then a univariate set of data is being attempted.
   K <- nrow(beta)
   if(K != length(funlist)) stop('Incorrect number of families provided and/or beta terms.')
   if(K != length(gamma)) stop('Incorrect number of association parameters provided wrt beta terms.')
@@ -204,11 +242,13 @@ simData <- function(n = 250, ntms = 10, fup = 5,
   }
   
   # Check covariance matrix D is positive semi-definite.
-  if(any(eigen(D)$value < 0) || det(D) <= 0) stop('D must be positive semi-definite')
+  if(is.not.SPD(D)) stop('D must be positive semi-definite')
   
   # Parse dispersion formulas
+  pf <- parent.frame()
   if(is.null(disp.formulas)){
     disp.formulas <- replicate(K, ~1, simplify = FALSE)
+    lapply(disp.formulas, function(x) environment(x) <- pf)
   }else{
     if(sum(!sapply(disp.formulas, is.null)) != K)
       stop("Need to supply dispersion formulas for all responses even if not required for all K responses\n",
