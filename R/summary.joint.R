@@ -13,7 +13,7 @@
 #' @returns Object of class \code{summary.joint}.
 #'  
 #' @examples 
-
+#' \donttest{
 #' # Simple univariate on log(serum bilirubin) ----------------------------
 #' data(PBC)
 #' long.formulas <-  list(
@@ -26,7 +26,6 @@
 #' summary(fit)              
 #' 
 #' # Bivariate with a dispersion model ------------------------------------
-#' \donttest{
 #' PBC <- na.omit(PBC[,c('id', 'survtime', 'status', 'sex', 
 #'                       'drug', 'platelets', 'albumin', 'time')])
 #' long.formula <- list(

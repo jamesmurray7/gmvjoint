@@ -171,7 +171,8 @@ D <- diag(c(.25, 0.04, 0.50, 0.10))
 disp.data <- simData(family = list("genpois", "negbin"), sigma = sigma, D = D,
                      beta = rbind(c(0, 0.05, -0.15, 0.00), 1 + c(0, 0.25, 0.15, -0.20)),
                      gamma = c(1.5, 1.5),
-                     disp.formulas = disp.formulas, fup = 5)             
+                     disp.formulas = disp.formulas, fup = 5)            
+
 # 6) Trivariate joint model with mixture of random effects models ------
 # It can be hard to e.g. fit a binomial model on an intercept and slope, since e.g.
 # glmmTMB might struggle to accurately fit it (singular fits, etc.). To that end, could

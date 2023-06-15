@@ -18,6 +18,7 @@ Object of class \code{summary.joint}.
 Generate summary of a fitted multivariate joint model.
 }
 \examples{
+\donttest{
 # Simple univariate on log(serum bilirubin) ----------------------------
 data(PBC)
 long.formulas <-  list(
@@ -30,7 +31,6 @@ fit <- joint(long.formulas = long.formulas,
 summary(fit)              
 
 # Bivariate with a dispersion model ------------------------------------
-\donttest{
 PBC <- na.omit(PBC[,c('id', 'survtime', 'status', 'sex', 
                       'drug', 'platelets', 'albumin', 'time')])
 long.formula <- list(
