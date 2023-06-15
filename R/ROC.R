@@ -14,8 +14,7 @@
 #' @param progress should a progress bar be shown, showing the current progress of the ROC
 #' function (% showing the completed proportion of those alive at \code{Tstart}.). Defaults
 #' to \code{progress = TRUE}.
-#' @param boot logical. For usage via \code{\link{bootAUC}} only, do not change from 
-#' the default \code{boot=FALSE}.
+#' @param boot logical. Not currently used, legacy argument.
 #'
 #' @return A list of class \code{ROC.joint} consisting of: \describe{
 #'   \item{\code{Tstart}}{numeric denoting the start of the time window of interest; all dynamic
@@ -39,7 +38,7 @@
 #'   \item{simulation.info}{list containing information about call to \code{dynPred}.}
 #' }
 #' @export
-#' @seealso \code{\link{dynPred}}, \code{\link{bootAUC}} and \code{\link{plot.ROC.joint}}.
+#' @seealso \code{\link{dynPred}}, and \code{\link{plot.ROC.joint}}.
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
 #'
 #' @examples
@@ -239,6 +238,7 @@ print.ROC.joint <- function(x, ...){
 #' @keywords internal
 #' @export
 plot.ROC.joint <- function(x, legend = TRUE, show.Youden = TRUE, show.F1 = FALSE, ...){
+  if(!inherits(x, 'ROC.joint')) stop('x must be a "ROC.joint" object.')
   TPR <- x$metrics$TPR; FPR <- x$metrics$FPR
   plot(FPR, TPR,
        xlab = '1 - Specificity', ylab = 'Sensitivity',

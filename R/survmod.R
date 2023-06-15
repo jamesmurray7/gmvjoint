@@ -75,7 +75,8 @@ parseCoxph <- function(surv.formula, data, center = TRUE){
     survdata = survdata, ph = ph, 
     Smat = Smat, Delta = Delta,
     n = n, ft = ft, nev = nev,
-    survtime = survtime, status = status
+    survtime = survtime, status = status,
+    fup.vec = data$time
   ), class = 'parseCoxph')
   
 }
@@ -92,7 +93,7 @@ print.parseCoxph <- function(x, ...){
 # Create survival data objects based on random effects formula(e), a ph fit,
 # the survival data and an initial estimation of \eqn{\lambda_0}.
 #' @keywords internal
-surv.mod <- function(surv, formulas, l0.init){
+surv.mod <- function(surv, formulas, l0.init, inits.long){
   # unpack parseCoxph object
   n <- surv$n; K <- length(formulas); l0 <- l0.init
   ft <- surv$ft; survtime.name <- surv$survtime; status.name <- surv$status
@@ -106,14 +107,17 @@ surv.mod <- function(surv, formulas, l0.init){
   # Fu, design matrix of _all_ failure times.
   ft.df <- data.frame(time = ft)
   spline.fts <- setNames(vector('list', K), Wk)
-  Fu.all <- do.call(cbind, lapply(Wk, function(f){
-    spec <- attr(f, "special")
+  Fu.all <- do.call(cbind, lapply(seq_along(Wk), function(f){
+    spec <- attr(Wk[[f]], "special")
     if(spec == "spline"){
-      form <- gsub("1\\s\\+\\s", "", f)
-      form <- gsub("time", "ft.df$time", form)
-      spline.fts[[f]] <<- eval(parse(text = form))  # Save for later use.
+      ww <- which(sapply(lapply(inits.long$fits[[f]]$frame, class), function(x) "basis"%in%x))
+      frame <- inits.long$fits[[f]]$frame[,ww]
+      spline.fts[[f]] <<- frame  # Save for later use.
+      out <- cbind(1, predict(frame, ft.df$time))
+    }else{
+      out <- model.matrix(as.formula(paste0("~", Wk[[f]])), ft.df)
     }
-    model.matrix(as.formula(paste0("~", f)), ft.df)
+    return(out)
   }))
   
   # Failure times and status list for each id = i,...,n.
@@ -122,16 +126,15 @@ surv.mod <- function(surv, formulas, l0.init){
   Fi <- lapply(1:n, function(i){
     T.df <- data.frame(time = TiDi[[i]]$survtime)
     return(do.call(cbind, lapply(Wk, function(f){
-      out <- model.matrix(as.formula(paste0("~", f)), T.df)
+      # out <- model.matrix(as.formula(paste0("~", f)), T.df)
       spec <- attr(f, "special")
       if(spec!="spline")
         return(model.matrix(as.formula(paste0("~", f)), T.df))
       else{
         sfts <- spline.fts[[f]]
-        lhs <- out
+        # lhs <- out
         rhs <- predict(sfts, T.df$time)
-        out[,-1] <- rhs
-        return(out)
+        return(cbind(1, rhs))
       }
     })))
   })
@@ -142,7 +145,6 @@ surv.mod <- function(surv, formulas, l0.init){
     Ti <- TiDi[[i]]$survtime; Di <- TiDi[[i]]$status
     # Failure times survived (up-to-and-including their own).
     surv.times[[i]] <- which(ft <= Ti) # Store indices
-    surv.times2[[i]] <- which(ft < Ti) # For the update to baseline hazard // REMOVE
     St <- ft[surv.times[[i]]]          # The actual times
     if(length(St)){   # Design matrices of 
       Fu[[i]] <- Fu.all[surv.times[[i]], , drop = F]
@@ -158,7 +160,7 @@ surv.mod <- function(surv, formulas, l0.init){
   
   # Return
   list(
-    ft = ft, ft.mat = Fu.all, nev = surv$nev, surv.times = surv.times, surv.times2 = surv.times2,
+    ft = ft, ft.mat = Fu.all, nev = surv$nev, surv.times = surv.times,
     l0 = l0, l0i = l0i, l0u = l0u, 
     Fi = Fi, Fu = Fu, Tis = sapply(TiDi, function(x) c(x[1]$survtime), simplify = T),
     S = S, SS = SS, q = ncol(Fu.all)

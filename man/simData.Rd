@@ -9,16 +9,17 @@ simData(
   ntms = 10,
   fup = 5,
   family = list("gaussian", "gaussian"),
-  sigma = c(0.16, 0.16),
+  sigma = list(0.16, 0.16),
   beta = rbind(c(1, 0.1, 0.33, -0.5), c(1, 0.1, 0.33, -0.5)),
   D = NULL,
   gamma = c(0.5, -0.5),
   zeta = c(0.05, -0.3),
   theta = c(-4, 0.2),
   cens.rate = exp(-3.5),
-  unif.times = TRUE,
+  regular.times = TRUE,
   dof = Inf,
-  random.formula = NULL,
+  random.formulas = NULL,
+  disp.formulas = NULL,
   return.ranefs = FALSE
 )
 }
@@ -31,10 +32,10 @@ simData(
 In instances where subject \eqn{i} \emph{doesn't} fail before \code{fup}, their censoring
 time is set as \code{fup + 0.1}.}
 
-\item{family}{a \eqn{K}-list of families, see \strong{details}.}
+\item{family}{a \eqn{K}-\code{list} of families, see \strong{details}.}
 
-\item{sigma}{a \eqn{K}-vector of dispersion parameters corresponding to the order of 
-\code{family}; see \strong{details}.}
+\item{sigma}{a \eqn{K}-\code{list} of dispersion parameters corresponding to the order of 
+\code{family}, and matching \code{disp.formulas} specification; see \strong{details}.}
 
 \item{beta}{a \eqn{K \times 4} matrix specifying fixed effects for each \eqn{K} parameter, 
 in the order (Intercept), time, continuous, binary.}
@@ -52,18 +53,26 @@ the survival sub-model, in the order of continuous and binary.}
 
 \item{cens.rate}{parameter for \code{rexp} to generate censoring times for each subject.}
 
-\item{unif.times}{logical, if \code{unif.times = TRUE} (the default), then \emph{every} subject
-will have the same follow-up times defined by \code{seq(0, fup, length.out = ntms)}. If 
-\code{unif.times = FALSE} then follow-up times are set as random draws from a uniform 
-distribution with maximum \code{fup}.}
+\item{regular.times}{logical, if \code{regular.times = TRUE} (the default), then 
+\emph{every} subject will have the same follow-up times defined by 
+\code{seq(0, fup, length.out = ntms)}. If \code{regular.times = FALSE} then follow-up times are
+set as random draws from a uniform distribution with maximum \code{fup}.}
 
 \item{dof}{integer, specifies the degrees of freedom of the multivariate t-distribution
 used to generate the random effects. If specified, this t-distribution is used. If left
 at the default \code{dof=Inf} then the random effects are drawn from a multivariate normal
 distribution.}
 
-\item{random.formula}{allows user to specify if an intercept-and-slope (\code{~ time}) or 
-intercept-only (\code{~1}) random effects structure should be used. defaults to the former.}
+\item{random.formulas}{allows user to specify if an intercept-and-slope (\code{~ time}) or 
+intercept-only (\code{~1}) random effects structure should be used on a response-by-response
+basis. Defaults to an intercept-and-slope for all responses.}
+
+\item{disp.formulas}{allows user to specify the dispersion model simulated. Inteded use is
+to allow swapping between intercept only (the default) and a time-varying one (\code{~ time}).
+Note that this should be a \eqn{K}-\code{list} of formula objects, so if only one dispersion 
+model is wanted, then an intercept-only should be specified for remaining sub-models. The
+corresponding item in list of \code{sigma} parameters should be of appropriate size. Defaults
+to an intercept-only model.}
 
 \item{return.ranefs}{a logical determining whether the \emph{true} random effects should be 
 returned. This is largely for internal/simulation use. Default \code{return.ranefs = FALSE}.}
@@ -80,9 +89,8 @@ to existing packages (e.g. \code{joineR}, \code{joineRML}).
 }
 \details{
 \code{simData} simulates data from a multivariate joint model with a mixture of 
-families for each \eqn{K=1,\dots,3} response. Currently, the argument \code{random.formula}
-specifies the association structure for \strong{all} responses. The specification of 
-\code{family} changes requisite dispersion parameter, if applicable. The \code{family} list can
+families for each \eqn{K=1,\dots,3} response. The specification of \code{family} changes
+requisite dispersion parameter \code{sigma}, if applicable. The \code{family} list can
 (currently) contain: 
   
   \describe{
@@ -93,12 +101,15 @@ specifies the association structure for \strong{all} responses. The specificatio
   can be anything, as it doesn't impact simulation.}
   \item{\code{"binomial"}}{Simulated with logit link, corresponding dispersion in \code{sigma} 
   can be anything, as it doesn't impact simulation.}
+  \item{\code{"negbin"}}{Simulated with a log link, corresponding item in \code{sigma} will be
+  the \strong{overdispersion} defined on the log scale. Simulated variance is 
+  \eqn{\mu+\mu^2/\varphi}.}
   \item{\code{"genpois"}}{Simulated with a log link, corresponding item in \code{sigma} will be
   the \strong{dispersion}. Values < 0 correspond to under-dispersion, and values > 0 over-
   dispersion. See \code{\link{rgenpois}} for more information. Simulated variance is 
   \eqn{(1+\varphi)^2\mu}.}
   \item{\code{"Gamma"}}{Simulated with a log link, corresponding item in \code{sigma} will be
-  the \strong{shape}.}
+  the \strong{shape} parameter, defined on the log-scale.}
   
   }
 }
@@ -115,12 +126,13 @@ specifies the association structure for \strong{all} responses. The specificatio
 
 \examples{
 
+
 # K = 3 mixture of families with dispersion parameters
 beta <- do.call(rbind, replicate(3, c(2, -0.1, 0.1, -0.2), simplify = FALSE))
 gamma <- c(0.3, -0.3, 0.3)
 D <- diag(c(0.25, 0.09, 0.25, 0.05, 0.25, 0.09))
-family <- list('gaussian', 'genpois', 'Gamma')
-sigma <- c(.16, 1.5, 1.5)
+family <- list('gaussian', 'genpois', 'negbin')
+sigma <- list(.16, 1.5, log(1.5))
 sim.data <- simData(ntms=15, family = family, sigma = sigma, beta = beta, D = D, gamma = gamma,
                     theta = c(-3, 0.2), zeta = c(0,-.2))
 
@@ -129,9 +141,18 @@ beta <- do.call(rbind, replicate(4, c(2, -0.1, 0.1, -0.2), simplify = FALSE))
 gamma <- c(-0.75, 0.3, -0.6, 0.5)
 D <- diag(c(0.25, 0.09, 0.25, 0.05, 0.25, 0.09, 0.16, 0.02))
 family <- list('gaussian', 'poisson', 'binomial', 'gaussian')
-sigma <- c(.16, 0, 0, .05)
+sigma <- list(.16, 0, 0, .05) # 0 can be anything here, as it is ignored internally.
 sim.data <- simData(ntms=15, family = family, sigma = sigma, beta = beta, D = D, gamma = gamma,
                     theta = c(-3, 0.2), zeta = c(0,-.2))
+                    
+# Bivariate joint model with two dispersion models.
+disp.formulas <- list(~time, ~time)
+sigma <- list(c(0.00, -0.10), c(0.10, 0.15))
+D <- diag(c(.25, 0.04, 0.50, 0.10))
+sim.data <- simData(family = list("genpois", "negbin"), sigma = sigma, D = D,
+                    beta = rbind(c(0, 0.05, -0.15, 0.00), 1 + c(0, 0.25, 0.15, -0.20)),
+                    gamma = c(1.5, 1.5),
+                    disp.formulas = disp.formulas, fup = 5)                     
 }
 \references{
 Austin PC. Generating survival times to simulate Cox proportional hazards

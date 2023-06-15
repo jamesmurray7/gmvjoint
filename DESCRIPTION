@@ -1,8 +1,8 @@
 Package: gmvjoint
 Type: Package
 Title: Joint Models of Survival and Multivariate Longitudinal Data
-Version: 0.2.2
-Date: 2023-05-17
+Version: 0.3.0
+Date: 2023-06-14
 Authors@R: person("James", "Murray", email = "j.murray7@ncl.ac.uk", role = c("aut", "cre"))
 Description: Fit joint models of survival and multivariate longitudinal data. The longitudinal
     data is specified by generalised linear mixed models. The joint models are fit via maximum

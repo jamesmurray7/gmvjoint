@@ -7,7 +7,7 @@ Omega.draw <- function(x){
   # Mean vector
   co <- x$coeffs
   sigma <- unlist(co$sig)
-  sigma <- sigma[sigma != 0.0]
+  sigma <- sigma[sigma != 0L]
   Omega.mean <- setNames(
     c(
       c(vech(co$D)),
@@ -16,22 +16,25 @@ Omega.draw <- function(x){
     ), names(x$SE))
   
   # Draw from N(Omega.mean, Omega.Var)
-  draw <- MASS::mvrnorm(n = 1, mu = Omega.mean, Sigma = Omega.Var)
-  
-  # Re-construct Omega at this draw.
-  D <- matrix(0, nrow(co$D), ncol(co$D)) # Need to check this works for K>1.
-  D[lower.tri(D, T)] <- draw[grepl('^D\\[', names(draw))]
-  D[upper.tri(D)] <- t(D)[upper.tri(D)]
-  # Check this is pos-definite and transform if not.
-  if(any(eigen(D)$values < 0) || (det(D) <= 0)){ 
-    D <- pracma::nearest_spd(D)
+  non.invertible <- TRUE            # Temporary fix --> ensure we get a variance covariance matrix which is invertible
+  attempts <- 0
+  while(non.invertible){
+    draw <- MASS::mvrnorm(n = 1, mu = Omega.mean, Sigma = Omega.Var)
+    # Re-construct Omega at this draw.
+    D <- vech2mat(x = draw[grepl("^D\\[", names(draw))], x$ModelInfo$Pcounts$q)
+    # Check this is pos-definite and transform if not.
+    if(is.not.SPD(D)) D <- pracma::nearest_spd(D)
+    non.invertible <- inherits(try(solve(D), silent = T), 'try-error')
+    attempts <- attempts + 1
   }
+  
+  
   beta <- draw[match(names(co$beta), names(draw))]
   gamma <- draw[match(names(co$gamma), names(draw))]
   zeta <- draw[match(names(co$zeta), names(draw))]
   # Sort out sigma --> MUST be a list.
   .sigma <- lapply(co$sigma, function(x){
-    if(x == 0L)
+    if(length(x) == 1L & x == 0L)
       return(0)
     else
       return(draw[match(names(x), names(draw))])
@@ -47,10 +50,11 @@ Omega.draw <- function(x){
 logLik.b <- function(b, long, surv, O, beta.inds, b.inds, fit){
   beta <- O$beta; D <- O$D; gamma <- rep(O$gamma, sapply(b.inds, length)); zeta <- O$zeta; sigma <- O$sigma
   
-  neg.ll <- joint_density(b = b, Y = long$Y, X = long$X, Z = long$Z, beta = beta, D = D, sigma = sigma,
+  neg.ll <- joint_density(b = b, Y = long$Y, X = long$X, Z = long$Z, W = long$W, 
+                          beta = beta, D = D, sigma = sigma,
                           family = fit$ModelInfo$family, Delta = surv$Delta, S = surv$S, Fi = surv$Fi, l0i = surv$l0i,
                           SS = surv$SS, Fu = surv$Fu, haz = surv$l0u, gamma_rep = gamma, zeta = zeta, beta_inds = beta.inds,
-                          b_inds = b.inds, K = length(fit$ModelInfo$family))
+                          b_inds = b.inds, K = fit$ModelInfo$K)
   
   -neg.ll
 }
@@ -73,23 +77,23 @@ b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, beta.inds, b.inds, 
     # Posterior mode and its variance at \Omega^{\ell}
     b.hat.l <- optim(
       b.current, joint_density, joint_density_ddb,
-      Y = long$Y, X = long$X, Z = long$Z, beta = beta, D = D, sigma = sigma,
+      Y = long$Y, X = long$X, Z = long$Z, W = long$W, beta = beta, D = D, sigma = sigma,
       family = fit$ModelInfo$family, Delta = surv$Delta, S = surv$S, Fi = surv$Fi, l0i = surv$l0i,
       SS = surv$SS, Fu = surv$Fu, haz = surv$l0u, gamma_rep = gamma, zeta = zeta, beta_inds = beta.inds,
-      b_inds = b.inds, K = length(fit$ModelInfo$family), method = 'BFGS', hessian = T
+      b_inds = b.inds, K = fit$ModelInfo$K, method = 'BFGS', hessian = T
     )
     Sigma.hat.l <- solve(b.hat.l$hessian)
     b.hat.l <- b.hat.l$par
     # Draw from N(b.hat.l, Sigma.hat.l)
     b.prop.l <- MASS::mvrnorm(n = 1, mu = b.hat.l, Sigma = Sigma.hat.l)
     # DMNVORM on b draws
-    current.dens <- as.double(dmvnrm_arma_fast(t(b.current), b.hat.t, Sigma.t, T))
-    prop.dens <- as.double(dmvnrm_arma_fast(t(b.prop.l), b.hat.t, Sigma.t, T))
+    current.dens <- as.double(dmvn_fast(b.current, b.hat.t, Sigma.t, T))
+    prop.dens <- as.double(dmvn_fast(b.prop.l, b.hat.t, Sigma.t, T))
   }else{
     #' Draw from shifted t distribution at \hat{b}, \hat{\Sigma} for subject|T_i>t
-    b.prop.l <- mvtnorm::rmvt(n = 1, sigma = Sigma.t, df = df, delta = b.hat.t)
-    current.dens <- as.double(dmvt_arma_fast(t(b.current), b.hat.t, Sigma.t, df = df))
-    prop.dens <- as.double(dmvt_arma_fast(b.prop.l, b.hat.t, Sigma.t, df = df))
+    b.prop.l <- c(mvtnorm::rmvt(n = 1, sigma = Sigma.t, df = df, delta = b.hat.t))
+    current.dens <- as.double(dmvt_fast(b.current, b.hat.t, Sigma.t, df = df))
+    prop.dens <- as.double(dmvt_fast(b.prop.l, b.hat.t, Sigma.t, df = df))
   }
   diff.dens <- current.dens - prop.dens # Difference in current - proposal log-likelihood.
   
@@ -102,12 +106,18 @@ b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, beta.inds, b.inds, 
   accept <- 0
   a <- exp(diff.joint.ll - diff.dens)
   if(is.nan(a)){
-    message("Error in b.mh!!\nInformation on current values:\n\n")
-    cat(paste0('jointll.diff:', diff.joint.ll, '\n',
-               'dens.diff:', diff.dens,'\n'))
-    cat(paste0('b.prop: ', b.prop.l,'\nb.current: ', b.current,'\n',
-               'joint b.prop: ', logLik.b(b.prop.l, long, surv, O, beta.inds, b.inds, fit), '\n',
-               'joint b.current: ', logLik.b(b.current, long, surv, O, beta.inds, b.inds, fit), '\n'))
+    message("\n\nError in b.mh\nInformation on current values:")
+    cat("\n--------\n")
+    cat("Current value of b:", round(b.current, 3), '\n')
+    cat("Value f(b current|D):", round(current.dens, 3), "\n")
+    cat("Current join density:", round(current.joint.ll))
+    cat("\n--------\n")
+    cat("Proposal value of b:", round(b.prop.l, 3), '\n')
+    cat("Value f(b proposal|D): ", round(prop.dens, 3), "\n")
+    cat("Proposal join density:", round(proposed.joint.ll))
+    cat("\n--------\n")
+    tt <- try(solve(O$D), silent = TRUE)
+    if(inherits(tt, 'try-error')) cat("Generated covariance matrix D non-invertible --> likely issue.\n")
   }
   a <- min(1, a)
   U <- runif(1)

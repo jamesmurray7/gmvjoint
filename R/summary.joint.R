@@ -13,71 +13,84 @@
 #' @returns Object of class \code{summary.joint}.
 #'  
 #' @examples 
-#' \donttest{
+
+#' # Simple univariate on log(serum bilirubin) ----------------------------
 #' data(PBC)
+#' long.formulas <-  list(
+#'   log(serBilir) ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id)
+#' )
+#' surv.formula <- Surv(survtime, status) ~ sex + drug
+#' fit <- joint(long.formulas = long.formulas,
+#'              surv.formula = surv.formula,
+#'              data = PBC, family = list("gaussian"))
+#' summary(fit)              
+#' 
+#' # Bivariate with a dispersion model ------------------------------------
+#' \donttest{
+#' PBC <- na.omit(PBC[,c('id', 'survtime', 'status', 'sex', 
+#'                       'drug', 'platelets', 'albumin', 'time')])
 #' long.formula <- list(
 #'   platelets ~ time * drug + (1 + time|id),
 #'   albumin ~ time * drug + (1 + time|id)
 #' )
 #' surv.formula <- Surv(survtime, status) ~ sex + drug
-#'
-#' PBC <- na.omit(PBC[,c('id', 'survtime', 'status', 'sex', 
-#'                       'drug', 'platelets', 'albumin', 'time')])
-#' fit <- joint(long.formula, surv.formula, PBC, family = list('genpois', 'gaussian'),
-#'             control = list(verbose = TRUE))
+#' fit <- joint(long.formula, surv.formula, PBC, 
+#'              family = list("negbin", "gaussian"),
+#'              disp.formula = list(~time, ~1))
 #' summary(fit)
 #' }
 summary.joint <- function(object, ...){
   if(!inherits(object, 'joint')) stop("Only usable with object of class 'joint'.")
-  if(is.null(object$SE)) stop('Rerun with post.process = TRUE.')
+  if(is.null(object$SE)) stop('Rerun with control(post.process = TRUE).')
   qz <- qnorm(.975)
   
   # Extract things to ModelInfo
   M <- object$ModelInfo
-  K <- length(M$ResponseInfo)                      # Number of responses
-  responses <- lapply(sapply(M$ResponseInfo,       # Response names only
-                             strsplit, '\\s\\('), el, 1)
+  K <- M$K                                         # Number of responses
+  responses <- M$Resps                             # Response names only
   families <- unlist(M$family)                     # Families only
   nobs <- M$nobs; n <- M$n; nev <- M$nev           # Data stuff
   long.formulas <- M$long.formulas                 # Sub-models
-  surv.formula <- M$surv.formulas
-  inds.beta <- M$inds$beta; inds.b <- M$inds$b     # indices
+  surv.formula <- M$surv.formula 
+  disp.formulas <- M$disp.formulas                 # (+ dispersion)
+  inds.beta <- M$inds$R$beta; inds.b <- M$inds$R$b # indices
   
   # Parameter estimates and standard errors.
   SE <- object$SE
   coeffs <- object$coeffs
   D <- coeffs$D
   betas <- coeffs$beta
-  sigmas <- unlist(coeffs$sigma)
+  sigmas <- coeffs$sigma
   gammas <- coeffs$gamma
   zetas <- coeffs$zeta
   
   # Longitudinal parts
   Longits <- setNames(lapply(1:K, function(k){
     
-    beta <- betas[grepl(responses[[k]], names(betas))]
-    sigma <- setNames(sigmas[k], 
-                      if(families[k] == "genpois")
-                        paste0("phi_", k)
-                      else if(families[k] == 'Gamma')
-                        paste0("shape_", k)
-                      else if(families[k] == 'gaussian')
-                        paste0('sigma^2_', k)
-                      else
-                        'NO DISP')
+    beta <- betas[inds.beta[[k]]]
+    beta.SE <- SE[match(names(beta), names(SE))]
+    beta.lb <- beta - qz * beta.SE; beta.ub <- beta + qz * beta.SE
     
-    betak <- c(beta)
-    if(sigma != 0.0) betak <- c(betak, sigma)
-    parameter <- names(betak)
+    if(families[k] %in% c("gaussian", "genpois", "Gamma", "negbin")){
+      sigma <- sigmas[[k]]
+      sigma.SE <- SE[match(names(sigma), names(SE))]
+      sigma.lb <- sigma - qz * sigma.SE; sigma.ub <- sigma + qz * sigma.SE
+      if(families[k] %in% c("Gamma", "negbin")){
+        sigma <- exp(sigma)
+        sigma.SE <- sigma.SE * sigma
+        sigma.lb <- exp(sigma.lb); sigma.ub <- exp(sigma.ub)
+      }
+    }else{
+      sigma <- sigma.SE <- sigma.lb <- sigma.ub <- NULL
+    }
     
-    rSE <- SE[match(names(betak), names(SE))]#SE associated with these coeffs
+    beta <- c(beta, sigma); rSE <- c(beta.SE, sigma.SE); lb <- c(beta.lb, sigma.lb); ub <- c(beta.ub, sigma.ub)
+    parameter <- names(beta)
     
-    lb <- betak - qz * rSE; ub <- betak + qz * rSE
-    
-    z <- betak/rSE
+    z <- beta/rSE
     p <- 2 * (pnorm(abs(z), lower.tail = F))
     
-    this.out <- setNames(data.frame(betak, rSE, z, p, lb, ub),
+    this.out <- setNames(data.frame(beta, rSE, z, p, lb, ub),
                          c('Estimate', 'SE', "Z", "p-value", '2.5%', '97.5%'))
     this.out
   }), unlist(M$ResponseInfo))
@@ -95,19 +108,17 @@ summary.joint <- function(object, ...){
   Survs <- setNames(data.frame(survs, surv.SE, z, p, lb, ub),
                        c('Estimate', 'SE', 'Z', 'p-value', '2.5%', '97.5%'))
   
-  
   # Other items to return
   et <- object$elapsed.time; iter <- unname(as.integer(et['iterations'])); et <- et[-which(names(et) == 'iterations')]
   haz <- object$hazard
   ll <- object$logLik
-  
   
   out <- list(
     # Model stuff
     responses = responses,
     families = families,
     long.formulas = long.formulas, surv.formula = surv.formula,
-    nobs = nobs, n = n, nev = nev,
+    nobs = nobs, n = n, nev = nev, ModelInfo = M,
     # Coefficients
     Longits = Longits, Survs = Survs, haz = haz, SE = SE, D = D,
     et = et, iter = iter, ll = ll
@@ -122,19 +133,31 @@ summary.joint <- function(object, ...){
 print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   if(!inherits(x, 'summary.joint')) stop("Only usable with object of class 'summary.joint'.")
   .round <- function(X) round(X, digits) # Show all to <digits> only.
-  K <- length(x$families)
+  M <- x$ModelInfo
+  K <- M$K
   
   # Print data information
-  cat(sprintf("\nNumber of subjects: %d\n", x$n))
-  cat(sprintf("Number of events: %d (%.2f%%)\n", x$nev, 100 * x$nev/x$n))
+  cat(sprintf("\nNumber of subjects: %d\n", M$n))
+  cat(sprintf("Number of events: %d (%.2f%%)\n", M$nev, 100 * M$nev/M$n))
+  cat(sprintf("Number of responses: %d; dimension of random effects: %d\n", K, M$Pcounts$q))
+  nobs <- if(K > 1) M$mi[1,] else M$mi
+  qnobs <- quantile(nobs)
+  if(qnobs[3] == qnobs[2] && qnobs[3] == qnobs[4]){
+    cat(sprintf("Median profile length: %d\n", qnobs[3]))
+  }else{
+    if(all(sapply(qnobs, function(x) abs(x-round(x)) < 1e-5)))
+      cat(sprintf("Median [IQR] profile length: %d [%d, %d]\n", qnobs[3], qnobs[2], qnobs[4]))
+    else
+      cat(sprintf("Median [IQR] profile length: %.1f [%.1f, %.1f]\n", qnobs[3], qnobs[2], qnobs[4]))
+  }
   
   # Print log-likelihood
   cat("\nModel fit statistics ----\n")
   ll <- x$ll
   print(c("log.Lik" = c(ll),
-          "df" = c(attr(ll, 'df')),
           "AIC" = c(attr(ll, 'AIC')),
           "BIC" = c(attr(ll, 'BIC'))))
+  cat(sprintf("Degrees of freedom: %d\n", attr(ll, 'df')))
   
   # Print variance-covariance matrix on REs
   if(printD){
@@ -146,8 +169,8 @@ print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   
   # Print K coefficients for longitudinal estimates.
   lapply(1:K, function(k){
-    cat(sprintf("\n%s (%s)\nCall:\n", x$responses[[k]], x$families[k]))
-    cat(deparse(x$long.formulas[[k]]), '\n')
+    cat(sprintf("\n%s (%s)\nCall:\n", x$responses[[k]], neat.family.name(x$families[k])))
+    cat(long.formula.to.print(x$long.formulas[[k]], 2), '\n')
     L <- x$Longits[[k]]
     print(cbind(L[,1], apply(L[,-1], 2, .round)))
   })
@@ -156,10 +179,8 @@ print.summary.joint <- function(x, digits = 3, printD = FALSE, ...){
   cat(sprintf('\nEvent-time sub-model: ----\nCall: %s\n', deparse(x$surv.formula)))
   print(cbind(x$Survs[,1], apply(x$Survs[,-1],2,.round)))
   
-  
-  
   # Computation summary
-  cat('\nComputation summary ----\n')
+  cat('\nComputation summary: ----\n')
   cat(sprintf("Number of EM iterations: %d,\nTime spent in EM algorithm: %.2fs\nTotal computation time: %.2fs.\n", 
               x$iter, x$et['EM time'], x$et['Total Computation time']))
   

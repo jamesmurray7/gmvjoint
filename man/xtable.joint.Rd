@@ -10,6 +10,7 @@
   caption = TRUE,
   max.row = NULL,
   dp = 3,
+  vcov = FALSE,
   capture = FALSE,
   capture.location = "",
   hlines = "middle-bottom",
@@ -24,7 +25,7 @@
 \item{p.val}{logical, should p-values be returned? Defaults to \code{p.val = FALSE}.}
 
 \item{caption}{logical, should a generic caption be attached to the printed table?
-Defaults to \code{caption = TRUE}, which prints out some computation details.}
+Defaults to \code{caption = TRUE}.}
 
 \item{max.row}{integer, the number of rows after which the table is `broken' vertically
 and merged horizontally; useful for long tables. Defaults to \code{max.row = NULL} which
@@ -33,6 +34,9 @@ required.}
 
 \item{dp}{integer, the number of decimal places to round the estimate, standard error and
 confidence intervals to; defaults to \code{dp = 3}.}
+
+\item{vcov}{logical, should the half-vecorisation of the block diagonal of covariance 
+matrix be reported? Default is \code{vcov = FALSE}.}
 
 \item{capture}{logical, should the printed \code{xtable} output be saved anywhere instead
 of just printed to the console? Defaults to \code{capture = FALSE}.}
@@ -47,7 +51,7 @@ LaTeX table. Supply a character string which contains \code{"top"}, \code{"middl
 be \code{hline}s. For instance \code{hlines = "top-middle-bottom"} prints all three;
 whilst \code{hlines = "middle-bottom"} skips the \code{toprule}.}
 
-\item{booktabs}{logical, if \code{booktabs = TRUE} (the default) then\code{toprule};
+\item{booktabs}{logical, if \code{booktabs = TRUE} (the default) then \code{toprule};
 \code{midrule} and \code{bottomrule} replace the usual \code{hline}s.}
 
 \item{size}{character, LaTeX size to be placed before the tabular environment, defaults
@@ -56,14 +60,14 @@ to \code{size = "footnotesize"}; replace with \code{"normalsize"} if wanted.}
 \item{...}{additional arguments, none used.}
 }
 \value{
-A LaTeX-ready \code{xtable} print-out of the joint model.
+A LaTeX-ready \code{xtable} print-out of the joint model. A list containing 
+constituent tables is also returned invisibly, along with the final \code{xtable} output.
 }
 \description{
 Prints an \code{xtable} output for a fitted \code{joint} object to the console,
 or to a specified save location
 }
 \examples{
-\donttest{
 # Bivariate joint model ------------------------------------------------
 require(xtable)
 data <- simData(n = 100)$data
@@ -81,7 +85,6 @@ xtable(fit, p.val = TRUE, dp = 4, caption = FALSE)
 xtable(fit, size = "normalsize", hlines = c("top-middle-bottom"))
 # Make a wider table without booktabs 
 xtable(fit, booktabs = FALSE, max.row = 6)
-}
 }
 \seealso{
 \code{\link{joint}}

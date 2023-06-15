@@ -1,3 +1,10 @@
+# gmvjoint version 0.3.0
+* Fairly extensive re-writes to workhorse functions `joint` (and underlying `EMUpdate`); some computational efficiency has been gained here 'within' the EM algorithm.
+* Removed `CreateDataMatrices` function, in favour of simply taking ones from fits used in initial conditions (via `glmmTMB`); this greatly reduces computation times, particularly for larger models.
+* Added a bootstrapping function `boot.joint`: The approximate SEs created by the model are known to be underestimated, and so this bootstrapping function seeks to provide an alternative route; or means of comparison.
+* Spruced-up plotting of conditional distributions of the random effects.
+* Updates to S3 methods.
+
 # gmvjoint version 0.2.0
 * Dynamic predictions added
 * ROC/AUC function added

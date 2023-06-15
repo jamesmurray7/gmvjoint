@@ -5,12 +5,11 @@
 #' @keywords internal
 #' @importFrom pracma nearest_spd
 #' @importFrom glmmTMB fixef ranef genpois
-Longit.inits <- function(long.formula, data, family){
-  lapply(long.formula, function(x) if(!"formula"%in%class(x)) stop('"long.formula" must be of class "formula"'))
+Longit.inits <- function(long.formulas, disp.formulas, data, family){
+  lapply(long.formulas, function(x) if(!"formula"%in%class(x)) stop('"long.formulas" must be of class "formula"'))
   family.form <- lapply(family, function(f){
-    
-    if("function"%in%class(f)) f <- f()$family # step to ensure non-quoted arguments don't throw error.
-    ff <- match.arg(f, c('gaussian', 'binomial', 'poisson', 'genpois', 'Gamma'), several.ok = F)
+    ff <- match.arg(f, c('gaussian', 'binomial', 'poisson', 'genpois', 'Gamma',
+                         'negbin'), several.ok = F)
     
     # Set appropriate family ==================
     switch(ff, 
@@ -18,19 +17,19 @@ Longit.inits <- function(long.formula, data, family){
            binomial = family <- binomial,
            poisson = family <- poisson,
            genpois = family <- glmmTMB::genpois(),
-           Gamma = family <- Gamma(link='log')
+           Gamma = family <- Gamma(link='log'),
+           negbin = family <- glmmTMB::nbinom2(),
+           zip = family <- poisson
     )
     family
   })
   
-  K <- length(long.formula)
-  if(K!=length(family)) stop('Uneven long.formula and family supplied.')
+  K <- length(long.formulas)
+  if(K!=length(family)) stop('Uneven long.formulas and family supplied.')
   # Fit using glmmTMB =========================
   fits <- lapply(1:K, function(k){
-    fit <- glmmTMB(long.formula[[k]],
-                   family = family.form[[k]], data = data, dispformula = ~ 1,
-                   # control = glmmTMBControl(optCtrl = list(rel.tol = 1e-3))
-                   )
+    fit <- glmmTMB(long.formulas[[k]],
+                   family = family.form[[k]], data = data, dispformula = disp.formulas[[k]])
     fit
   })
   
@@ -61,13 +60,15 @@ Longit.inits <- function(long.formula, data, family){
   # Dispersion ================================
   sigma <- lapply(1:K, function(k){
     if("function"%in%class(family[[k]])) f <- family[[k]]()$family else f <- family[[k]]
-    f <- match.arg(f, c('gaussian', 'binomial', 'poisson', 'genpois', 'Gamma'), several.ok = F)
-    if(f=='genpois'){
-      out <- setNames(exp(glmmTMB::fixef(fits[[k]])$disp/2) - 1, paste0('phi_', k))
-    }else if(f == 'gaussian'){
+    f <- match.arg(f, c('gaussian', 'binomial', 'poisson', 'genpois', 'Gamma', 'genpois', 'negbin'), several.ok = F)
+    if(f=='genpois'){ # IDENTITY
+      out <- setNames(exp(glmmTMB::fixef(fits[[k]])$disp/2) - 1, paste('phi', k, names(glmmTMB::fixef(fits[[k]])$disp), sep = "_"))
+    }else if(f == 'gaussian'){ # VARIANCE
       out <- setNames(glmmTMB::sigma(fits[[k]])^2, paste0('sigma^2_', k))
-    }else if(f == 'Gamma'){
-      out <- setNames(exp(glmmTMB::fixef(fits[[k]])$disp), paste0('shape_', k))
+    }else if(f == 'Gamma'){ # LOG SCALE
+      out <- setNames(glmmTMB::fixef(fits[[k]])$disp, paste('shape', k, names(glmmTMB::fixef(fits[[k]])$disp), sep = "_"))
+    }else if(f == "negbin"){# LOG SCALE
+      out <- setNames(glmmTMB::fixef(fits[[k]])$disp, paste('phi', k, names(glmmTMB::fixef(fits[[k]])$disp), sep = "_"))
     }else{
       out <- 0
     }
@@ -91,10 +92,11 @@ Longit.inits <- function(long.formula, data, family){
     beta.init = beta,
     D.init = D,
     sigma.init = sigma,
-    sigma.include = which(unlist(family) %in% c('gaussian', 'Gamma', 'genpois')),
+    sigma.include = which(unlist(sigma) != 0L),
     b = b,
     responses = markers,
-    off.inds = off.inds
+    off.inds = off.inds,
+    fits = fits
   )
 }
 
@@ -118,17 +120,20 @@ Longit.inits <- function(long.formula, data, family){
 }
 
 #' @keywords internal
-.ToRanefForm <- function(time, random.formula){
+.ToRanefForm <- function(time, random.formula, inits.long.frame){
   if(attr(random.formula, 'special') == 'none'){
     out <- model.matrix(as.formula(paste0('~', random.formula)), as.data.frame(time))
   }else if(attr(random.formula, 'special') == 'spline'){
-    out <- model.matrix(as.formula(paste0('~', random.formula)), as.data.frame(time))
+    ww <- which(sapply(lapply(inits.long.frame, class), function(x) "basis"%in%x))
+    frame <- inits.long.frame[,ww]
+    # out <- model.matrix(as.formula(paste0('~', random.formula)), as.data.frame(time))
+    out <- predict(frame, time)
   }
   as.data.frame(out)
 }
 
 #' @keywords internal
-TimeVarCox <- function(data, b, surv, formulas, b.inds){
+TimeVarCox <- function(data, b, surv, formulas, b.inds, inits.long){
   # Prepare data
   Tvar <- surv$survtime; Dvar <- surv$status
   ss <- .ToStartStop(data, Tvar); q <- ncol(b) # send to Start-Stop (ss) format
@@ -140,7 +145,9 @@ TimeVarCox <- function(data, b, surv, formulas, b.inds){
   ss3 <- ss3[!duplicated.matrix(ss3), ]
   
   # Create gamma variable
-  lhs <- lapply(formulas, function(x) .ToRanefForm(ss3[,'time1'], x$random))
+  lhs <- lapply(seq_along(formulas), function(x){
+    .ToRanefForm(ss3[,'time1'], formulas[[x]]$random, inits.long$fits[[x]]$frame)
+  })
   gamma <- lapply(1:K, function(k){
     unname(rowSums(lhs[[k]] * b[ss3$id, b.inds[[k]]]))
   })

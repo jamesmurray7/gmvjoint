@@ -4,12 +4,10 @@
 \alias{fitted.joint}
 \title{Obtain joint model fitted values}
 \usage{
-\method{fitted}{joint}(object, data = NULL, as = "matrix", ...)
+\method{fitted}{joint}(object, as = "matrix", ...)
 }
 \arguments{
 \item{object}{a joint model fit by the \code{\link{joint}} function.}
-
-\item{data}{the \emph{original} data set (i.e. that used in the \code{joint} call).}
 
 \item{as}{should the fitted values be returned as a \code{"matrix"} (the default) or as a 
 \code{"list"}? Note that \code{as="matrix"} only works for balanced responses.}

@@ -9,11 +9,11 @@ cond.ranefs(fit, burnin = 500L, N = 3500L, tune = 2)
 \arguments{
 \item{fit}{a joint model fit by the \code{joint} function.}
 
-\item{burnin}{Number of burn-in iterations to discard.}
+\item{burnin}{Number of burn-in iterations to discard, defaults to 500.}
 
-\item{N}{Number of MC iterations to carry out post burn-in.}
+\item{N}{Number of MC iterations to carry out \emph{post} burn-in, defaults to 3500.}
 
-\item{tune}{Tuning parameter, problem-specific.}
+\item{tune}{Tuning parameter, problem-specific, defaults to 2.}
 }
 \value{
 A list of class \code{cond.b.joint} containing: \describe{
@@ -22,6 +22,9 @@ A list of class \code{cond.b.joint} containing: \describe{
  \item{M}{The ModelInfo list from \code{joint}. Used by S3 methods for class 
           \code{cond.b.joint}.}
  \item{bhats}{Posterior estimates at MLEs for the random effects. Same as \code{ranef(joint)}.}
+ \item{Sigmahats}{The covariances of \code{bhats}.}
+ \item{D}{The MLE estimate for the variance-covariance matrix of random effects from 
+ \code{fit}.}
  \item{q}{Dimension of random effects.}
  \item{K}{Number of responses.} 
  \item{qnames}{The names of the random effects as determined by call to \code{joint}.}
@@ -46,9 +49,10 @@ surv.formula <- Surv(survtime, status) ~ bin
 fit <- joint(long.formulas, surv.formula, dat, list("gaussian","gaussian"))
 cond.b <- cond.ranefs(fit, burnin = 50L, N = 1000, tune = 2)
 cond.b
-plot(cond.b)
+plot(cond.b) # Overall 
+plot(cond.b, id = 1) # Plot the first subject (see plot.cond.b.joint).
 }
 }
 \seealso{
-\code{\link{ranef.joint}}
+\code{\link{ranef.joint}} \code{\link{plot.cond.b.joint}}
 }

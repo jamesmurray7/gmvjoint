@@ -2,11 +2,11 @@
 0 Errors | 0 Warnings | 1 Note.
 
 Note: 
-   installed size is  7.7Mb
-   sub-directories of 1Mb or more:
-     libs   7.3Mb
+    installed size is  7.6Mb
+    sub-directories of 1Mb or more:
+      libs   7.2Mb
 
-i.e. gmvjoint.so has size 7.3Mb.
+i.e. gmvjoint.so has size 7.2Mb.
 
 ## Test environments 
 
@@ -16,25 +16,18 @@ i.e. gmvjoint.so has size 7.3Mb.
 
 R-hub build OK (some NOTEs about "lastMiKTeXException" detritus).
 
-## Other Notes
-Removed usage to Matrix package, replacing with bespoke code or using another,
-which should alleviate deprecation warnings. They may persist for some time due to the 
-Matrix package being used in glmmTMB.
-Commented warnings about CXX_STD=CXX11 in Makevars(/.win) which resulted in a NOTE. 
-Tried some fixes to lambdaUpdate in src/funs.cpp, which was causing a clang issue. Hopefully it remedies.
-
 ## --dont-test
 Some donttest examples have elapsed times > 5s, on my local: 
-                      user system elapsed
-   bootAUCdiff     181.121  2.419 178.822
-   ROC             123.861 52.477  60.891
-   dynPred         111.482 56.890  52.063
-   bootAUC         159.765  1.109 158.826
-   joint            30.694 12.269  20.309
-   residuals.joint  19.426  4.590  15.021
-   fitted.joint     19.165  4.317  14.465
-   summary.joint    13.257  2.827  10.251
-   anova.joint      11.309  2.276   8.798
-   cond.ranefs       9.872  2.389   7.308
-   ranef.joint      10.523  1.728   8.595
+                        user  system elapsed
+   boot.joint        533.070 128.622 389.438
+   dynPred            96.688  55.712  40.430
+   ROC               105.741  45.484  51.568
+   joint              56.362  13.847  43.665
+   summary.joint      26.796   4.073  22.530
+   residuals.joint    20.078   4.471  15.246
+   fitted.joint       18.144   3.987  13.349
+   ranef.joint         9.857   1.791   7.932
+   anova.joint         9.257   2.127   6.839
+   cond.ranefs         7.093   1.733   5.243
+   plot.cond.b.joint   6.614   1.310   5.057
 

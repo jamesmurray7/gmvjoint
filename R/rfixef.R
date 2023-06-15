@@ -85,7 +85,6 @@ fixef.joint <- function(object, what = c("long", 'surv'), ...){
 ranef.joint <- function(object, Var = FALSE, ...){
   x <- object
   if(!inherits(x, 'joint')) stop("Only usable with objects of class 'joint'.")
-  if(is.null(x$REs)) stop("Rerun with post.process = TRUE.")
   RE <- x$REs
   if(Var){
     Sigma <- attr(RE, 'Var')

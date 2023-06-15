@@ -24,8 +24,7 @@ acts as the main workhorse function for \code{ROC}. Takes default arguments of
 function (% showing the completed proportion of those alive at \code{Tstart}.). Defaults
 to \code{progress = TRUE}.}
 
-\item{boot}{logical. For usage via \code{\link{bootAUC}} only, do not change from 
-the default \code{boot=FALSE}.}
+\item{boot}{logical. Not currently used, legacy argument.}
 }
 \value{
 A list of class \code{ROC.joint} consisting of: \describe{
@@ -67,7 +66,7 @@ plot(roc)
 }
 }
 \seealso{
-\code{\link{dynPred}}, \code{\link{bootAUC}} and \code{\link{plot.ROC.joint}}.
+\code{\link{dynPred}}, and \code{\link{plot.ROC.joint}}.
 }
 \author{
 James Murray (\email{j.murray7@ncl.ac.uk}).

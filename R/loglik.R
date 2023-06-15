@@ -1,59 +1,35 @@
-#' @importFrom mvtnorm dmvnorm
 #' @keywords internal
-joint.log.lik <- function(coeffs, dmats, b, surv, sv, l0u, l0i, gamma.rep, beta.inds, b.inds, K, q, family, Sigma){
-  Y <- dmats$Y; X <- dmats$X; Z <- dmats$Z
-  beta <- coeffs$beta; D <- coeffs$D; sigma <- coeffs$sigma; zeta <- coeffs$zeta
-  S <- sv$S; SS <- sv$SS; Delta <- surv$Delta
-  Fu <- sv$Fu; Fi <- sv$Fi
-  beta.inds2 <- lapply(beta.inds, function(x) x - 1); b.inds2 <- lapply(b.inds, function(x) x - 1)
+joint.log.lik <- function(coeffs, dmats, surv, sv, family, b, l0i, l0u, inds, Sigma){
+  beta <- coeffs$beta; D <- coeffs$D; sigma <- coeffs$sigma; zeta <- coeffs$zeta; gamma <- coeffs$gamma
+  gamma.rep <- rep(gamma, sapply(inds$R$b, length))
   
   # log-likelihood conditional on random effects (i.e. not marginalised over REs).
-  ll <- mapply(function(Y, X, Z, b, S, SS, Fu, Fi, Delta, l0i, l0u){
-    joint_density(b = b, Y = Y, X = X, Z = Z, beta = beta, D = D, sigma = sigma, family = family,
+  ll <- mapply(function(Y, X, Z, W, b, S, SS, Fu, Fi, Delta, l0i, l0u){
+    joint_density(b = b, Y = Y, X = X, Z = Z, W = W, beta = beta, D = D, sigma = sigma, family = family,
                   Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS, Fu = Fu, haz = l0u, gamma_rep = gamma.rep, zeta = zeta,
-                  beta_inds = beta.inds2, b_inds = b.inds2, K = K) * -1
-  }, Y = Y, X = X, Z = Z, b = b, S = S, SS = SS, Fu = Fu, Fi = Fi, Delta = Delta, l0i = l0i, l0u = l0u)
+                  beta_inds = inds$Cpp$beta, b_inds = inds$Cpp$b, K = dmats$K) * -1
+  }, Y = dmats$Y, X = dmats$X, Z = dmats$Z, W = dmats$W,
+     b = b, S = sv$S, SS = sv$SS, Fu = sv$Fu, Fi = sv$Fi, 
+     Delta = surv$Delta, l0i = l0i, l0u = l0u)
   ll.cond <- sum(ll) 
   
   # Observed data log-likelihood log f(T, Delta, Y|b;Omega)
-  ll2 <- mapply(function(Y, X, Z, b, S, SS, Fu, Fi, Delta, l0i, l0u, Sigma){
-    
-    log.fti <- logfti(b, S, SS, Fi, Fu, l0i, l0u, Delta, gamma.rep, zeta)
-    
-    log.fY <- lapply(1:K, function(k){
-      f <- family[[k]]
-      Xk <- X[[k]]; Zk <- Z[[k]]; Yk <- Y[[k]];
-      betak <- beta[beta.inds[[k]]]; bk <- b[b.inds[[k]]]
-      eta <- Xk %*% betak + Zk %*% bk
-      out <- switch(f,
-                    gaussian = dnorm(Yk, eta, sqrt(sigma[[k]]), T),
-                    binomial = dbinom(Yk, 1, plogis(eta), T),
-                    poisson = dpois(Yk, exp(eta), T),
-                    genpois = ll_genpois(eta, sigma[[k]], Yk),
-                    Gamma = dgamma(Yk, sigma[[k]], exp(eta)/sigma[[k]], log = T))
-      out
-    })
-    log.fY <- sum(do.call(c, log.fY))
-    
-    log.fb <- 0.5 * q * log(2*pi) + 0.5 * log(det(Sigma)) + mvtnorm::dmvnorm(b, sigma = D, log = T)
-    
-    c(log.fti, log.fY, log.fb)
-    
-  }, Y = Y, X = X, Z = Z, b = b, S = S, SS = SS, Fu = Fu, Fi = Fi, Delta = Delta, l0i = l0i, l0u = l0u, Sigma = Sigma)
-  ll.obs <- sum(ll2)
+  ll.obs <- ll + 0.5 * log(2*pi) * sv$q + sapply(Sigma, function(x) 0.5 * log(det(x)))
+  ll.obs <- sum(ll.obs)
   
   # Calculate AIC and BIC
-  N <- sum(colSums(do.call(rbind, lapply(Y, function(y) sapply(y, length)))))
+  N <- sum(dmats$m)
   
-  df <- sum(dmats$P) + length(vech(D)) +                                   # Fixed effects + D terms,
-    sum(unlist(family) %in% c('gaussian', 'genpois', 'Gamma')) +           # Dispersion terms,
-    K + ncol(S[[1]])                                                       # K gammas, ncol(S) zetas.
+  df <- sum(dmats$P) + length(vech(D)) +   # Fixed effects + D terms,
+        sum(unlist(sigma) != 0L) +         # Dispersion
+        dmats$K + ncol(sv$S[[1]])          # K gammas, ncol(S) zetas.
   
-  df.residual <- N - (df + sum(dim(do.call(rbind, b))))                    # DF - num. REs
+  # Residual df: total nobs - df - number of random effects
+  df.residual <- N - (df + sum(dim(do.call(rbind, b))))                    
   
   structure(ll.obs,
             'df' = df, 'df.residual' = df.residual,
-            'Conditional loglikelihood' = ll.cond,
+            'conditional' = ll.cond,
             'AIC' = -2 * ll.obs + 2 * df,
             'BIC' = -2 * ll.obs + log(N) * df)
 }
@@ -133,6 +109,11 @@ logLik.joint <- function(object, conditional = FALSE, ...){
   if(!inherits(object, 'joint')) stop("Only usable with object of class 'joint'.")
   if(is.null(object$logLik)) stop("Rerun with post.process = TRUE.")
   ll <- object$logLik
+  if(conditional){
+    out <- attr(ll, 'conditional')
+    attr(out, 'df') <- attr(ll, 'df')
+    ll <- out
+  }
   class(ll) <- 'logLik'
   ll
 }
@@ -161,7 +142,7 @@ extractAIC.joint <- function(fit, scale, k = 2, conditional = FALSE, ...){
   L <- x$logLik
   df <- attr(L, 'df')
   if(conditional){
-    ll <- c(attr(L, 'Conditional loglikelihood'))
+    ll <- c(attr(L, 'conditional'))
   }else{
     ll <- c(L)
   }

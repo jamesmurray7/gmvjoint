@@ -1,92 +1,107 @@
+#' @importFrom pracma grad hessian
 #' @keywords internal
-EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
-                     S, SS, Fi, Fu, l0i, l0u, Delta, l0, sv,   # Survival
-                     w, v, n, m, hessian,                      # Quadrature + additional info.
-                     beta.inds, b.inds, K, q){
+EMupdate <- function(Omega, family, dmats, b,                # Params; families; dmats; REs;
+                     sv, surv, w, v,                         # Survival; quadrature;
+                     con, inds){                             # control arguments; indices
   
   # Unpack Omega, the parameter vector
   D <- Omega$D; beta <- Omega$beta; sigma <- Omega$sigma; gamma <- Omega$gamma; zeta <- Omega$zeta
-  beta.inds2 <- lapply(beta.inds, function(x) x - 1); b.inds2 <- lapply(b.inds, function(x) x - 1) # Indexed for C++ use.
-  gamma.rep <- rep(gamma, sapply(b.inds, length))
+  gamma.rep <- rep(gamma, sapply(inds$R$b, length))
   
   # Find b.hat and Sigma =====================
-  if(hessian == 'auto') .hess <- T else .hess <- F
-  b.update <- mapply(function(b, Y, X, Z, Delta, S, Fi, l0i, SS, Fu, l0u){
+  b.update <- Map(function(b, Y, X, Z, W, Delta, S, Fi, l0i, SS, Fu, l0u){
     optim(b, joint_density, joint_density_ddb,
-          Y = Y, X = X, Z = Z, beta = beta, D = D, sigma = sigma, family = family, 
+          Y = Y, X = X, Z = Z, W = W, beta = beta, D = D, sigma = sigma, family = family, 
           Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS, Fu = Fu, haz = l0u, gamma_rep = gamma.rep, zeta = zeta,
-          beta_inds = beta.inds2, b_inds = b.inds2, K = K,
-          method = 'BFGS', hessian = .hess)
-  }, b = b, Y = Y, X = X, Z = Z, Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS,
-  Fu = Fu, l0u = l0u, SIMPLIFY = F)
+          beta_inds = inds$Cpp$beta, b_inds = inds$Cpp$b, K = dmats$K,
+          method = 'BFGS', hessian = TRUE)
+  }, b = b, Y = dmats$Y, X = dmats$X, Z = dmats$Z, W = dmats$W, Delta = surv$Delta, 
+     S = sv$S, Fi = sv$Fi, l0i = sv$l0i, SS = sv$SS, Fu = sv$Fu, l0u = sv$l0u)
   
   b.hat <- lapply(b.update, el, 1)
-  if(.hess){
-    Sigma <- lapply(b.update, function(x) solve(x$hessian))
-  }else{
-    Sigma <- mapply(function(b, Y, X, Z, Delta, S, Fi, l0i, SS, Fu, l0u){
-      solve(
-        joint_density_sdb(b = b, Y = Y, X = X, Z = Z, beta = beta, D = D, sigma = sigma, family = family,
-                          Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS, Fu = Fu, haz = l0u, gamma_rep = gamma.rep,
-                          zeta = zeta, beta_inds = beta.inds2, b_inds = b.inds2, K = K, eps = 1e-5))
-    }, b = b.hat, Y = Y, X = X, Z = Z, Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS,
-    Fu = Fu, l0u = l0u, SIMPLIFY = F)
-  }
+  Sigma <- lapply(b.update, function(x) solve(x$hessian))
   
   # Split into K constituent sub-matrices.
-  SigmaSplit <- lapply(Sigma, function(x) lapply(b.inds, function(y) as.matrix(x[y,y])))
-  bsplit <- lapply(b.hat, function(x) lapply(b.inds, function(y) x[y]))                # Needed for updates to beta.
-  bmat <- lapply(bsplit, bind.bs) # Needed for E[\ell(\gamma,\zeta)|\b...|\Omega].
+  SigmaSplit <- lapply(Sigma, function(x) lapply(inds$R$b, function(y) as.matrix(x[y,y])))
   
   # #########
   # E-step ##
   # #########
   
   # D =========================================
-  D.update <- mapply(function(Sigma, b) Sigma + tcrossprod(b), Sigma = Sigma, b = b.hat, SIMPLIFY = F)
+  D.update <- Map(function(Sigma, b) Sigma + tcrossprod(b), Sigma = Sigma, b = b.hat)
   
   # \beta =====================================
-  tau <- mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
-
-  Sb <- mapply(function(X, Y, Z, b, tau){
-    Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K, 
-          FALSE, tau, w, v)
-  }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau, SIMPLIFY = F)
-  Hb <- mapply(function(X, Y, Z, b, tau){
-    Hbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K,
-          FALSE, tau, w, v)
-  }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau, SIMPLIFY = F)
+  tau <- Map(make_tau, Z = dmats$Z, S = SigmaSplit)
+  eta <- Map(function(X, Z, b) make_eta(X, Z, beta, b, inds$Cpp$beta, inds$Cpp$b), 
+             X = dmats$X, Z = dmats$Z, b = b.hat)
+  
+  Sb <- Map(function(X, Y, Z, W, b, tau){
+    Sbeta(beta, X, Y, Z, W, b, sigma, family, inds$Cpp$beta, inds$Cpp$b, 
+          dmats$K, tau, w, v) 
+  }, X = dmats$X, Y = dmats$Y, Z = dmats$Z, W = dmats$W, b = b.hat, tau = tau)
+  
+  Hb <- Map(function(X, Y, Z, W, b, tau){
+    Hbeta(beta, X, Y, Z, W, b, sigma, family, inds$Cpp$beta, inds$Cpp$b, 
+          dmats$K, tau, w, v) 
+  }, X = dmats$X, Y = dmats$Y, Z = dmats$Z, W = dmats$W, b = b.hat, tau = tau)
   
   # Dispersion ('\sigma') =====================
   funlist <- unlist(family)
-  disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma'))
-  sigma.update <- sigma.update2 <- replicate(K, list(), simplify = F)
-  for(j in disps){
-    tauj <- lapply(tau, el, j)
-    
-    # Update accordingly.
-    if(funlist[j] == 'gaussian'){
-      sigma.update[[j]] <- sum(mapply(function(X, Y, Z, b, tauj){
-        vare_update(X[[j]], Y[[j]], Z[[j]], b[[j]], beta[beta.inds[[j]]], tauj, w, v)
-      }, X = X, Y = Y, Z = Z, b = bsplit, tauj = tauj))
-    }
-    if(funlist[j] == 'genpois'){
-      sigma.update[[j]] <- rowSums(mapply(function(b, X, Y, Z, tauj){
-      unlist(phi_update(b[[j]], X[[j]], Y[[j]], Z[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v, tauj))
-      }, b = bsplit, X = X, Y = Y, Z = Z, tauj = tauj))
-    }
-    if(funlist[j] == 'Gamma'){
-      sigma.update[[j]] <- rowSums(mapply(function(X, Y, Z, tauj, b){
-        unlist(shape_update(sigma[[j]], X[[j]], Y[[j]], Z[[j]], tau, beta[beta.inds[[j]]], b[[j]], w, v))
-      }, X = X, Y = Y, Z = Z, tauj = tauj, b = bsplit))
-    }
-  }
+  disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma', 'negbin'))
   
-  for(j in setdiff(1:K, c(disps))) sigma.update[[j]] <- NA # Return null for all distsn which do not have disp. parameters.
+  sigma.update <- lapply(seq_along(funlist), function(f){
+    
+    tau.f <- lapply(tau, el, f)
+    eta.f <- lapply(eta, el, f)
+    ff <- funlist[f];
+    
+    if(ff == "gaussian"){
+      return(
+        sum(mapply(function(eta, Y, tau){
+          sigma2_Gaussian_update(eta, Y[[f]], tau, w, v)
+        }, eta = eta.f, Y = dmats$Y, tau = tau.f))/dmats$m[f]
+      )
+    }else if(ff == "Gamma"){
+      S_H_ <- Map(function(eta, Y, tau, W){
+        S <- pracma::grad(appxE_Gammasigma, sigma[[f]],
+                          eta = eta, Y = Y[[f]], tau = tau, W = W[[f]], w = w, v = v)
+        H <- pracma::hessian(appxE_Gammasigma, sigma[[f]],
+                             eta = eta, Y = Y[[f]], tau = tau, W = W[[f]], w = w, v = v)
+        list(S = S, H = H)
+      }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W)
+      return(solve(Reduce('+', lapply(S_H_, el, 2)), Reduce('+', lapply(S_H_, el, 1))))
+    }else if(ff == "negbin"){
+      S_H_ <- Map(function(eta, Y, tau, W){
+        S <- pracma::grad(appxE_NegBinsigma, sigma[[f]],
+                          eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
+                          w = w, v = v)
+        H <- pracma::hessian(appxE_NegBinsigma, sigma[[f]],
+                             eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
+                             w = w, v = v)
+        list(S = S, H = H)
+      }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W)
+      return(solve(Reduce('+', lapply(S_H_, el, 2)), Reduce('+', lapply(S_H_, el, 1))))
+    }else if(ff == "genpois"){
+      S_H_ <- Map(function(eta, Y, tau, W){
+        S <- pracma::grad(appxE_GenPoissigma, sigma[[f]],
+                          eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
+                          w = w, v = v)
+        H <- pracma::hessian(appxE_GenPoissigma, sigma[[f]],
+                             eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
+                             w = w, v = v)
+        list(S = S, H = H)
+      }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W)
+      return(solve(Reduce('+', lapply(S_H_, el, 2)), Reduce('+', lapply(S_H_, el, 1))))
+    }else{
+      return(0)
+    }
+    
+  })
   
   # Survival parameters (\gamma, \zeta) =======
-  l0.hat <- lambdaUpdate_noprecalc(b.hat, Fu, SS, Sigma, gamma.rep, zeta, sv$nev, w, v) # Profile estimate to work out (gamma, zeta).
-  l0u.hat <- lapply(l0u, function(ll){                                                  # _Not_ estimator for lambda_0.
+  l0.hat <- lambda_hat(b.hat, sv$Fu, sv$SS, Sigma, gamma.rep, zeta, sv$nev, w, v) # Profile estimate to work out (gamma, zeta).
+  l0u.hat <- lapply(sv$l0u, function(ll){                                         # _Not_ estimator for lambda_0.
     l0.hat[1:length(ll)]
   })
   
@@ -94,64 +109,65 @@ EMupdate <- function(Omega, family, X, Y, Z, b,                # Longit.
   
   Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta, ST){
     if(length(ST))
-      return(Sgammazeta_cd(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, 
-                        b.inds2, K, .Machine$double.eps^(1/3)))
+      return(Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, 
+                        inds$Cpp$b, dmats$K, .Machine$double.eps^(1/3)))
     else
       return(rep(0, Psurv))
-  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u.hat, Delta = Delta, ST = sv$surv.times)
+  }, b = b.hat, Sigma = Sigma, S = sv$S, SS = sv$SS, Fu = sv$Fu, 
+     Fi = sv$Fi, l0u = l0u.hat, Delta = surv$Delta, ST = sv$surv.times)
   
-  Hgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta, ST){
+  Hgz <- Map(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta, ST){
     if(length(ST))
-      return(Hgammazeta_cd(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, .Machine$double.eps^(1/4)))
+      return(Hgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, 
+                          inds$Cpp$b, dmats$K, .Machine$double.eps^(1/4)))
     else
       return(matrix(0, Psurv, Psurv))
-  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u.hat, Delta = Delta, 
-     ST = sv$surv.times, SIMPLIFY = F)
+  }, b = b.hat, Sigma = Sigma, S = sv$S, SS = sv$SS, Fu = sv$Fu, 
+     Fi = sv$Fi, l0u = l0u.hat, Delta = surv$Delta, ST = sv$surv.times)
   
   # #########
   # M-step ##
   # #########
   
   # D
-  D.new <- Reduce('+', D.update)/n
+  D.new <- Reduce('+', D.update)/dmats$n
   
   # beta
   beta.new <- beta - solve(Reduce('+', Hb), Reduce('+', Sb))
   
   # Dispersion
-  ms <- colSums(do.call(rbind, m))
-  sigma.new <- as.list(rep(0., K))
+  sigma.new <- replicate(dmats$K, 0, simplify = FALSE)
   for(j in disps){ # This a little inefficient; kept as separating E- and M- steps
     if(funlist[j] == 'gaussian'){
-      sigma.new[[j]] <- setNames(sigma.update[[j]]/ms[j],names(sigma[[j]]))
-    }else if(funlist[j] == "genpois"){
-      sigma.new[[j]] <- sigma[[j]] - sigma.update[[j]]['Score']/sigma.update[[j]]['Hessian']
-    }else if(funlist[j] == 'Gamma'){
-      sigma.new[[j]] <- sigma[[j]] - sigma.update[[j]]['Score']/sigma.update[[j]]['Hessian']
+      sigma.new[[j]] <- setNames(sigma.update[[j]], names(sigma[[j]]))
+    }else{
+      sigma.new[[j]] <- sigma[[j]] - sigma.update[[j]]
     }
   }
-  
+
   # Survival parameters (gamma, zeta)
   gammazeta.new <- c(gamma, zeta) - solve(Reduce('+', Hgz), rowSums(Sgz))
-  gamma.new <- gammazeta.new[1:K]; zeta.new <- gammazeta.new[(K+1):length(gammazeta.new)]
+  gamma.new <- gammazeta.new[1:dmats$K]; zeta.new <- gammazeta.new[(dmats$K+1):length(gammazeta.new)]
   
   # The baseline hazard and related objects
-  lambda.update <- lambdaUpdate(sv$surv.times, sv$ft.mat, gamma.new, zeta.new, S, Sigma, b.hat, w, v, b.inds2)
-  l0.new <- sv$nev/rowSums(lambda.update)
-  l0u.new <- lapply(l0u, function(ll){
-    l0.new[1:length(ll)]
+  lambda.update <- c(lambda_update(b.hat, sv$Fu, sv$SS, Sigma, sv$surv.times, 
+                                   rep(gamma.new, sapply(inds$R$b, length)), zeta.new, sv$nev,
+                                   w, v))
+  
+  l0u.new <- lapply(sv$l0u, function(ll){
+    lambda.update[1:length(ll)]
   })
-  l0i.new <- l0.new[match(sv$Ti, sv$ft)] 
+  l0i.new <- lambda.update[match(sv$Ti, sv$ft)] 
   l0i.new[is.na(l0i.new)] <- 0
   
   # Return
   list(
-    D = D.new, beta = beta.new, sigma = sigma.new,       # Yk responses
-    gamma = gamma.new, zeta = zeta.new,                  # Survival
-    l0 = l0.new, l0u = l0u.new, l0i = as.list(l0i.new),  #   Hazard
-    l0u.hat = l0u.hat,                                   #   (+ profile)
-    b = b.hat,                                           #   REs.
-    Sigma = Sigma                                        #   Their variance
+    D = D.new, beta = beta.new, sigma = sigma.new,              #   K responses;
+    gamma = gamma.new, zeta = zeta.new,                         #   survival;
+    l0 = lambda.update, l0u = l0u.new, l0i = as.list(l0i.new),  #   hazard;
+    l0u.hat = l0u.hat,                                          #   (+ profile);
+    b = b.hat,                                                  #   REs;
+    Sigma = Sigma                                               #   + their variance.
   )
   
 }

@@ -18,18 +18,29 @@ Object of class \code{summary.joint}.
 Generate summary of a fitted multivariate joint model.
 }
 \examples{
-\donttest{
+# Simple univariate on log(serum bilirubin) ----------------------------
 data(PBC)
+long.formulas <-  list(
+  log(serBilir) ~ drug * (time + I(time^2)) + (1 + time + I(time^2)|id)
+)
+surv.formula <- Surv(survtime, status) ~ sex + drug
+fit <- joint(long.formulas = long.formulas,
+             surv.formula = surv.formula,
+             data = PBC, family = list("gaussian"))
+summary(fit)              
+
+# Bivariate with a dispersion model ------------------------------------
+\donttest{
+PBC <- na.omit(PBC[,c('id', 'survtime', 'status', 'sex', 
+                      'drug', 'platelets', 'albumin', 'time')])
 long.formula <- list(
   platelets ~ time * drug + (1 + time|id),
   albumin ~ time * drug + (1 + time|id)
 )
 surv.formula <- Surv(survtime, status) ~ sex + drug
-
-PBC <- na.omit(PBC[,c('id', 'survtime', 'status', 'sex', 
-                      'drug', 'platelets', 'albumin', 'time')])
-fit <- joint(long.formula, surv.formula, PBC, family = list('genpois', 'gaussian'),
-            control = list(verbose = TRUE))
+fit <- joint(long.formula, surv.formula, PBC, 
+             family = list("negbin", "gaussian"),
+             disp.formula = list(~time, ~1))
 summary(fit)
 }
 }

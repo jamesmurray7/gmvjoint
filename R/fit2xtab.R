@@ -39,7 +39,6 @@
 #' @export
 #'
 #' @examples
-#' \donttest{
 #' # Bivariate joint model ------------------------------------------------
 #' require(xtable)
 #' data <- simData(n = 100)$data
@@ -57,7 +56,6 @@
 #' xtable(fit, size = "normalsize", hlines = c("top-middle-bottom"))
 #' # Make a wider table without booktabs 
 #' xtable(fit, booktabs = FALSE, max.row = 6)
-#' }
 xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 3,
                          vcov = FALSE, capture = FALSE, capture.location = "", 
                          hlines = "middle-bottom", booktabs = TRUE, size = "footnotesize",
@@ -72,8 +70,8 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
   .toXdp <- function(x) format(round(x, dp), nsmall = dp)
   
   # Model fit info
-  K <- length(x$ModelInfo$ResponseInfo)
-  responses <- lapply(sapply(x$ModelInfo$ResponseInfo, strsplit, '\\s\\('), el, 1)
+  K <- x$ModelInfo$K
+  responses <-x$ModelInfo$Resps
   families <- unlist(x$ModelInfo$family)
   # This will be based on summary
   s <- summary(x)
@@ -88,7 +86,7 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
     SE.vD <- x$SE[grepl("^D\\[", names(x$SE))]
     vD <- setNames(vech(D), names(SE.vD))
     
-    b.inds <- x$ModelInfo$inds$b
+    b.inds <- x$ModelInfo$inds$R$b
     Dtabs <- lapply(seq_along(b.inds), function(i){
       x <- b.inds[[i]]
       Dx <- D[x,x]; vDx <- vech(Dx)
@@ -211,6 +209,7 @@ xtable.joint <- function(x, p.val = FALSE, caption = TRUE, max.row = NULL, dp = 
   hline.after <- hline.after[!is.na(hline.after)]
   
   if(capture){
+    if(nchar(capture.location)==0L) stop("Please specify capture.location.")
     capture.output(print(xt,
                          include.rownames = FALSE,
                          sanitize.text.function = identity,

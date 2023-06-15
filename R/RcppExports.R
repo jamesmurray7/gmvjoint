@@ -7,13 +7,8 @@ GP1_pmf_scalar <- function(mu, phi, Y) {
 }
 
 #' @keywords internal
-dmvnrm_arma_fast <- function(x, mean, sigma, logd = TRUE) {
-    .Call(`_gmvjoint_dmvnrm_arma_fast`, x, mean, sigma, logd)
-}
-
-#' @keywords internal
-dmvt_arma_fast <- function(x, mean, sigma, df, logd = TRUE) {
-    .Call(`_gmvjoint_dmvt_arma_fast`, x, mean, sigma, df, logd)
+vech2mat <- function(x, q) {
+    .Call(`_gmvjoint_vech2mat`, x, q)
 }
 
 #' @keywords internal
@@ -21,14 +16,12 @@ S_ <- function(L, gamma_rep, zeta, b) {
     .Call(`_gmvjoint_S_`, L, gamma_rep, zeta, b)
 }
 
-#' @keywords internal
-ll_Gamma <- function(Y, shape, mu) {
-    .Call(`_gmvjoint_ll_Gamma`, Y, shape, mu)
+make_eta <- function(X, Z, beta, b, beta_inds, b_inds) {
+    .Call(`_gmvjoint_make_eta`, X, Z, beta, b, beta_inds, b_inds)
 }
 
-#' @keywords internal
-ll_genpois <- function(eta, phi, Y) {
-    .Call(`_gmvjoint_ll_genpois`, eta, phi, Y)
+make_tau <- function(Z, Sigma) {
+    .Call(`_gmvjoint_make_tau`, Z, Sigma)
 }
 
 #' @keywords internal
@@ -36,44 +29,50 @@ logfti <- function(b, S, SS, Fi, Fu, l0i, haz, Delta, gamma_rep, zeta) {
     .Call(`_gmvjoint_logfti`, b, S, SS, Fi, Fu, l0i, haz, Delta, gamma_rep, zeta)
 }
 
-#' @keywords internal
-joint_density <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K) {
-    .Call(`_gmvjoint_joint_density`, b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K)
+joint_density <- function(b, Y, X, Z, W, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K) {
+    .Call(`_gmvjoint_joint_density`, b, Y, X, Z, W, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K)
+}
+
+joint_density_ddb <- function(b, Y, X, Z, W, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K) {
+    .Call(`_gmvjoint_joint_density_ddb`, b, Y, X, Z, W, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K)
+}
+
+Sbeta <- function(beta, X, Y, Z, W, b, sigma, family, beta_inds, b_inds, K, tau, w, v) {
+    .Call(`_gmvjoint_Sbeta`, beta, X, Y, Z, W, b, sigma, family, beta_inds, b_inds, K, tau, w, v)
+}
+
+Hbeta <- function(beta, X, Y, Z, W, b, sigma, family, beta_inds, b_inds, K, tau, w, v) {
+    .Call(`_gmvjoint_Hbeta`, beta, X, Y, Z, W, b, sigma, family, beta_inds, b_inds, K, tau, w, v)
+}
+
+appxE_Gammasigma <- function(sigma, eta, Y, tau, W, w, v) {
+    .Call(`_gmvjoint_appxE_Gammasigma`, sigma, eta, Y, tau, W, w, v)
+}
+
+appxE_NegBinsigma <- function(sigma, eta, Y, tau, W, w, v) {
+    .Call(`_gmvjoint_appxE_NegBinsigma`, sigma, eta, Y, tau, W, w, v)
+}
+
+appxE_GenPoissigma <- function(sigma, eta, Y, tau, W, w, v) {
+    .Call(`_gmvjoint_appxE_GenPoissigma`, sigma, eta, Y, tau, W, w, v)
+}
+
+sigma2_Gaussian_update <- function(eta, Y, tau, w, v) {
+    .Call(`_gmvjoint_sigma2_Gaussian_update`, eta, Y, tau, w, v)
+}
+
+#' @keywords internal, this assumes mu_surv, tau_surv not calculated prior.
+lambda_hat <- function(b, Fu, SS, Sigma, gamma_rep, zeta, nev, w, v) {
+    .Call(`_gmvjoint_lambda_hat`, b, Fu, SS, Sigma, gamma_rep, zeta, nev, w, v)
 }
 
 #' @keywords internal
-maketau <- function(S, Z) {
-    .Call(`_gmvjoint_maketau`, S, Z)
+lambda_update <- function(b, Fu, SS, Sigma, survtimes, gamma_rep, zeta, nev, w, v) {
+    .Call(`_gmvjoint_lambda_update`, b, Fu, SS, Sigma, survtimes, gamma_rep, zeta, nev, w, v)
 }
 
-#' @keywords internal
-joint_density_ddb <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K) {
-    .Call(`_gmvjoint_joint_density_ddb`, b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K)
-}
-
-#' @keywords internal
-Sbeta <- function(beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v) {
-    .Call(`_gmvjoint_Sbeta`, beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v)
-}
-
-#' @keywords internal
-Hbeta <- function(beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v) {
-    .Call(`_gmvjoint_Hbeta`, beta, X, Y, Z, b, sigma, family, beta_inds, K, quad, tau, w, v)
-}
-
-#' @keywords internal
-vare_update <- function(X, Y, Z, b, beta, tau, w, v) {
-    .Call(`_gmvjoint_vare_update`, X, Y, Z, b, beta, tau, w, v)
-}
-
-#' @keywords internal
-phi_update <- function(b, X, Y, Z, beta, phi, w, v, tau) {
-    .Call(`_gmvjoint_phi_update`, b, X, Y, Z, beta, phi, w, v, tau)
-}
-
-#' @keywords internal
-Egammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K) {
-    .Call(`_gmvjoint_Egammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K)
+Egammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, inds, K) {
+    .Call(`_gmvjoint_Egammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, inds, K)
 }
 
 #' @keywords internal
@@ -82,42 +81,22 @@ Sgammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_i
 }
 
 #' @keywords internal
-Hgammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, Seps, Heps) {
-    .Call(`_gmvjoint_Hgammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, Seps, Heps)
+Hgammazeta <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps) {
+    .Call(`_gmvjoint_Hgammazeta`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps)
 }
 
 #' @keywords internal
-Sgammazeta_cd <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps) {
-    .Call(`_gmvjoint_Sgammazeta_cd`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps)
+metropolis <- function(b, Omega, Y, X, Z, W, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, beta_inds, b_inds, K, q, burnin, N, Sigma, tune) {
+    .Call(`_gmvjoint_metropolis`, b, Omega, Y, X, Z, W, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, beta_inds, b_inds, K, q, burnin, N, Sigma, tune)
 }
 
 #' @keywords internal
-Hgammazeta_cd <- function(gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps) {
-    .Call(`_gmvjoint_Hgammazeta_cd`, gammazeta, b, Sigma, S, SS, Fu, Fi, haz, Delta, w, v, b_inds, K, eps)
+dmvn_fast <- function(x, mn, Sigma, log__ = TRUE) {
+    .Call(`_gmvjoint_dmvn_fast`, x, mn, Sigma, log__)
 }
 
 #' @keywords internal
-lambdaUpdate <- function(survtimes, ft, gamma, zeta, S, Sigma, b, w, v, b_inds) {
-    .Call(`_gmvjoint_lambdaUpdate`, survtimes, ft, gamma, zeta, S, Sigma, b, w, v, b_inds)
-}
-
-#' @keywords internal, this assumes mu_surv, tau_surv not calculated prior.
-lambdaUpdate_noprecalc <- function(b, Fu, SS, Sigma, gamma_rep, zeta, nev, w, v) {
-    .Call(`_gmvjoint_lambdaUpdate_noprecalc`, b, Fu, SS, Sigma, gamma_rep, zeta, nev, w, v)
-}
-
-#' @keywords internal
-joint_density_sdb <- function(b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K, eps) {
-    .Call(`_gmvjoint_joint_density_sdb`, b, Y, X, Z, beta, D, sigma, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, zeta, beta_inds, b_inds, K, eps)
-}
-
-#' @keywords internal
-metropolis <- function(b, Omega, Y, X, Z, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, beta_inds, b_inds, K, q, burnin, N, Sigma, tune) {
-    .Call(`_gmvjoint_metropolis`, b, Omega, Y, X, Z, family, Delta, S, Fi, l0i, SS, Fu, haz, gamma_rep, beta_inds, b_inds, K, q, burnin, N, Sigma, tune)
-}
-
-#' @keywords internal
-vech2mat <- function(x, q) {
-    .Call(`_gmvjoint_vech2mat`, x, q)
+dmvt_fast <- function(x, mn, Sigma, df, log__ = TRUE) {
+    .Call(`_gmvjoint_dmvt_fast`, x, mn, Sigma, df, log__)
 }
 

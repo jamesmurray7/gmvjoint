@@ -126,13 +126,12 @@ all.ests %>%
         legend.title = element_text(size=8),
         legend.position = 'bottom')
 
-ggsave("~/Downloads/sim1fig200.png", width = 140, height = 90, units = 'mm')
+ggsave("~/Downloads/sim1fig.png", width = 140, height = 90, units = 'mm')
 
 tiff(filename = "~/Downloads/sim1fig.tiff", width = 140, height = 90, units = 'mm',
      res=1e3, compression = 'lzw')
 last_plot()
 dev.off()
-
 
 
 # Tabulating for Supplement -----------------------------------------------
@@ -284,3 +283,43 @@ df.to.xtab <- function(tab){
 df.to.xtab(low)
 df.to.xtab(med)
 df.to.xtab(high)
+
+
+# Final bit -- iterations, median [IQR] time ------------------------------
+time.tab <- sapply(times, function(a){
+  # a is a matrix
+  time <- a[1,]+a[2,]  # EM + Post processing
+  iter <- a[4,]        # Iterations
+  qn <- quantile(time)
+  it <- mean(iter)
+  # I think just showing the computation time
+  sprintf("%1.f, %.3f [%.3f, %.3f]", it, qn[3], qn[2], qn[4])
+  # Iterations don't really reveal anything!!
+  sprintf("%.3f [%.3f, %.3f]", qn[3], qn[2], qn[4])
+})
+
+xtable(rbind(time.tab[1:3], time.tab[4:6], time.tab[7:9]))
+
+# Is a plot more easily digestible? 
+boxplot(t(do.call(rbind,lapply(times, function(a) a[1,]+a[2,]))))
+do.call(rbind, lapply(seq_along(times), function(i){
+  ti <- times[[i]]
+  elap <- ti[1,] + ti[2,]
+  nm <- names(times)[i]
+  r <- stringr::str_extract(nm, "mi\\s\\=\\s\\d?\\d") %>% gsub("mi\\s\\=\\s",'',.) %>% as.integer
+  omega <- stringr::str_extract(nm, "failure\\s\\=\\s\\d\\d%") %>% gsub("failure\\s\\=\\s|%", '', .) %>% as.integer/100 
+  data.frame(r = paste0(r), omega = paste0("omega == ", omega), `elapsed time` = elap)
+})) %>% 
+  ggplot(aes(x = r, y = `elapsed.time`, fill = r)) + 
+  geom_boxplot(outlier.alpha = .33, lwd = 0.25, fatten = 2,
+               outlier.size = .50) + 
+  facet_wrap(~omega, labeller = label_parsed) + 
+  labs(x = expression(r),
+       y = "Elapsed time (s)") + 
+  theme_csda() + 
+  scale_fill_brewer(palette = 'YlOrRd') + 
+  theme(strip.text = element_text(size=9.5),
+        legend.title = element_text(size=8),
+        legend.position = 'none')
+
+# I think table is much easier to read !!!!!!!!!!!!!

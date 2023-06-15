@@ -133,7 +133,7 @@ for longitudinal and time-to-event data. \emph{Biometrics} 2011;
 \strong{67}: 819–829.
 }
 \seealso{
-\code{\link{ROC}}, \code{\link{bootAUC}} and \code{\link{plot.dynPred}}.
+\code{\link{ROC}} and \code{\link{plot.dynPred}}.
 }
 \author{
 James Murray (\email{j.murray7@ncl.ac.uk}).

@@ -1,185 +1,36 @@
 #' @keywords internal
-obs.emp.I <- function(Omega, dmats, surv, sv,
-                      Sigma, SigmaSplit, b, bsplit, 
-                      l0u, w, v, n, family, K, q, beta.inds, b.inds){
+obs.emp.I <- function(Omega, dmats, surv, sv, family,
+                      b, l0i, l0u, w, v, inds){
   # Unpack Omega ----
   D <- Omega$D
   beta <- c(Omega$beta)
   sigma <- Omega$sigma
-  gamma <- c(Omega$gamma)
+  gamma <- c(Omega$gamma); gamma.rep <- rep(gamma, sapply(inds$R$b, length))
   zeta <- c(Omega$zeta)
-  
-  # Extract data objects ----
-  # Longitudinal //
-  Z <- dmats$Z
-  X <- dmats$X
-  Y <- dmats$Y
-  m <- lapply(Y, function(y) sapply(y, length))
-  
-  beta.inds2 <- lapply(beta.inds, function(x) x - 1); b.inds2 <- lapply(b.inds, function(x) x - 1) # Indexed for C++ use.
-  
-  # Survival //
-  S <- sv$S
-  SS <- sv$SS
-  Fi <- sv$Fi
-  Fu <- sv$Fu
-  Delta <- surv$Delta
-  
-  # Scores ------------------------------------------------------------------
-  # The RE covariance matrix, D
-  # Dinv <- solve(D)
-  # postmult <- diag(1, nrow = nrow(Dinv), ncol = ncol(Dinv))
-  # postmult[postmult == 0] <- 2 # off-diagonals have twice the contribution!
-  # sD <- mapply(function(b, S){
-  #   vech(t(0.5 * (Dinv %*% (S + tcrossprod(b)) %*% Dinv) - 0.5 * Dinv)) * vech(postmult)
-  # }, b = b, S = Sigma, SIMPLIFY = F)
-  
-  # NB this same as commented segment above, just done "properly".
-  Dinv <- solve(D)
-  vech.indices <- which(lower.tri(D, diag = T), arr.ind = T)
-  dimnames(vech.indices) <- NULL
-  delta.D <- lapply(1:nrow(vech.indices), function(d){
-    out <- matrix(0, nrow(D), ncol(D))
-    ind <- vech.indices[d, 2:1]
-    out[ind[1], ind[2]] <- out[ind[2], ind[1]] <- 1 # dD/dvech(d)_i i=1,...,length(vech(D))
-    out
-  })
-  
-  sDi <- function(i) {
-    mapply(function(b, S) {
-      EbbT <- S + tcrossprod(b)
-      dDEbbT <- delta.D[[i]] %*% EbbT
-      term <- 0.5 * Dinv - 0.5 * Dinv %*% dDEbbT %*% Dinv
-      out <- 0.5 * (t(-term) - term)
-      sum(diag(out))
-    },
-    b = b, S = Sigma,
-    SIMPLIFY = TRUE)
-  }
-  
-  sD <- sapply(1:nrow(vech.indices), sDi)
-  sD <- lapply(1:nrow(sD), function(x) sD[x, ]) # Cast to list
-  
-  tau <-  mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
-  
-  Sb <- mapply(function(X, Y, Z, b, tau){
-    c(Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K,
-            FALSE, tau, w, v))
-  }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau, SIMPLIFY = F)
-  
-  # The dispersion parameter, \sigma
-  Ss <- vector('list', K)
-  funlist <- unlist(family)
-  disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma'))
-  for(j in disps){
-    tauj <- lapply(tau, el, j)
-    
-    # Create score accordingly.
-    if(funlist[j] == 'gaussian'){
-      temp <- numeric(n)
-      for(i in 1:n){
-        rhs <- 0
-        for(l in 1:length(w)){
-          rhs <- rhs + w[l] * crossprod(Y[[i]][[j]] - X[[i]][[j]] %*% beta[beta.inds[[j]]] - Z[[i]][[j]] %*% bsplit[[i]][[j]] - v[l] * tauj[[i]])
-        }
-        temp[i] <- -m[[i]][j]/(2 * unlist(sigma)[j]) + 1/(2 * unlist(sigma)[j]^2) * rhs
-      }
-      Ss[[j]] <- temp
-    }else if(funlist[j] == 'genpois'){
-      Ss[[j]] <- mapply(function(b, X, Y, Z, tauj){
-        phi_update(b[[j]], X[[j]], Y[[j]], Z[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v, tauj)$Score
-      }, b = bsplit, X = X, Y = Y, Z = Z, tauj = tauj, SIMPLIFY = F)
-    }else if(funlist[j] == 'Gamma'){
-      Ss[[j]] <- mapply(function(b, X, Y, Z, tauj){
-        pracma::grad(E_shape.b, sigma[[j]], X = X[[j]], Y = Y[[j]], Z = Z[[j]], tauj = tauj, 
-                     beta = beta[beta.inds[[j]]], b = b[[j]], w = w, v = v)
-      }, b = bsplit, X = X, Y = Y, Z = Z, tauj = tauj, SIMPLIFY = F)
-    }else{
-      Ss[[j]] <- as.list(rep(NULL, n))
-    }
-  }
-  
-  # Survival parameters (\gamma, \zeta)
-  Sgz <- mapply(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    Sgammazeta_cd(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, .Machine$double.eps^(1/3))
-  }, b = b, Sigma = Sigma, S = sv$S, SS = sv$SS, Fu = Fu, Fi = Fi, l0u = l0u, Delta = Delta, SIMPLIFY = F)
-  
-  # Collate and form information --------------------------------------------
-  Ss2 <- lapply(1:n, function(i){
-    do.call(c, lapply(disps, function(j){
-      Ss[[j]][[i]]
-    }))
-  })
-  
-  S <- mapply(function(sD, Sb, Ss, Sgz){
-    c(sD, Sb, Ss, c(Sgz))
-  }, sD = sD, Sb = Sb, Ss = Ss2, Sgz = Sgz)
-  
-  SS <- rowSums(S) # sum S
-  #  observed empirical information matrix (Mclachlan and Krishnan, 2008).
-  SiSiT <- Reduce('+', lapply(1:n, function(i) tcrossprod(S[, i])))
-  H <- SiSiT - tcrossprod(SS)/n
-  
-  return(list(Score = S,
-              Hessian = H))
-}
-
-#' @keywords internal
-obs.emp.I2 <- function(Omega, dmats, surv, sv, b, l0i, l0u,
-                       w, v, n, family, K, q, beta.inds, b.inds){
-  # Unpack Omega ----
-  D <- Omega$D
-  beta <- c(Omega$beta)
-  sigma <- Omega$sigma
-  gamma <- c(Omega$gamma); gamma.rep <- rep(gamma, sapply(b.inds, length))
-  zeta <- c(Omega$zeta)
-  
-  # Extract data objects ----
-  # Longitudinal //
-  Z <- dmats$Z
-  X <- dmats$X
-  Y <- dmats$Y
-  m <- lapply(Y, function(y) sapply(y, length))
-  
-  beta.inds2 <- lapply(beta.inds, function(x) x - 1); b.inds2 <- lapply(b.inds, function(x) x - 1) # Indexed for C++ use.
-  
-  # Survival //
-  S <- sv$S
-  SS <- sv$SS
-  Fi <- sv$Fi
-  Fu <- sv$Fu
-  Delta <- surv$Delta
   
   # Calculate b.hat, Sigma.hat at MLEs
-  b.update <- Map(function(b, Y, X, Z, Delta, S, Fi, l0i, SS, Fu, l0u){
+  b.update <- Map(function(b, Y, X, Z, W, Delta, S, Fi, l0i, SS, Fu, l0u){
     optim(b, joint_density, joint_density_ddb,
-          Y = Y, X = X, Z = Z, beta = beta, D = D, sigma = sigma, family = family,
+          Y = Y, X = X, Z = Z, W = W, beta = beta, D = D, sigma = sigma, family = family, 
           Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS, Fu = Fu, haz = l0u, gamma_rep = gamma.rep, zeta = zeta,
-          beta_inds = beta.inds2, b_inds = b.inds2, K = K,
+          beta_inds = inds$Cpp$beta, b_inds = inds$Cpp$b, K = dmats$K,
           method = 'BFGS', hessian = TRUE)
-  }, b = b, Y = Y, X = X, Z = Z, Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS,
-     Fu = Fu, l0u = l0u)
-  Sigma <- lapply(b.update, function(x) solve(x$hessian))
-  b.hat <- lapply(b.update, function(x) x$par)
-  SigmaSplit <- lapply(Sigma, function(x) lapply(b.inds, function(y) as.matrix(x[y,y])))
-  bsplit <- lapply(b.hat, function(x) lapply(b.inds, function(y) x[y]))
+  }, b = b, Y = dmats$Y, X = dmats$X, Z = dmats$Z, W = dmats$W, Delta = surv$Delta, 
+  S = sv$S, Fi = sv$Fi, l0i = l0i, SS = sv$SS, Fu = sv$Fu, l0u = l0u)
   
-  # Profile estimate for (gamma, zeta) at MLEs and bhat
-  l0.hat <- lambdaUpdate_noprecalc(b.hat, Fu, SS, Sigma, gamma.rep, zeta, sv$nev, w, v)
-  l0u.hat <- lapply(l0u, function(ll){
+  Sigma <- lapply(b.update, function(x) solve(x$hessian))
+  b.hat <- lapply(b.update, el, 1)
+  
+  SigmaSplit <- lapply(Sigma, function(x) lapply(inds$R$b, function(y) as.matrix(x[y,y])))
+  
+  # Profile estimate for (gamma, zeta) at MLEs and b.hat
+  l0.hat <- lambda_hat(b.hat, sv$Fu, sv$SS, Sigma, gamma.rep, zeta, sv$nev, w, v) # Profile estimate to work out (gamma, zeta).
+  l0u.hat <- lapply(sv$l0u, function(ll){
     l0.hat[1:length(ll)]
   })
   
   # Scores ------------------------------------------------------------------
-  # The RE covariance matrix, D
-  # Dinv <- solve(D)
-  # Below is correct but feels like cheating a little...
-  # postmult <- diag(1, nrow = nrow(Dinv), ncol = ncol(Dinv))
-  # postmult[postmult == 0] <- 2 # off-diagonals have twice the contribution!
-  # sD <- mapply(function(b, S){
-  #   vech(t(0.5 * (Dinv %*% (S + tcrossprod(b)) %*% Dinv) - 0.5 * Dinv)) * vech(postmult)
-  # }, b = b.hat, S = Sigma, SIMPLIFY = F)
-  
+  # D =========================================
   Dinv <- solve(D)
   vech.indices <- which(lower.tri(D, diag = T), arr.ind = T)
   dimnames(vech.indices) <- NULL
@@ -190,17 +41,6 @@ obs.emp.I2 <- function(Omega, dmats, surv, sv, b, l0i, l0u,
     out
   })
   
-  # sDi <- function(i) {
-  #   mapply(function(b, S) {
-  #     EbbT <- S + tcrossprod(b)
-  #     dDEbbT <- delta.D[[i]] %*% EbbT
-  #     term <- 0.5 * Dinv - 0.5 * Dinv %*% dDEbbT %*% Dinv
-  #     out <- 0.5 * (t(-term) - term)
-  #     sum(diag(out))
-  #   },
-  #   b = b.hat, S = Sigma,
-  #   SIMPLIFY = TRUE)
-  # }
   sDi <- function(i) {
     mapply(function(b, S) {
       EbbT <- S + tcrossprod(b)
@@ -211,69 +51,92 @@ obs.emp.I2 <- function(Omega, dmats, surv, sv, b, l0i, l0u,
     b = b.hat, S = Sigma,
     SIMPLIFY = TRUE)
   }
-  
+
   sD <- sapply(1:nrow(vech.indices), sDi)
   sD <- lapply(1:nrow(sD), function(x) sD[x, ]) # Cast to list
   
-  tau <-  mapply(maketau, Z = Z, S = SigmaSplit, SIMPLIFY = F)
+  # Below gets the same result
+  # postmult <- diag(1, nrow = sv$q, ncol = sv$q)
+  # postmult[postmult == 0] <- 2
+  # EbbT <- Map(function(b, S) S + tcrossprod(b), b = b.hat, S = Sigma)
+  # term <- lapply(EbbT, function(x) 0.5 * Dinv %*% x %*% Dinv - 0.5 * Dinv)
+  # sD <- lapply(term, function(x) vech(0.5 * (t(x) + x)) * vech(postmult))
   
-  Sb <- mapply(function(X, Y, Z, b, tau){
-    c(Sbeta(beta, X, Y, Z, b, sigma, family, beta.inds2, K,
-            FALSE, tau, w, v))
-  }, X = X, Y = Y, Z = Z, b = bsplit, tau = tau, SIMPLIFY = F)
+  # \beta =====================================
+  tau <- Map(make_tau, Z = dmats$Z, S = SigmaSplit)
+  Sb <- Map(function(X, Y, Z, W, b, tau){
+    c(Sbeta(beta, X, Y, Z, W, b, sigma, family, inds$Cpp$beta, inds$Cpp$b, 
+          dmats$K, tau, w, v) )
+  }, X = dmats$X, Y = dmats$Y, Z = dmats$Z, W = dmats$W, b = b.hat, tau = tau)
   
-  # The dispersion parameter, \sigma
-  Ss <- vector('list', K)
+  # Dispersion ('\sigma') =====================
   funlist <- unlist(family)
-  disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma'))
-  for(j in disps){
-    tauj <- lapply(tau, el, j)
+  eta <- Map(function(X, Z, b) make_eta(X, Z, beta, b, inds$Cpp$beta, inds$Cpp$b), 
+             X = dmats$X, Z = dmats$Z, b = b.hat)
+  disps <- which(funlist %in% c('gaussian', 'genpois', 'Gamma', 'negbin'))
+  
+  # Scores in form [[k]][[i]]
+  Ssig <- lapply(seq_along(funlist), function(f){
     
-    # Create score accordingly.
-    if(funlist[j] == 'gaussian'){
-      temp <- numeric(n)
-      for(i in 1:n){
-        rhs <- 0
+    tau.f <- lapply(tau, el, f)
+    eta.f <- lapply(eta, el, f)
+    ff <- funlist[f]
+    
+    if(ff == "gaussian"){
+      return(Map(function(Y, eta, tau, mi){
+        rhs <- numeric(length(w))
         for(l in 1:length(w)){
-          rhs <- rhs + w[l] * crossprod(Y[[i]][[j]] - X[[i]][[j]] %*% beta[beta.inds[[j]]] - Z[[i]][[j]] %*% bsplit[[i]][[j]] - v[l] * tauj[[i]])
+          rhs[l] <- w[l] * crossprod(Y[[f]] - eta - tau * v[l])
         }
-        temp[i] <- -m[[i]][j]/(2 * unlist(sigma)[j]) + 1/(2 * unlist(sigma)[j]^2) * rhs
-      }
-      Ss[[j]] <- temp
-    }else if(funlist[j] == 'genpois'){
-      Ss[[j]] <- mapply(function(b, X, Y, Z, tauj){
-        phi_update(b[[j]], X[[j]], Y[[j]], Z[[j]], beta[beta.inds[[j]]], sigma[[j]], w, v, tauj)$Score
-      }, b = bsplit, X = X, Y = Y, Z = Z, tauj = tauj, SIMPLIFY = F)
-    }else if(funlist[j] == 'Gamma'){
-      Ss[[j]] <- mapply(function(b, X, Y, Z, tauj){
-        pracma::grad(E_shape.b, sigma[[j]], X = X[[j]], Y = Y[[j]], Z = Z[[j]], tauj = tauj, 
-                     beta = beta[beta.inds[[j]]], b = b[[j]], w = w, v = v)
-      }, b = bsplit, X = X, Y = Y, Z = Z, tauj = tauj, SIMPLIFY = F)
+        -mi[[f]]/(2 * sigma[[f]]) + sum(rhs)/(2 * sigma[[f]]^2)
+      }, Y = dmats$Y, eta = eta.f, tau = tau.f, mi = dmats$mi))
+    }else if(ff == "Gamma"){
+      return(Map(function(eta, Y, tau, W){
+        pracma::grad(appxE_Gammasigma, sigma[[f]],
+                     eta = eta, Y = Y[[f]], tau = tau, W = W[[f]], 
+                     w = w, v = v)
+      }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W))
+    }else if(ff == "negbin"){
+      return(Map(function(eta, Y, tau, W){
+        pracma::grad(appxE_NegBinsigma, sigma[[f]],
+                     eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
+                     w = w, v = v)
+      }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W))
+    }else if(ff == "genpois"){
+      return(Map(function(eta, Y, tau, W){
+        pracma::grad(appxE_GenPoissigma, sigma[[f]],
+                     eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
+                     w = w, v = v)
+      }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W))
     }else{
-      Ss[[j]] <- as.list(rep(NULL, n))
+      return(NULL)
     }
-  }
-  
-  # Survival parameters (\gamma, \zeta)
-  Sgz <- Map(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta){
-    Sgammazeta_cd(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, b.inds2, K, .Machine$double.eps^(1/3))
-  }, b = b.hat, Sigma = Sigma, S = S, SS = SS, Fu = Fu, Fi = Fi, l0u = l0u.hat, Delta = Delta)
-  
-  # Collate and form information --------------------------------------------
-  Ss2 <- lapply(1:n, function(i){
-    do.call(c, lapply(disps, function(j){
-      Ss[[j]][[i]]
-    }))
+    
   })
   
-  S <- mapply(function(sD, Sb, Ss, Sgz){
-    c(sD, Sb, Ss, c(Sgz))
-  }, sD = sD, Sb = Sb, Ss = Ss2, Sgz = Sgz)
+  # and swap around to obtain scores in form [[i]][[k]]
+  Ssig <- lapply(1:dmats$n, function(i) lapply(1:dmats$K, function(k) Ssig[[k]][[i]]))
   
-  SS <- rowSums(S) # sum S
+  # Survival parameters (\gamma, \zeta) =======
+  Psurv <- length(c(gamma, zeta))
+  Sgz <- Map(function(b, Sigma, S, SS, Fu, Fi, l0u, Delta, ST){
+    if(length(ST))
+      return(Sgammazeta(c(gamma, zeta), b, Sigma, S, SS, Fu, Fi, l0u, Delta, w, v, 
+                        inds$Cpp$b, dmats$K, .Machine$double.eps^(1/3)))
+    else
+      return(rep(0, Psurv))
+  }, b = b.hat, Sigma = Sigma, S = sv$S, SS = sv$SS, Fu = sv$Fu, 
+  Fi = sv$Fi, l0u = l0u.hat, Delta = surv$Delta, ST = sv$surv.times)
+  
+  # Collate and form information --------------------------------------------
+  S <- mapply(function(sD, Sb, Ss, Sgz){
+    c(sD, Sb, unlist(Ss), Sgz)
+  }, sD = sD, Sb = Sb, Ss = Ssig, Sgz = Sgz)
+  
+  SS <- rowSums(S) # sum 
   #  observed empirical information matrix (Mclachlan and Krishnan, 2008).
-  SiSiT <- Reduce('+', lapply(1:n, function(i) tcrossprod(S[, i])))
-  H <- SiSiT - tcrossprod(SS)/n
+  SiSiT <- Reduce('+', lapply(1:dmats$n, function(i) tcrossprod(S[, i])))
+  H <- SiSiT - tcrossprod(SS)/dmats$n
   
   return(list(Score = S,
               Hessian = H,
