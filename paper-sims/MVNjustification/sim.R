@@ -27,8 +27,9 @@ theta <- c(-1, 0.0)
 
 # Obtain b.hat and Sigma.hat given observed data at TRUE parameter estimates.
 getSigma <- function(b, Y, X, Z, Delta, S, Fi, l0i, SS, Fu, l0u, family, b.inds, D){
+  ln <- nrow(X[[1]])
   uu <- optim(b, joint_density, joint_density_ddb,
-              Y = Y, X = X, Z = Z, beta = c(2, -0.1, 0.1, -0.2), D = D, sigma = list(0.16),
+              Y = Y, X = X, Z = Z, W = matrix(1, nrow = ln, ncol = 1), beta = c(2, -0.1, 0.1, -0.2), D = D, sigma = list(0.16),
               family = as.list(family), Delta = Delta, S = S, Fi = Fi, l0i = l0i, SS = SS, Fu = Fu, haz = l0u,
               gamma_rep = rep(0.5, ncol(Z[[1]])), zeta = -0.2, beta_inds = list(0:3), b_inds = b.inds,
               K = 1L, method = 'BFGS', hessian = T)
@@ -38,15 +39,16 @@ getSigma <- function(b, Y, X, Z, Delta, S, Fi, l0i, SS, Fu, l0u, family, b.inds,
 # Function to sample given data, true random effects, known family and target ids.
 Sample <- function(data, btrue, family, ids, D){
   # Longit.
-  X <- Y <- Z <- setNames(vector('list', length(ids)), paste0("id: ", ids))
+  X <- Y <- Z <- W_ <- setNames(vector('list', length(ids)), paste0("id: ", ids))
   for(i in seq_along(ids)){
-    X[[i]] <- Y[[i]] <- Z[[i]] <- list()
+    X[[i]] <- Y[[i]] <- Z[[i]] <- W_[[i]] <- list()
     X[[i]][[1]] <- model.matrix(~time+cont+bin, data[data$id==ids[i],,drop=F])
     if(family!='binomial') 
       Z[[i]][[1]] <- model.matrix(~time, data[data$id==ids[i],,drop=F])
     else
       Z[[i]][[1]] <- model.matrix(~1, data[data$id==ids[i],,drop=F])
     Y[[i]][[1]] <- data[data$id==ids[i],'Y.1']
+    W_[[i]][[1]] <- matrix(1, nrow = nrow(X[[i]][[1]]), ncol = 1)
   }
   b <- lapply(seq_along(ids), function(x) btrue[ids[x],,drop=F])
   # Survival part
@@ -97,7 +99,7 @@ Sample <- function(data, btrue, family, ids, D){
     cond.dens[[a]] <- setNames(vector("list", q), paste0("b", 0:(q-1)))
     norm.dens[[a]] <- setNames(vector("list", q), paste0("b", 0:(q-1)))
     # Walks
-    W <- metropolis(b[[a]], Omega, Y[[a]], X[[a]], Z[[a]], 
+    W <- metropolis(b[[a]], Omega, Y[[a]], X[[a]], Z[[a]], W_[[a]],
                     list(family), Delta[[a]], S[[a]], Fi[[a]], l0i[[a]], 
                     SS[[a]], Fu[[a]], l0u[[a]], gamma.rep,
                     list(0:3), b.inds, 1L, length(b.inds[[1]]), 1000, 10000, Sigma[[a]], tune)
@@ -147,7 +149,7 @@ getOUT <- function(n, family){ # Wrapper for simulation + Sampling
   OUT <- Sample(data, btrue, family, 1:n, D)
 }
 
-plotOut <- function(OUT, save.dir = './paper-sims/MVNjustification/output/', num.to.show = 10L){
+plotOut <- function(OUT, save.dir, num.to.show){
   fn <- paste0(save.dir, OUT$family, "_RE_mi_breakdown.png")
   pp <- quantile(OUT$Acc, probs = c(0.025, 0.500, 0.975))
   cat(sprintf("Median [2.5%%, 97.5%%] acceptance rate for %s: %.2f [%.2f, %.2f]\n\n",
@@ -227,16 +229,16 @@ plotOut <- function(OUT, save.dir = './paper-sims/MVNjustification/output/', num
   cat("saved in", fn, ".\n\n")
 }
 
-getPlot <- function(n, family, num.to.show){
+getPlot <- function(n, family, num.to.show, save.dir = './paper-sims/MVNjustification/output/'){
   OUT <- getOUT(n, family)
-  plotOut(OUT, num.to.show = num.to.show)
+  plotOut(OUT, save.dir = save.dir, num.to.show = num.to.show)
   rm(OUT)
   on.exit(gc())
 }
 
 theta <- c(-1, 0.0)
-getPlot(50, "gaussian", 5L)
-getPlot(50, "poisson", 5L)
+getPlot(50, "gaussian", 5L, './paper-sims/MVNjustification/output/')
+getPlot(50, "poisson", 5L, './paper-sims/MVNjustification/output/')
 theta <- c(-2, .2)
-getPlot(30, "binomial", 5L)
+getPlot(30, "binomial", 5L, './paper-sims/MVNjustification/output/')
 
