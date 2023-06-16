@@ -22,7 +22,7 @@
 #' required.
 #' @param dp integer, the number of decimal places to round the estimate, standard error and
 #' confidence intervals to; defaults to \code{dp = 3}.
-#' @param vcov logical, should the half-vecorisation of the block diagonal of covariance 
+#' @param vcov logical, should the half-vectorisation of the block diagonal of covariance 
 #' matrix be reported? Default is \code{vcov = FALSE}.
 #' @param capture logical, should the printed \code{xtable} output be saved anywhere instead
 #' of just printed to the console? Defaults to \code{capture = FALSE}.
