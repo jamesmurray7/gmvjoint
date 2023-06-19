@@ -50,8 +50,7 @@ b.density="t"} distribution.}
 \item{scale}{if \code{b.density = "t"} then this numeric scales the variance-covariance 
 parameter in the proposal distribution for the Metropolis-Hastings algorithm. Defaults to 
 \code{scale = NULL} which doesn't scale the variance term at all. Users are encouraged to
-experiment with values here. We find \code{scale=0.33} works decently well for the case when
-\code{b.density = "normal"} and \code{scale=2} for \code{b.density="t"}.}
+experiment with values here.}
 
 \item{df}{if \code{b.density = "t"} then this numeric denotes the degrees of freedom of the 
 proposed \eqn{t} distribution on the random effects. \code{df=4} is suggested.}
@@ -104,23 +103,22 @@ PBC$serBilir <- log(PBC$serBilir)
 long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 surv.formula <- Surv(survtime, status) ~ drug
 family <- list('gaussian')
-fit <- joint(long.formulas, surv.formula, PBC, family, 
-             control = list(verbose = TRUE))
+fit <- joint(long.formulas, surv.formula, PBC, family)
 preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
-                 scale = 0.33)
+                 scale = 0.18)
 preds
 plot(preds)
 # Bivariate ------------------------------------------------------------
+# Does introduction of albumin affect conditional survival probability?
 long.formulas <- list(
   serBilir ~ drug * time + I(time^2) + (1 + time + I(time^2)|id),
   albumin ~ drug * time + (1 + time|id)
 )
-# Does introduction of albumin affect conditional survival probability?
 fit <- joint(long.formulas, surv.formula, data = PBC, family = list("gaussian", "gaussian"))
 bi.preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
-                    scale = 0.50)
+                    scale = 0.66)
 bi.preds
-plot(bi.preds)
+plot(bi.preds) # Appears to level-off quicker; perhaps indicative of this id's albumin levels.
 }
 }
 \references{
