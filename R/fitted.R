@@ -152,7 +152,8 @@ residuals.joint <- function(object, what = c("longit", "surv"),
     fams <- unlist(M$family);
     S <- object$coeffs$sigma
     
-    out <- setNames(lapply(1:K, function(k){
+    # Fitted values back-transformed to response scale.
+    fitsk <- lapply(1:K, function(k){
       f <- fams[k]
       fitsk <-  switch(f,
                        gaussian = fits[[resps[k]]],
@@ -162,28 +163,47 @@ residuals.joint <- function(object, what = c("longit", "surv"),
                        binomial = plogis(fits[[resps[k]]]),
                        Gamma = exp(fits[[resps[k]]])
       )
-      res <- Ys[,resps[k]] - fitsk
-      r <- switch(type,
-                  response = res,
-                  pearson = {
-                    switch(f, 
-                           gaussian = res/sqrt(S[[k]]),
-                           poisson = res/sqrt(fitsk),
-                           negbin = res/sqrt(fitsk * (1+fitsk/S[[k]])),
-                           genpois = res/sqrt(fitsk*(1+S[[k]])^2),
-                           binomial = res/sqrt(fitsk * (1 - fitsk)),
-                           Gamma = res/sqrt(fitsk^2)
-                    )
-                  }
-      )
-      list(fitted = fitsk, residuals = r)
+      return(fitsk)
+    })
+    
+    # RESPONSE residuals
+    resids <- lapply(1:K, function(k){
+      Ys[,k] - fitsk[[k]]
+    })
+    
+    if(type == "pearson"){
+      out <- lapply(1:K, function(k){
+        f <- fams[k]; fitk <- fitsk[[k]]; res <- resids[[k]]
+        r <- switch(f,
+                    gaussian = res/sqrt(S[[k]]),
+                    poisson = res/sqrt(fitk),
+                    negbin = {
+                      WW <- do.call(rbind, lapply(object$dmats$long$W, el, k))
+                      phi <- exp(WW %*% S[[k]])
+                      res/sqrt(fitk * (1+fitk/phi))
+                    },
+                    genpois = {
+                      WW <- do.call(rbind, lapply(object$dmats$long$W, el, k))
+                      phi <- WW %*% S[[k]]
+                      res/sqrt(fitk*(1+phi)^2)
+                    },
+                    binomial = res/sqrt(fitk * (1 - fitk)),
+                    Gamma = res/sqrt(fitk^2))
+        r
+      })
+    }else{
+      out <- resids
+    }
+    
+    r <- setNames(lapply(1:K, function(k){
+      this <- c(out[[k]]); fitk <- fitsk[[k]]
+      attr(this, 'fitted') <- c(fitk)
+      this
     }), resps)
-    r <- lapply(out, el, 2)
+    
     class(r) <- "residuals.joint"
-    attr(r, 'fitted') <- lapply(out, el, 1)
     attr(r, 'type') <- type
     attr(r, 'what') <- what
-    r
   }else{
     r <- CoxSnellResids(object)
     class(r) <- "residuals.joint"
@@ -201,8 +221,12 @@ print.residuals.joint <- function(x, ...){
   what <- attr(x, 'what')
   type <- attr(x, 'type') 
   if(what == "longit"){
-    attr(x, 'type') <- NULL; attr(x, 'fitted') <- NULL
-    attr(x, 'class') <- NULL
+    attr(x, 'type') <- NULL; attr(x, 'class') <- NULL; attr(x, "what") <- NULL
+    x <- lapply(x, function(X){
+      attr(X, 'fitted') <- NULL
+      c(X)
+    })
+    
     print(x)
     if(type == 'pearson') cat("Pearson residuals ")
     if(type == 'response') cat("Residuals ")
@@ -261,9 +285,9 @@ plot.residuals.joint <- function(x, ...){
       par(mfrow = c(1,1))
     }
     # Plot the residuals from residuals.joint object (x).
-    ylab <- ifelse(type=='pearson', 'Pearson residuals', 'Residuals')
+    ylab <- ifelse(type == 'pearson', 'Pearson residuals', 'Residuals')
     for(k in 1:K){
-      fitk <- attr(x, 'fitted')[[resps[k]]]
+      fitk <- attr(x[[k]], 'fitted')
       plot(x[[k]]~fitk, main = resps[k], cex = .75,
            pch = 20, ylab = ylab, xlab = 'Fitted')
       abline(h = 0, lty = 5, col = 'red')
