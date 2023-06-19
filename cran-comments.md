@@ -4,9 +4,9 @@
 Note: 
     installed size is  7.6Mb
     sub-directories of 1Mb or more:
-      libs   7.2Mb
+      libs   7.3Mb
 
-i.e. gmvjoint.so has size 7.2Mb.
+i.e. gmvjoint.so has size 7.3Mb.
 
 ## Test environments 
 
@@ -14,7 +14,7 @@ i.e. gmvjoint.so has size 7.2Mb.
 * MacOS (Release, via mac.r-project.org).
 * Windows (Release, oldrelease and devel, via win-builder.r-project.org).
 
-R-hub build OK (some NOTEs about "lastMiKTeXException" detritus).
+(Status: OK for all). 
 
 ## --dont-test
 Some \donttest{...} examples have elapsed times >5s, on my machine: 
