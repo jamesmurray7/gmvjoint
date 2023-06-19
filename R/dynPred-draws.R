@@ -47,7 +47,7 @@ Omega.draw <- function(x){
 
 # Complete data log-likelihood w.r.t random effects b.
 #' @keywords internal
-logLik.b <- function(b, long, surv, O, beta.inds, b.inds, fit){
+logLik_b <- function(b, long, surv, O, beta.inds, b.inds, fit){
   beta <- O$beta; D <- O$D; gamma <- rep(O$gamma, sapply(b.inds, length)); zeta <- O$zeta; sigma <- O$sigma
   
   neg.ll <- joint_density(b = b, Y = long$Y, X = long$X, Z = long$Z, W = long$W, 
@@ -98,8 +98,8 @@ b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, beta.inds, b.inds, 
   diff.dens <- current.dens - prop.dens # Difference in current - proposal log-likelihood.
   
   # Joint data log likelihood on current and proposed values of b
-  current.joint.ll <- logLik.b(b.current, long, surv, O, beta.inds, b.inds, fit)
-  proposed.joint.ll <- logLik.b(c(b.prop.l), long, surv, O, beta.inds, b.inds, fit)
+  current.joint.ll <- logLik_b(b.current, long, surv, O, beta.inds, b.inds, fit)
+  proposed.joint.ll <- logLik_b(c(b.prop.l), long, surv, O, beta.inds, b.inds, fit)
   diff.joint.ll <-  proposed.joint.ll - current.joint.ll
   
   # Accept/reject scheme
@@ -110,11 +110,11 @@ b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, beta.inds, b.inds, 
     cat("\n--------\n")
     cat("Current value of b:", round(b.current, 3), '\n')
     cat("Value f(b current|D):", round(current.dens, 3), "\n")
-    cat("Current join density:", round(current.joint.ll))
+    cat("Current joint density:", round(current.joint.ll))
     cat("\n--------\n")
     cat("Proposal value of b:", round(b.prop.l, 3), '\n')
     cat("Value f(b proposal|D): ", round(prop.dens, 3), "\n")
-    cat("Proposal join density:", round(proposed.joint.ll))
+    cat("Proposal joint density:", round(proposed.joint.ll))
     cat("\n--------\n")
     tt <- try(solve(O$D), silent = TRUE)
     if(inherits(tt, 'try-error')) cat("Generated covariance matrix D non-invertible --> likely issue.\n")
