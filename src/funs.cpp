@@ -159,7 +159,7 @@ arma::vec Sbeta(const arma::vec& beta, const List& X, const List& Y, const List&
       Score.elem(k_inds) += Xk.t() * d_eta_NegBin(etak, Yk, phi, tauk, w, v);
     }else if(ff == "Gamma"){
       vec shape = trunc_exp(Wk * sigmak);
-      Score.elem(k_inds) += Xk.t() * d_eta_Gamma(etak, Yk, shape, tauk, w, v);
+      Score.elem(k_inds) += Xk.t() * d_eta_Gamma(etak, Yk, shape);
     }else if(ff == "genpois"){
       vec phi = Wk * sigmak;
       Score.elem(k_inds) += Xk.t() * d_eta_GenPois(etak, Yk, phi, tauk, w, v);
@@ -195,7 +195,7 @@ arma::mat Hbeta(const arma::vec& beta, const List& X, const List& Y, const List&
       Hessian.submat(k_inds, k_inds) = form_hess(d2_eta_NegBin(etak, Yk, phi, tauk, w, v), Xk);
     }else if(ff == "Gamma"){
       vec shape = trunc_exp(Wk * sigmak);
-      Hessian.submat(k_inds, k_inds) = form_hess(d2_eta_Gamma(etak, Yk, shape, tauk, w, v), Xk);
+      Hessian.submat(k_inds, k_inds) = form_hess(d2_eta_Gamma(etak, Yk, shape), Xk);
     }else if(ff == "genpois"){
       vec phi = Wk * sigmak;
       Hessian.submat(k_inds, k_inds) = form_hess(d2_eta_GenPois(etak, Yk, phi, tauk, w, v), Xk);
@@ -248,13 +248,12 @@ double appxE_GenPoissigma(const arma::vec& sigma, const arma::vec& eta, const ar
   uword gh = w.size(), m = eta.size();
   vec phi = W * sigma, Exp(m);
   vec lfac = lgamma(Y + 1.), 
-      frac_rhs = phi % Y/(1. + phi),
-      frac_lhs = trunc_exp(eta + square(tau)/2.);
+      frac = (trunc_exp(eta) + phi % Y) / (1. + phi);
   for(uword l = 0; l < gh; l++){
     vec this_eta = eta + tau * v[l];
     Exp += w[l] * log(trunc_exp(this_eta) + phi % Y);
   }
-  return sum(eta + (Y - 1.) % Exp - Y % log(1. + phi) - lfac - (frac_lhs % frac_rhs));
+  return sum(eta + (Y - 1.) % Exp - Y % log(1. + phi) - lfac - frac);
 }
 
 // Update Gaussian by finding contribution from each individual i.d.

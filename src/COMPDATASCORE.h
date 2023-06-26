@@ -33,8 +33,9 @@ vec score_Binomial(const vec& eta, const vec& Y){
 // Gamma
 vec score_Gamma(const vec& eta, const vec& Y, const vec& shape){
   // return Y % shape % trunc_exp(-eta) - shape;
-  vec mu = trunc_exp(eta);
-  return mu % (Y/mu - 1.) % shape/mu;
+  vec neg_mu = trunc_exp(-1. * eta);
+  // return mu % (Y/mu - 1.) % shape/mu;
+  return shape % (neg_mu % Y - 1.);
 }
 
 // Negative binomial

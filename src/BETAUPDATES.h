@@ -58,26 +58,25 @@ vec d2_eta_Binomial(const vec& eta, const vec& tau, const vec& w, const vec& v){
 }
 
 // Gamma
-vec d_eta_Gamma(const vec& eta, const vec& Y, const vec& shape, const vec& tau,
-                const vec& w, const vec& v){
-  uword gh = w.size(), n = eta.size();
-  vec out(n);
-  for(uword l = 0; l < gh; l++){
-    vec this_eta = eta + tau * v[l];
-    out += w[l] * (shape % (Y - trunc_exp(this_eta)) / trunc_exp(this_eta));
-  }
-  return out;
+vec d_eta_Gamma(const vec& eta, const vec& Y, const vec& shape){
+  // uword gh = w.size(), n = eta.size();
+  // for(uword l = 0; l < gh; l++){
+  //   vec this_eta = eta + tau * v[l];
+  //   out += w[l] * (shape % (Y - trunc_exp(this_eta)) / trunc_exp(this_eta));
+  // }
+  // return out;
+  return shape % (trunc_exp(-1. * eta) % Y - 1.);
 }
 
-vec d2_eta_Gamma(const vec& eta, const vec& Y, const vec& shape, const vec& tau,
-                 const vec& w, const vec& v){
-  uword gh = w.size(), n = eta.size();
-  vec out(n);
-  for(uword l = 0; l < gh; l++){
-    vec this_eta = eta + tau * v[l];
-    out += w[l] * shape % (-1. * trunc_exp(-1. * this_eta)) % Y;
-  }
-  return out;
+vec d2_eta_Gamma(const vec& eta, const vec& Y, const vec& shape){
+  // uword gh = w.size(), n = eta.size();
+  // vec out(n);
+  // for(uword l = 0; l < gh; l++){
+  //   vec this_eta = eta + tau * v[l];
+  //   out += w[l] * shape % (-1. * trunc_exp(-1. * this_eta)) % Y;
+  // }
+  // return out;
+  return -1. * trunc_exp(-1. * eta) % Y % shape;
 }
 
 // Negative binomial
@@ -107,23 +106,23 @@ vec d2_eta_NegBin(const vec& eta, const vec& Y, const vec& phi, const vec& tau,
 vec d_eta_GenPois(const vec& eta, const vec& Y, const vec& phi, const vec& tau,
                   const vec& w, const vec& v){
   uword gh = w.size();
-  vec Exp1(eta.size()), Exp2 = trunc_exp(eta + square(tau)/2.);
+  vec Exp1(eta.size()), Exp2 = trunc_exp(eta);
   for(uword l = 0; l < gh; l++){
     vec this_eta = eta + tau* v[l];
     Exp1 += w[l] * trunc_exp(this_eta)/(trunc_exp(this_eta) + phi % Y);
   }
-  return 1. + (Y - 1.) % Exp1 - Exp2;
+  return 1. + (Y - 1.) % Exp1 - Exp2/(1.+phi);
 }
 
 vec d2_eta_GenPois(const vec& eta, const vec& Y, const vec& phi, const vec& tau,
                    const vec& w, const vec& v){
   uword gh = w.size();
-  vec Exp1(eta.size()), Exp2 = trunc_exp(eta + square(tau)/2.);
+  vec Exp1(eta.size()), Exp2 = trunc_exp(eta);
   for(uword l = 0; l < gh; l++){
     vec this_eta = eta + tau* v[l];
     Exp1 += w[l] * phi % Y % trunc_exp(this_eta) % pow(trunc_exp(this_eta) + phi % Y, -2.);
   }
-  return (Y - 1.) % Exp1 - Exp2;
+  return (Y - 1.) % Exp1 - Exp2/(1. + phi);
 }
 
 mat form_hess(const vec& d2, const mat& X){
