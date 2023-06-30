@@ -1,8 +1,8 @@
-bigD <- TRUE # change if small
+bigD <-FALSE # change if small
 # Data --------------------------------------------------------------------
 data.dir <- '/data/c0061461/fits_tdistn/'
 if(bigD) data.dir <- gsub('\\/$', '_largeD/', data.dir)
-RDs <- dir(data.dir)
+RDs <- dir(data.dir, pattern = '\\.RData')
 
 # Targets -----------------------------------------------------------------
 if(bigD) vD <- c(2,0,.4) else vD <- c(.25, 0, 0.05)
@@ -194,7 +194,7 @@ tabsplot %>%
   mutate_at('CP', as.numeric) %>% 
   ggplot(aes(x = df, y = CP)) + 
   geom_hline(aes(yintercept = 0.95), lty = 5, col = 'lightgray') + 
-  geom_line(lwd = 1.2) + 
+  geom_line(lwd = .75) + 
   labs(y = '95% Coverage Probability') + 
   scale_y_continuous(breaks = c(0, 0.25, 0.50, 0.75, 0.90, 0.95, 1.00)) + 
   scale_x_log10(expression(nu)) + 
@@ -202,15 +202,17 @@ tabsplot %>%
   theme_light() + 
   theme(
     strip.background = element_blank(),
-    strip.text = element_text(colour = "black", size = 12, face = 'bold'),
+    strip.text = element_text(colour = "black", size = 6),
     legend.position = 'none',
-    axis.text.y = element_text(size = 6, angle = 45),
+    axis.text.y = element_text(size = 4.5, angle = 45),
+    axis.text.x = element_text(size = 4.5),
+    axis.title = element_text(size=7),
     panel.grid.minor.y = element_blank(),
     panel.grid.minor.x = element_blank()
   )
 
-ggsave(paste0(data.dir, 'CP.png'), device = 'png',
-       width = 190, height = 150, units = 'mm')
+ggsave(paste0(data.dir, 'CP-tdistn.png'), device = 'png',
+       width = 148, height = 110, units = 'mm')
 
 
 # RE Comparison -----------------------------------------------------------
