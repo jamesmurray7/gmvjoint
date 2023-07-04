@@ -15,7 +15,7 @@ al*., 2017). The joint models themselves are then the  flexible extensions to th
 Wulfsohn and Tsiatis (1997). The user is able to simulate data under many different response
 types.
 
-Currently, five families can be fit: Gaussian; Poisson; binomial; Gamma; negative binomial; and generalised Poisson. 
+Currently, six families can be fit: Gaussian; Poisson; binomial; Gamma; negative binomial; and generalised Poisson. 
 
 ## Installation
 You can install the latest 'official' release from CRAN in the usual way: 
