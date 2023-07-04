@@ -106,7 +106,6 @@ last_plot()
 dev.off()
 
 
-
 # Tabulating for Supplement -----------------------------------------------
 D.to.report <- which(vech(D.true) != 0)
 to.report <- c(D.to.report, (max(D.to.report)+1):nrow(ests))

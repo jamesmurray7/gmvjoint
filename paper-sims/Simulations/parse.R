@@ -111,7 +111,7 @@ all.ests %>%
     T ~ -.2
   )) %>% 
   mutate(r = factor(r, levels = c(5,10,15)),
-         omega = factor(omega, levels = c(.1, .3, .5))) %>% 
+         omega = factor(omega, levels = c(.1, .3, .5), labels = c("10%", "30%", "50%"))) %>% 
   ggplot(aes(x = omega, y = value, fill = r)) + 
   geom_hline(aes(yintercept = target), lty = 5, colour = 'grey5', alpha = .5) + 
   geom_boxplot(outlier.alpha = .33, lwd = 0.25, fatten = 2,
