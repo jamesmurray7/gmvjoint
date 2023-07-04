@@ -2,11 +2,11 @@
 0 Errors | 0 Warnings | 1 Note.
 
 Note: 
-    installed size is  7.6Mb
+    installed size is  7.0Mb
     sub-directories of 1Mb or more:
-      libs   7.3Mb
+      libs   6.6Mb
 
-i.e. gmvjoint.so has size 7.3Mb.
+i.e. gmvjoint.so has size 6.6Mb (this NOTE is from mac build test environment).
 
 ## Test environments 
 
@@ -15,6 +15,9 @@ i.e. gmvjoint.so has size 7.3Mb.
 * Windows (Release, oldrelease and devel, via win-builder.r-project.org).
 
 (Status: OK for all). 
+
+R-hub builder returns NOTEs on 'lastMiKTeXException'; ''NULL'' directory which doesn't exist;
+and math rendering ('package V8 unavailable').
 
 ## --dont-test
 Some \donttest{...} examples have elapsed times >5s, on my machine: 
