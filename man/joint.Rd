@@ -45,6 +45,14 @@ to \code{disp.formulas = NULL}. See \strong{details} for more information.}
   \strong{details}. Default is \code{tol.den=1e-3}.}
   \item{\code{tol.thr}}{Numeric: Threshold used when \code{conv = 'sas'}, see 
   \strong{details}. Default is \code{tol.thr=1e-1}.}
+  \item{\code{grad.eps}}{Numeric: Step size for numerical differentiation routines used to
+  calculate the gradient in updates to dispersion parameters. This defaults to the cube root 
+  of machine tolerance. If a different step size is wanted for each response, a list can also 
+  be provided, with each of its elements corresponding to each longitudinal response (even if
+  not fitted with a dispersion model).}
+  \item{\code{hess.eps}}{Numeric: Step size for numerical differentiation routines used to
+  calculate the hessian in updates to dispersion parameters. This defaults to the fourth root 
+  of machine tolerance. Behaves in same way as \code{grad.eps} for more information.}
   \item{\code{maxit}}{Integer: Maximum number of EM iterations to carry out before
   exiting the algorithm. Defaults to \code{maxit=200L}, which is usually sufficient.}
   \item{\code{correlated}}{Logical: Should covariance parameters \strong{between} responses 

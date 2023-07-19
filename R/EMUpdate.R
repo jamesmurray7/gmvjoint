@@ -65,9 +65,11 @@ EMupdate <- function(Omega, family, dmats, b,                # Params; families;
     }else if(ff == "Gamma"){
       S_H_ <- Map(function(eta, Y, tau, W){
         S <- pracma::grad(appxE_Gammasigma, sigma[[f]],
-                          eta = eta, Y = Y[[f]], tau = tau, W = W[[f]], w = w, v = v)
+                          eta = eta, Y = Y[[f]], tau = tau, W = W[[f]], w = w, v = v,
+                          heps = con$grad.eps[[f]])
         H <- pracma::hessian(appxE_Gammasigma, sigma[[f]],
-                             eta = eta, Y = Y[[f]], tau = tau, W = W[[f]], w = w, v = v)
+                             eta = eta, Y = Y[[f]], tau = tau, W = W[[f]], w = w, v = v,
+                             h = con$hess.eps[[f]])
         list(S = S, H = H)
       }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W)
       return(solve(Reduce('+', lapply(S_H_, el, 2)), Reduce('+', lapply(S_H_, el, 1))))
@@ -75,10 +77,10 @@ EMupdate <- function(Omega, family, dmats, b,                # Params; families;
       S_H_ <- Map(function(eta, Y, tau, W){
         S <- pracma::grad(appxE_NegBinsigma, sigma[[f]],
                           eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
-                          w = w, v = v)
+                          w = w, v = v, heps = con$grad.eps[[f]])
         H <- pracma::hessian(appxE_NegBinsigma, sigma[[f]],
                              eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
-                             w = w, v = v)
+                             w = w, v = v, h = con$hess.eps[[f]])
         list(S = S, H = H)
       }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W)
       return(solve(Reduce('+', lapply(S_H_, el, 2)), Reduce('+', lapply(S_H_, el, 1))))
@@ -86,10 +88,10 @@ EMupdate <- function(Omega, family, dmats, b,                # Params; families;
       S_H_ <- Map(function(eta, Y, tau, W){
         S <- pracma::grad(appxE_GenPoissigma, sigma[[f]],
                           eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
-                          w = w, v = v)
+                          w = w, v = v, heps = con$grad.eps[[f]])
         H <- pracma::hessian(appxE_GenPoissigma, sigma[[f]],
                              eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
-                             w = w, v = v)
+                             w = w, v = v, h = con$hess.eps[[f]])
         list(S = S, H = H)
       }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W)
       return(solve(Reduce('+', lapply(S_H_, el, 2)), Reduce('+', lapply(S_H_, el, 1))))

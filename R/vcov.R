@@ -1,6 +1,6 @@
 #' @keywords internal
 obs.emp.I <- function(Omega, dmats, surv, sv, family,
-                      b, l0i, l0u, w, v, inds){
+                      b, l0i, l0u, w, v, inds, con){
   # Unpack Omega ----
   D <- Omega$D
   beta <- c(Omega$beta)
@@ -94,19 +94,19 @@ obs.emp.I <- function(Omega, dmats, surv, sv, family,
       return(Map(function(eta, Y, tau, W){
         pracma::grad(appxE_Gammasigma, sigma[[f]],
                      eta = eta, Y = Y[[f]], tau = tau, W = W[[f]], 
-                     w = w, v = v)
+                     w = w, v = v, heps = con$grad.eps[[f]])
       }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W))
     }else if(ff == "negbin"){
       return(Map(function(eta, Y, tau, W){
         pracma::grad(appxE_NegBinsigma, sigma[[f]],
                      eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
-                     w = w, v = v)
+                     w = w, v = v, heps = con$grad.eps[[f]])
       }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W))
     }else if(ff == "genpois"){
       return(Map(function(eta, Y, tau, W){
         pracma::grad(appxE_GenPoissigma, sigma[[f]],
                      eta = eta, Y = Y[[f]], tau = tau, W = W[[f]],
-                     w = w, v = v)
+                     w = w, v = v, heps = con$grad.eps[[f]])
       }, eta = eta.f, Y = dmats$Y, tau = tau.f, W = dmats$W))
     }else{
       return(NULL)

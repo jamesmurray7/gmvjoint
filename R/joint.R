@@ -26,6 +26,14 @@
 #'   \strong{details}. Default is \code{tol.den=1e-3}.}
 #'   \item{\code{tol.thr}}{Numeric: Threshold used when \code{conv = 'sas'}, see 
 #'   \strong{details}. Default is \code{tol.thr=1e-1}.}
+#'   \item{\code{grad.eps}}{Numeric: Step size for numerical differentiation routines used to
+#'   calculate the gradient in updates to dispersion parameters. This defaults to the cube root 
+#'   of machine tolerance. If a different step size is wanted for each response, a list can also 
+#'   be provided, with each of its elements corresponding to each longitudinal response (even if
+#'   not fitted with a dispersion model).}
+#'   \item{\code{hess.eps}}{Numeric: Step size for numerical differentiation routines used to
+#'   calculate the hessian in updates to dispersion parameters. This defaults to the fourth root 
+#'   of machine tolerance. Behaves in same way as \code{grad.eps} for more information.}
 #'   \item{\code{maxit}}{Integer: Maximum number of EM iterations to carry out before
 #'   exiting the algorithm. Defaults to \code{maxit=200L}, which is usually sufficient.}
 #'   \item{\code{correlated}}{Logical: Should covariance parameters \strong{between} responses 
@@ -236,6 +244,7 @@ joint <- function(long.formulas, surv.formula,
   
   con <- list(correlated = T, gh.nodes = 3, gh.sigma = 1, center.ph = T,
               tol.abs = 1e-3, tol.rel = 1e-2, tol.thr = 1e-1, tol.den = 1e-3,
+              grad.eps = .Machine$double.eps^(1/3), hess.eps = .Machine$double.eps^(1/4),
               maxit = 200, conv = 'sas', verbose = F, return.inits = F, return.dmats = T, post.process = T)
   conname <- names(con)
   if(any(!names(control)%in%conname)){
@@ -317,6 +326,12 @@ joint <- function(long.formulas, surv.formula,
               beta, unlist(sigma)[inits.long$sigma.include], gamma, zeta)
   sigma.include <- inits.long$sigma.include
   if(!con$return.inits) rm(inits.surv)
+  
+  # step-sizes for grad/hess in dispersion updates
+  if(length(con$grad.eps) == 1L & !is.list(con$grad.eps)) con$grad.eps <- replicate(K, con$grad.eps, simplify = FALSE)
+  if(length(con$hess.eps) == 1L & !is.list(con$hess.eps)) con$hess.eps <- replicate(K, con$hess.eps, simplify = FALSE)
+  if(length(con$grad.eps) != K) stop("Control argument ", sQuote("grad.eps"), " is not of appropriate length.\n")
+  if(length(con$hess.eps) != K) stop("Control argument ", sQuote("hess.eps"), " is not of appropriate length.\n")
   
   # Gauss-Hermite Quadrature ----
   GH <- statmod::gauss.quad.prob(con$gh.nodes, 'normal', sigma = con$gh.sigma)
@@ -404,7 +419,7 @@ joint <- function(long.formulas, surv.formula,
     pp.start.time <- proc.time()[3]
     
     II <- obs.emp.I(coeffs, dmats, surv, sv, family, b, 
-                    l0i, l0u, w, v, inds)
+                    l0i, l0u, w, v, inds, con)
     H <- structure(II$Hessian,
                    dimnames = list(names(params), names(params)))
     
