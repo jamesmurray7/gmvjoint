@@ -11,7 +11,7 @@
 in \code{object2}.}
 
 \item{object2}{a joint model fit by the \code{joint} function. This should be more complex
-than \code{object} whilst sharing the same survival sub-model.}
+than \code{object}.}
 
 \item{...}{additional arguments (none used).}
 }
@@ -28,11 +28,15 @@ A list of class \code{anova.joint} with elements \describe{
   \item{\code{BIC1}}{BIC for \code{object2}.}
   \item{\code{LRT}}{likelihood ratio test statistic.}
   \item{\code{p}}{the p-value of \code{LRT}.}
-
+  \item{\code{warnSurv}}{internal - logical value for printing difference in survival models.}
+  \item{\code{warnRanefs}}{internal - logical value for printing difference in random effects
+  specifications.}
+  
 }
 }
 \description{
-Perform a likelihood ratio test between two (nested) \code{joint} models.
+Perform a likelihood ratio test between two (\strong{nested}) \code{joint} 
+models. The user must decide whether the models are truly nested.
 }
 \examples{
 \donttest{

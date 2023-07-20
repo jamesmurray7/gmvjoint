@@ -152,12 +152,13 @@ extractAIC.joint <- function(fit, scale, k = 2, conditional = FALSE, ...){
 
 #' Anova for joint models
 #' 
-#' @description Perform a likelihood ratio test between two (nested) \code{joint} models. 
+#' @description Perform a likelihood ratio test between two (\strong{nested}) \code{joint} 
+#' models. The user must decide whether the models are truly nested.
 #'
 #' @param object a joint model fit by the \code{joint} function. This should be \strong{nested}
 #' in \code{object2}.
 #' @param object2 a joint model fit by the \code{joint} function. This should be more complex
-#' than \code{object} whilst sharing the same survival sub-model.
+#' than \code{object}.
 #' @param ... additional arguments (none used).
 #'
 #' @return A list of class \code{anova.joint} with elements \describe{
@@ -172,7 +173,10 @@ extractAIC.joint <- function(fit, scale, k = 2, conditional = FALSE, ...){
 #'   \item{\code{BIC1}}{BIC for \code{object2}.}
 #'   \item{\code{LRT}}{likelihood ratio test statistic.}
 #'   \item{\code{p}}{the p-value of \code{LRT}.}
-#' 
+#'   \item{\code{warnSurv}}{internal - logical value for printing difference in survival models.}
+#'   \item{\code{warnRanefs}}{internal - logical value for printing difference in random effects
+#'   specifications.}
+#'   
 #' }
 #' @export
 #' 
@@ -203,20 +207,23 @@ anova.joint <- function(object, object2, ...){
   if(!inherits(object,  'joint')) stop("Only usable with object of class 'joint'.")
   if(!inherits(object2, 'joint')) stop("Only usable with object of class 'joint'.")
   
-
-  # Ensure all constituent families are the same (?)
-  K0 <- length(object$ModelInfo$family); K1 <- length(object2$ModelInfo$family)
-  if(K0 != K1)
-    warning("Comparison between two models of different dimension.")
-  if(K0 == K1){
-    F0 <- unlist(object$ModelInfo$family); F1 <- unlist(object2$ModelInfo$family)
-    check <- all(F0 == F1)
-    if(!check) stop("Family mismatch in model specifications for '", deparse(substitute(object)), "' and '",
-                    deparse(substitute(object)), "'.")
-  }
-  
   # Check models were fit to same data
   if(object$ModelInfo$nobs!=object2$ModelInfo$nobs) stop("Models were not fit to same data.")
+  
+  # See whether the survival sub-model is identical
+  warnSurv <- F
+  if(deparse(object$ModelInfo$surv.formula) != deparse(object2$ModelInfo$surv.formula))
+    warnSurv <- T
+  
+  # See whether random effect specification identical
+  Parsedformula0 <- lapply(object$ModelInfo$long.formulas, parseFormula) 
+  Parsedformula1 <- lapply(object2$ModelInfo$long.formulas, parseFormula)
+  ranef.spec0 <- sapply(Parsedformula0, '[[', "random"); ranef.spec1 <- sapply(Parsedformula1, '[[', "random")
+  warnRanefs <- F
+  if(!all(ranef.spec0 == ranef.spec1))
+    warnRanefs <- T
+  
+  # Honestly not sure what "rules" are here? Just warning user rather than enforcing anything.
   
   # Extract lls
   l0 <- logLik(object); l1 <- logLik(object2)
@@ -235,7 +242,8 @@ anova.joint <- function(object, object2, ...){
     l0   = c(l0), AIC0 = AIC(object), BIC0 = attr(l0, 'BIC'), df0 = df0,
     mod1 = deparse(substitute(object2)),
     l1   = c(l1), AIC1 = AIC(object2), BIC1 = attr(l1, 'BIC'), df1 = df1,
-    LRT = LRT, p = p
+    LRT = LRT, p = p,
+    warnRanefs = warnRanefs, warnSurv = warnSurv
   )
   class(out) <- 'anova.joint'
   out
@@ -246,6 +254,12 @@ anova.joint <- function(object, object2, ...){
 #' @export
 print.anova.joint <- function(x, ...){
   if(!inherits(x, 'anova.joint')) stop("Only usable with objects of class 'anova.joint'.")
+  if(x$warnRanefs)
+    cat(sprintf("Models %s and %s were fit with different random effects specifications,", sQuote(x$mod0), sQuote(x$mod1)),
+        "a higher Type I error rate is recommended when interpreting LRT below.\n")
+  if(x$warnSurv)
+    cat(sprintf("Models %s and %s were fit with different survival sub-models, interpret the below with caution.\n", 
+                sQuote(x$mod0), sQuote(x$mod1)))
   p <- x$p
   if(p < 1e-3) p <- '< 0.001' else p <- as.character(round(p, 3))
   df <- setNames(data.frame(logLik = c(x$l0, x$l1), df = c(x$df0, x$df1),
