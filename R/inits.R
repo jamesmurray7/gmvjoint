@@ -139,8 +139,10 @@ TimeVarCox <- function(data, b, surv, formulas, b.inds, inits.long){
   ss <- .ToStartStop(data, Tvar); q <- ncol(b) # send to Start-Stop (ss) format
   REs <- as.data.frame(b); REs$id <- 1:nrow(b); K <- length(b.inds)
   ss2 <- merge(ss, REs, 'id')
-  invarSurv <- cbind(merge(data[, 'id', drop = F], data.frame(id = 1:surv$n, surv$Smat), 'id'),
-                     data[,c(Tvar, Dvar)])
+  invarSurv <- data[,c("id", surv$invar.surv.names, Tvar, Dvar)]
+  # invarSurv <- cbind(merge(data[, 'id', drop = F], data.frame(id = 1:surv$n, surv$Smat), 'id'),
+  #                    data[,c(Tvar, Dvar)])
+  
   ss3 <- merge(ss2, invarSurv, 'id')
   ss3 <- ss3[!duplicated.matrix(ss3), ]
   
@@ -162,7 +164,8 @@ TimeVarCox <- function(data, b, surv, formulas, b.inds, inits.long){
   # Time Varying coxph
   # Formula
   timevar.formula <- as.formula(
-    paste0('Surv(time1, time2, status2) ~ ', paste0(names(surv$ph$assign), collapse = ' + '), ' + ', paste0('gamma_', 1:K, collapse = ' + '))
+    # paste0('Surv(time1, time2, status2) ~ ', paste0(names(surv$ph$assign), collapse = ' + '), ' + ', paste0('gamma_', 1:K, collapse = ' + '))
+    paste0('Surv(time1, time2, status2) ~ ', surv$invar.surv.formula, ' + ', paste0('gamma_', 1:K, collapse = ' + '))
   )
   ph <- coxph(timevar.formula, data = ss3)
   

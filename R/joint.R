@@ -313,9 +313,11 @@ joint <- function(long.formulas, surv.formula,
   sigma <- inits.long$sigma.init # dispersions
   b <- lapply(1:n, function(i) inits.long$b[i, ])
   # Survival parameters
-  zeta <- inits.surv$inits[match(names(surv$ph$assign), names(inits.surv$inits))]
+  # zeta <- inits.surv$inits[match(names(surv$ph$assign), names(inits.surv$inits))]
+  zeta <- inits.surv$inits[1:surv$pS]
   names(zeta) <- paste0('zeta_', names(zeta))
-  gamma <- inits.surv$inits[grepl('gamma\\_', names(inits.surv$inits))]
+  # gamma <- inits.surv$inits[grepl('gamma\\_', names(inits.surv$inits))]
+  gamma <- inits.surv$inits[(surv$pS+1):length(inits.surv$inits)]
   
   # Survival data objects 
   sv <- surv.mod(surv, formulas, inits.surv$l0.init, inits.long)
