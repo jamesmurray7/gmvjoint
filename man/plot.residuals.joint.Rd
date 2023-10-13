@@ -4,20 +4,23 @@
 \alias{plot.residuals.joint}
 \title{Plot joint model residuals}
 \usage{
-\method{plot}{residuals.joint}(x, ...)
+\method{plot}{residuals.joint}(x, strata = FALSE, ...)
 }
 \arguments{
 \item{x}{an object with class \code{residuals.joint}.}
+
+\item{strata}{logical, should strata (for the survival sub-model only). Defaults to 
+\code{strata = FALSE} which produces only one plot of Cox-Snell residuals.}
 
 \item{...}{additional arguments (none used).}
 }
 \description{
 Plot residuals obtained by a joint model (obtained by \code{\link{joint}}). 
-If the \code{residuals.joint} object represents the longitudinal process, a simple (panelled)
+If the \code{residuals.joint} object represents the longitudinal process, a simple (paneled)
 plot is produced (one for each response). If the residual object contains the Cox-Snell 
-residuals then several plots are produced (interactively): The he KM estimate of survival 
-function of the and then repeated for each survival covariate in the model call 
-to \code{joint}.
+residuals then several plots are produced (interactively): The KM estimate of survival 
+function of said residuals and then repeated for each survival covariate in the model call
+to \code{joint} (if requested).
 }
 \seealso{
 \code{\link{residuals.joint}}

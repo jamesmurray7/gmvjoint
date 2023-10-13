@@ -250,13 +250,15 @@ print.residuals.joint <- function(x, ...){
 #' Plot joint model residuals 
 #' 
 #' @description Plot residuals obtained by a joint model (obtained by \code{\link{joint}}). 
-#' If the \code{residuals.joint} object represents the longitudinal process, a simple (panelled)
+#' If the \code{residuals.joint} object represents the longitudinal process, a simple (paneled)
 #' plot is produced (one for each response). If the residual object contains the Cox-Snell 
-#' residuals then several plots are produced (interactively): The he KM estimate of survival 
-#' function of the and then repeated for each survival covariate in the model call 
-#' to \code{joint}.
+#' residuals then several plots are produced (interactively): The KM estimate of survival 
+#' function of said residuals and then repeated for each survival covariate in the model call
+#' to \code{joint} (if requested).
 #'
 #' @param x an object with class \code{residuals.joint}.
+#' @param strata logical, should strata (for the survival sub-model only). Defaults to 
+#' \code{strata = FALSE} which produces only one plot of Cox-Snell residuals.
 #' @param ... additional arguments (none used).
 #'
 #' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
@@ -264,7 +266,7 @@ print.residuals.joint <- function(x, ...){
 #' @importFrom graphics plot par curve
 #' @seealso \code{\link{residuals.joint}} 
 #' @export
-plot.residuals.joint <- function(x, ...){
+plot.residuals.joint <- function(x, strata = FALSE, ...){
   if(!inherits(x, 'residuals.joint')) stop("Only usable with objects of class 'residuals.joint'.")
   .par <- par(no.readonly = T) # store old par
   
@@ -305,36 +307,38 @@ plot.residuals.joint <- function(x, ...){
     curve(exp(-x), from = 0, to = max(sort.Ti), add = T, lwd = 2, col = 'steelblue')
     
     # Stratified by call to `joint`.
-    xx <- readline("Press Enter for residual plots by strata: ")
-    num.strata <- length(object$dmats$ph$invar.surv.names)
-    for(s in 1:num.strata){
-      this.strata <- object$dmats$ph$invar.surv.names[s]
-      ff <- as.formula(paste0("Surv(x, status) ~ ", this.strata))
-      sf.fitd <- survfit(ff, data = object$dmats$ph$survdata)
-      # Work out what the data labels are
-      if(object$ModelInfo$control$center.ph){
-        s.strata.names <- c(names(sf.fitd$strata))
-        if(length(s.strata.names) > 5) next # Don't bother (i.e. s is continuous)
-        to.match <- round(as.numeric(gsub(paste0(this.strata, '='), '', s.strata.names)), 4)
-        raw <- object$dmats$ph$ph$x[,this.strata]
-        rs <- cbind(raw = raw, scaled = round(c(scale(raw, scale = F)), 4))
-        rs <- rs[!duplicated.matrix(rs),]
-        for.legend <- paste0(this.strata, " = ", rs[match(to.match, rs[, "scaled"]), "raw"])
-      }else{
-        s.strata.names <- c(names(sf.fitd$strata))
-        if(length(s.strata.names) > 5) next # Don't bother (i.e. s is continuous)
-        for.legend <- c(names(sf.fitd$strata))
+    if(strata){
+      xx <- readline("Press Enter for residual plots by strata: ")
+      num.strata <- length(object$dmats$ph$invar.surv.names)
+      for(s in 1:num.strata){
+        this.strata <- object$dmats$ph$invar.surv.names[s]
+        ff <- as.formula(paste0("Surv(x, status) ~ ", this.strata))
+        sf.fitd <- survfit(ff, data = object$dmats$ph$survdata)
+        # Work out what the data labels are
+        if(object$ModelInfo$control$center.ph){
+          s.strata.names <- c(names(sf.fitd$strata))
+          if(length(s.strata.names) > 5) next # Don't bother (i.e. s is continuous)
+          to.match <- round(as.numeric(gsub(paste0(this.strata, '='), '', s.strata.names)), 4)
+          raw <- object$dmats$ph$ph$x[,this.strata]
+          rs <- cbind(raw = raw, scaled = round(c(scale(raw, scale = F)), 4))
+          rs <- rs[!duplicated.matrix(rs),]
+          for.legend <- paste0(this.strata, " = ", rs[match(to.match, rs[, "scaled"]), "raw"])
+        }else{
+          s.strata.names <- c(names(sf.fitd$strata))
+          if(length(s.strata.names) > 5) next # Don't bother (i.e. s is continuous)
+          for.legend <- c(names(sf.fitd$strata))
+        }
+        # Make the plot
+        plot(sf.fitd, lty = 1:2, 
+             xlab = "Cox-Snell residuals", ylab = "Survival probability",
+             main = "Survival function of Cox-Snell residuals by strata")
+        curve(exp(-x), from = 0, to = max(sort.Ti), add = T, lwd = 2, col = 'steelblue')
+        legend('topright', lty = c(1:num.strata, 1), col = c(rep('black', 2), "steelblue"),
+               lwd = c(rep(1,num.strata), 2), bty = 'n',
+               legend = c(for.legend, "exp(-x)"))
+        # Make next plot (if possible)
+        if(s < num.strata) xx <- readline("Press Enter for next strata.")
       }
-      # Make the plot
-      plot(sf.fitd, lty = 1:2, 
-           xlab = "Cox-Snell residuals", ylab = "Survival probability",
-           main = "Survival function of Cox-Snell residuals by strata")
-      curve(exp(-x), from = 0, to = max(sort.Ti), add = T, lwd = 2, col = 'steelblue')
-      legend('topright', lty = c(1:num.strata, 1), col = c(rep('black', 2), "steelblue"),
-             lwd = c(rep(1,num.strata), 2), bty = 'n',
-             legend = c(for.legend, "exp(-x)"))
-      # Make next plot (if possible)
-      if(s < num.strata) xx <- readline("Press Enter for next strata.")
     }
   }
   on.exit(par(.par))
