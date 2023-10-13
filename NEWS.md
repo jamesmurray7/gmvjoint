@@ -1,3 +1,9 @@
+# gmvjoint version 0.4.0
+* Fairly minor updates
+* `surv.formula` now properly accepts factor variables. This shortcoming was brought to my attention by J. Piekos (Oxford); so thanks!
+* `residuals.joint` functions have been amended to actually work for Cox-Snell (there was an issue with e.g. spline time specifications).
+* `plot.residuals.joint` now produces a series of plots with telligible legends.
+
 # gmvjoint version 0.3.0
 * Fairly extensive re-writes to workhorse functions `joint` (and underlying `EMUpdate`); some computational efficiency has been gained here 'within' the EM algorithm.
 * Removed `CreateDataMatrices` function, in favour of simply taking ones from fits used in initial conditions (via `glmmTMB`); this greatly reduces computation times, particularly for larger models.
