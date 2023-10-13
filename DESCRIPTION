@@ -24,7 +24,7 @@ Imports:
   xtable
 LinkingTo: Rcpp, RcppArmadillo
 Encoding: UTF-8
-RoxygenNote: 7.2.2
+RoxygenNote: 7.2.3
 LazyData: true
 URL: https://github.com/jamesmurray7/gmvjoint
 BugReports: https://github.com/jamesmurray7/gmvjoint/issues
