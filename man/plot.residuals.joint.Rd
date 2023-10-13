@@ -15,9 +15,9 @@
 Plot residuals obtained by a joint model (obtained by \code{\link{joint}}). 
 If the \code{residuals.joint} object represents the longitudinal process, a simple (panelled)
 plot is produced (one for each response). If the residual object contains the Cox-Snell 
-resdiuals then a 1x2 panel is produced with the KM estimate of survival function of these
-residuals in the left-hand plot, and the same estimate mimicing the survival formula used in
-the original call to \code{joint}.
+residuals then several plots are produced (interactively): The he KM estimate of survival 
+function of the and then repeated for each survival covariate in the model call 
+to \code{joint}.
 }
 \seealso{
 \code{\link{residuals.joint}}

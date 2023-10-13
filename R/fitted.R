@@ -76,8 +76,7 @@ fitted.joint <- function(object, as = "matrix", ...){
 CoxSnellResids <- function(object){
   if(!inherits(object, 'joint')) stop("Only usable with objects of class 'joint'.")
   if(is.null(object$dmats)) stop("Cox Snell residuals only available with dmats in joint object")
-  sv <- surv.mod(object$dmats$ph, 
-                 lapply(object$ModelInfo$long.formulas, parseFormula), object$hazard[,2])
+  sv <- object$dmats$surv
   l0u <- sv$l0u; SS <- sv$SS; Fu <- sv$Fu
   b <- lapply(1:object$ModelInfo$n, function(i) object$REs[i, , drop = T]); 
   gamma <- rep(object$coeffs$gamma, sapply(object$ModelInfo$inds$R$b, length))
@@ -236,12 +235,13 @@ print.residuals.joint <- function(x, ...){
   }else{
     object <- attr(x, 'object')
     attr(x, 'type') <- NULL; attr(x, 'what') <- NULL; attr(x, "object") <- NULL
-    Tis <- object$dmats$surv$Tis
+    # Tis <- object$dmats$surv$Tis
+    Dis <- unlist(object$dmats$ph$Delta)
     # Difference in residuals and expected
     cat("Cox-Snell residuals:\n")
     print(round(summary(x), 3))
     cat("\nMartingale residuals: \n")
-    print(round(summary(Tis-x), 3))
+    print(round(summary(Dis-x), 3))
     cat("\n")
   }
   invisible(x)
@@ -252,9 +252,9 @@ print.residuals.joint <- function(x, ...){
 #' @description Plot residuals obtained by a joint model (obtained by \code{\link{joint}}). 
 #' If the \code{residuals.joint} object represents the longitudinal process, a simple (panelled)
 #' plot is produced (one for each response). If the residual object contains the Cox-Snell 
-#' resdiuals then a 1x2 panel is produced with the KM estimate of survival function of these
-#' residuals in the left-hand plot, and the same estimate mimicing the survival formula used in
-#' the original call to \code{joint}.
+#' residuals then several plots are produced (interactively): The he KM estimate of survival 
+#' function of the and then repeated for each survival covariate in the model call 
+#' to \code{joint}.
 #'
 #' @param x an object with class \code{residuals.joint}.
 #' @param ... additional arguments (none used).
@@ -295,25 +295,47 @@ plot.residuals.joint <- function(x, ...){
   }else{
     object <- attr(x, 'object')
     attr(x, 'type') <- NULL; attr(x, 'what') <- NULL; attr(x, "object") <- NULL
+    sort.Ti <- sort(object$dmats$surv$Tis)
     # KM estimate
     sf.null <- survfit(Surv(x, unlist(object$dmats$ph$Delta)) ~ 1)
-    # Stratified by call to `joint`.
-    ff <- as.formula(gsub(object$ModelInfo$survtime, 'x', deparse(object$ModelInfo$surv.formula)))
-    sf.fitd <- survfit(ff, data = object$dmats$ph$survdata)
-    sort.Ti <- sort(object$dmats$surv$Tis)
-    num.strata <- length(sf.fitd$strata)
-    par(mfrow = c(1,2))
+    # Plot Survival function of residuals, and then for each strata level
     plot(sf.null, mark.time = F, 
          xlab = "Cox-Snell residuals", ylab = "Survival probability",
          main = "Survival function of Cox-Snell residuals")
     curve(exp(-x), from = 0, to = max(sort.Ti), add = T, lwd = 2, col = 'steelblue')
-    plot(sf.fitd, lty = 1:2, 
-         xlab = "Cox-Snell residuals", ylab = "Survival probability",
-         main = "Survival function of Cox-Snell residuals by strata")
-    curve(exp(-x), from = 0, to = max(sort.Ti), add = T, lwd = 2, col = 'steelblue')
-    legend('topright', lty = c(1:num.strata, 1), col = c(rep('black', 2), "steelblue"),
-           lwd = c(rep(1,num.strata), 2), bty = 'n',
-           legend = c(names(sf.fitd$strata), "exp(-x)"))
+    
+    # Stratified by call to `joint`.
+    xx <- readline("Press Enter for residual plots by strata: ")
+    num.strata <- length(object$dmats$ph$invar.surv.names)
+    for(s in 1:num.strata){
+      this.strata <- object$dmats$ph$invar.surv.names[s]
+      ff <- as.formula(paste0("Surv(x, status) ~ ", this.strata))
+      sf.fitd <- survfit(ff, data = object$dmats$ph$survdata)
+      # Work out what the data labels are
+      if(object$ModelInfo$control$center.ph){
+        s.strata.names <- c(names(sf.fitd$strata))
+        if(length(s.strata.names) > 5) next # Don't bother (i.e. s is continuous)
+        to.match <- round(as.numeric(gsub(paste0(this.strata, '='), '', s.strata.names)), 4)
+        raw <- object$dmats$ph$ph$x[,this.strata]
+        rs <- cbind(raw = raw, scaled = round(c(scale(raw, scale = F)), 4))
+        rs <- rs[!duplicated.matrix(rs),]
+        for.legend <- paste0(this.strata, " = ", rs[match(to.match, rs[, "scaled"]), "raw"])
+      }else{
+        s.strata.names <- c(names(sf.fitd$strata))
+        if(length(s.strata.names) > 5) next # Don't bother (i.e. s is continuous)
+        for.legend <- c(names(sf.fitd$strata))
+      }
+      # Make the plot
+      plot(sf.fitd, lty = 1:2, 
+           xlab = "Cox-Snell residuals", ylab = "Survival probability",
+           main = "Survival function of Cox-Snell residuals by strata")
+      curve(exp(-x), from = 0, to = max(sort.Ti), add = T, lwd = 2, col = 'steelblue')
+      legend('topright', lty = c(1:num.strata, 1), col = c(rep('black', 2), "steelblue"),
+             lwd = c(rep(1,num.strata), 2), bty = 'n',
+             legend = c(for.legend, "exp(-x)"))
+      # Make next plot (if possible)
+      if(s < num.strata) xx <- readline("Press Enter for next strata.")
+    }
   }
   on.exit(par(.par))
 }
