@@ -208,7 +208,7 @@ anova.joint <- function(object, object2, ...){
   if(!inherits(object2, 'joint')) stop("Only usable with object of class 'joint'.")
   
   # Check models were fit to same data
-  if(object$ModelInfo$nobs!=object2$ModelInfo$nobs) stop("Models were not fit to same data.")
+  if(object$ModelInfo$nobs[1]!=object2$ModelInfo$nobs[1]) stop("Models were not fit to same data.")
   
   # See whether the survival sub-model is identical
   warnSurv <- F
