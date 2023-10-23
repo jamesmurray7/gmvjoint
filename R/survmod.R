@@ -169,7 +169,7 @@ surv.mod <- function(surv, formulas, l0.init, inits.long){
     ft = ft, ft.mat = Fu.all, nev = surv$nev, surv.times = surv.times,
     l0 = l0, l0i = l0i, l0u = l0u, 
     Fi = Fi, Fu = Fu, Tis = sapply(TiDi, function(x) c(x[1]$survtime), simplify = T),
-    S = S, SS = SS, q = ncol(Fu.all)
+    S = S, SS = SS, q = ncol(Fu.all), spline.fts = spline.fts
   )
   
 }

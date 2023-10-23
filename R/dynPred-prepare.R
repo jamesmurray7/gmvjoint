@@ -50,14 +50,25 @@ prepareSurvData <- function(data, fit, u = NULL){
   }
   
   # All _possible_ survived times observed in model, cast by W_k(t).
-  # along with baseline hazard
+  # along with baseline hazard, as appeared in original model...
   Fu.all <- fit$dmats$surv$ft.mat
   l0u <- fit$hazard[,2]
   ft <- fit$dmats$surv$ft
   
   fs <- lapply(fit$ModelInfo$long.formulas, parseFormula)
-  Fi <- do.call(cbind, lapply(fs, function(x) model.matrix(as.formula(paste0('~', unlist(x$random))),
-                                                           data.frame(time = u)))) # Don't actually need to work this out.
+  Wk <- lapply(fs, '[[', 'random')
+  
+  # Need to re-derive for each u
+  Fi <- do.call(cbind, lapply(seq_along(Wk), function(k){
+    spec <- attr(Wk[[k]], 'special')
+    if(spec == "none"){
+      out <- model.matrix(as.formula(paste0("~", Wk[[k]])), data.frame(time = u))
+    }else{
+      sft <- fit$dmats$surv$spline.fts[[k]]
+      out <- cbind(1, predict(sft, data.frame(time = u)))
+    }
+    out
+  }))
   
   Fu <- Fu.all[ft <= u,]
   if(nrow(Fu)){ # Code-in a failsafe.
