@@ -33,7 +33,8 @@
 #'   (precision); \code{NPV} negative predictive value; \code{F1s} F1 score and \code{J} Youden's
 #'   J statistic.}
 #'   \item{AUC}{the area under the curve.}
-#'   \item{BrierScore}{calculated Brier score (for each subject) along with attributed summary.}
+#'   \item{BrierScore}{The Brier score.}
+#'   \item{PE}{The predicted error (taking into account censoring), loss function: square.}
 #'   \item{MH.acceptance.bar}{mean acceptance of M-H scheme across all subjects.}
 #'   \item{simulation.info}{list containing information about call to \code{dynPred}.}
 #' }
@@ -125,21 +126,44 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
   })
   # pi(u|t)
   infodf <- do.call(rbind, infodf)
-  pi <- with(infodf, tapply(`mean`, id, min))
+  pi <- with(infodf, tapply(`mean`, id, tail, 1)) # Pr(T_i^* \ge u_{max}) (i.e. survive window)
+  ompi <- 1 - pi
   
-  # Working out whether individuals failed in the window
-  survtimes <- with(newdata, tapply(survtime, keys, unique))
-  events <- survtimes >= window[1] & survtimes <= window[2]
-  status <- as.logical(with(newdata, tapply(status, keys, unique))) # Check if they failed
-  event <- status & events # Check if they failed in window.
+  # Working out whether individuals failed/censor/survived the window
+  checks <- sapply(unique(newdata$keys), function(i){
+    # This key's data
+    a <- newdata[newdata$keys == i,][1,,drop=F]
+    survtime <- a$survtime
+    status <- a$status
+    # Failed or were censored otherwise
+    ct.in.window <- survtime >= window[1] & survtime < window[2]
+    # Did they fail?
+    fail.in.window <- ct.in.window & (status == 1L)
+    censor.in.window <- ct.in.window & (status == 0L)
+    # Return
+    c(ct.in.window = ct.in.window,
+      fail.in.window = fail.in.window,
+      censor.in.window = censor.in.window,
+      survived.window = survtime > window[2])
+  })
+  # survtimes <- with(newdata, tapply(survtime, keys, unique))
+  # events <- survtimes >= window[1] & survtimes <= window[2]
+  # event <- status & events      # Check if they FAILED in window
+  event <- checks[2,] # Specifically failed in the window
   
+  # Calibration metrics
   n.window.events <- sum(event)
-  BS <- ((1 - pi) - sapply(event, as.numeric))^2   # Brier score
-  attr(BS, 'summary') <- summary(BS)
-  
+  # Brier score https://en.wikipedia.org/wiki/Brier_score
+  #           {survived} {probs survived}   ... in the window
+  BS <- mean((pi-checks[4,])^2)
+  # PE.raw <- mean((checks[4,]-pi)^2) # These are the same 
+  # Predictive error taking into account censoring
+  PE <- mean(as.numeric(!checks[1,]) * ompi^2 + as.numeric(checks[2,]) * (0-pi)^2 + 
+               as.numeric(checks[3,]) * (pi * ompi^2 + ompi * (0-pi)^2))
+
   # Defining threshold and calculating performance metrics.
   t <- seq(0, 1, length = 101)
-  simfail <- structure(outer(pi, t, '<'),
+  simfail <- structure(outer(pi, t, '<='),
                        dimnames = list(names(pi) , paste0('t: ', t)))
   
   TP <- colSums(c(event) * simfail)        # True positives
@@ -182,7 +206,7 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
     Tstart = Tstart, delta = delta, candidate.u = candidate.u,
     window.failures = n.window.events,
     Tstart.alive = n.alive,
-    metrics = out, AUC = a, BrierScore = BS,
+    metrics = out, AUC = a, BrierScore = BS, PE = PE,
     MH.acceptance.bar = if(sim) mean(do.call(c, acceptance)) else NULL,
     simulation.info = simulation.info
   )
@@ -208,7 +232,8 @@ print.ROC.joint <- function(x, ...){
   cat("Diagnostic table:\n")
   print(round(x$metrics, 3))
   cat(sprintf("\nArea under curve: %.2f\n", x$AUC))
-  cat(sprintf("Median Brier Score: %.3f\n", unname(attr(x$BrierScore, 'summary')['Median'])))
+  cat(sprintf("Brier Score: %.3f\n", x$BrierScore))
+  cat(sprintf("Predictive Error: %.3f\n", x$PE))
   invisible(x)
 }
 
@@ -262,8 +287,7 @@ plot.ROC.joint <- function(x, legend = TRUE, show.Youden = TRUE, show.F1 = FALSE
   if(legend){
     legend('bottomright', 
            paste0(x$Tstart.alive, ' at risk; ', x$window.failures, ' failures in interval.\n',
-                  'AUC: ', round(x$AUC, 3),
-                  ', Brier score: ', round(unname(attr(x$BrierScore, 'summary')['Median']), 4), '.'),
+                  'AUC: ', round(x$AUC, 3)),
            bty = 'n', cex = .75)
   }
   invisible(x)
