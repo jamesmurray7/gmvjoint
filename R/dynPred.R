@@ -20,23 +20,12 @@
 #' \code{nsim=200}. First-order estimates are calculated if \code{nsim=0}.
 #' @param progress a logical, if \code{progress=TRUE} (the default) then a progress bar displaying
 #' the current percentage of simulations have been completed.
-#' @param b.density character string imposing the density for the current and proposal for each
-#' draw of the random effects \eqn{\boldsymbol{b}^{(l)}, l=1,\dots,\code{nsim}}. Options are 
-#' \code{b.density="normal"} i.e. using the assumption that the conditional density of the random
-#' effects is 
-#' 
-#' \deqn{\boldsymbol{b}_i^{(l)}|\boldsymbol{Y}_i(u);\boldsymbol{\Omega}^{(l)}\sim 
-#'  N(\hat{\boldsymbol{b}}_i^{(l)},\hat{\boldsymbol{\Sigma}}_i^{(l)})}
-#'
-#' (i.e. in line with proposal by Bernhardt \emph{et al.} (2015)), or in keeping with other 
-#' literature surrounding dynamic predictions (e.g. Rizopoulos (2011)) in imposing the \code{
-#' b.density="t"} distribution.
-#' @param scale if \code{b.density = "t"} then this numeric scales the variance-covariance 
-#' parameter in the proposal distribution for the Metropolis-Hastings algorithm. Defaults to 
-#' \code{scale = NULL} which doesn't scale the variance term at all. Users are encouraged to
-#' experiment with values here.
-#' @param df if \code{b.density = "t"} then this numeric denotes the degrees of freedom of the 
-#' proposed \eqn{t} distribution on the random effects. \code{df=4} is suggested.
+#' @param scale numeric scales the variance-covariance parameter in the proposal distribution for 
+#' the Metropolis-Hastings algorithm. Defaults to \code{scale = NULL} which doesn't scale the
+#' variance term at all. Users are encouraged to experiment with values here; this parameter
+#' controls the acceptance rate of the MH scheme.
+#' @param df numeric denotes the degrees of freedom of the proposed \eqn{t} distribution on
+#' the random effects; \code{df=4} is suggested and is the default.
 #'
 #' @return A list of class \code{dynPred} which consists of three items: \describe{
 #'   \item{\code{pi}}{A \code{data.frame} which contains each candidate failure time (supplied by
@@ -64,8 +53,8 @@
 #' 
 #' \eqn{\boldsymbol{\Omega}} is drawn from the multivariate normal distribution with mean
 #' \eqn{\hat{\boldsymbol{\Omega}}} and its variance taken from a fitted \code{joint} object.
-#' \eqn{\hat{\boldsymbol{b}}} is drawn from either the (multivariate) Normal, or \eqn{t} 
-#' distribution by means of a Metropolis-Hastings algorithm with \code{nsim} iterations.
+#' \eqn{\hat{\boldsymbol{b}}} is drawn from the \eqn{t} distribution by means of a
+#' Metropolis-Hastings algorithm with \code{nsim} iterations.
 #' 
 #' @references 
 #' 
@@ -86,13 +75,16 @@
 #' \donttest{
 #' data(PBC)
 #' PBC$serBilir <- log(PBC$serBilir)
+#' # Focus in on id 81, who fails at around 7 years of follow-up. \code{dynPred} allows us to
+#' # infer how the model believes their survival probability would've progressed (ignoring the
+#' # true outcome at start time).
 #' # Univariate -----------------------------------------------------------
 #' long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 #' surv.formula <- Surv(survtime, status) ~ drug
 #' family <- list('gaussian')
 #' fit <- joint(long.formulas, surv.formula, PBC, family)
-#' preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
-#'                  scale = 0.18)
+#' preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200,
+#'                  scale = 2)
 #' preds
 #' plot(preds)
 #' # Bivariate ------------------------------------------------------------
@@ -102,15 +94,15 @@
 #'   albumin ~ drug * time + (1 + time|id)
 #' )
 #' fit <- joint(long.formulas, surv.formula, data = PBC, family = list("gaussian", "gaussian"))
-#' bi.preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
-#'                     scale = 0.66)
+#' bi.preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, 
+#'                     scale = fit$coeffs$D/sqrt(fit$ModelInfo$n))
 #' bi.preds
-#' plot(bi.preds) # Appears to level-off quicker; perhaps indicative of this id's albumin levels.
+#' plot(bi.preds) # Appears to level-off dramatically; perhaps indicative of this id's albumin
+#'                # levels, or acceleration in serBilir trajectory around 8.5 years.
 #' }
 dynPred <- function(data, id, fit, u = NULL, nsim = 200, progress = TRUE,
-                    b.density = c('normal', 't'), scale = NULL, df = NULL){
+                    scale = NULL, df = NULL){
   if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
-  b.density <- match.arg(b.density)
   
   if("factor"%in%class(data$id)) data$id <- as.numeric(as.character(data$id))
   # Check survival times
@@ -142,11 +134,11 @@ dynPred <- function(data, id, fit, u = NULL, nsim = 200, progress = TRUE,
     MH.accept <- 0
     b.current <- shift <- data.t$bfit$par; Sigma <- solve(data.t$bfit$hessian)
     if(!is.null(scale)) Sigma <- Sigma * scale
-    if(b.density == 't' & is.null(df)) df <- 4
+    if(is.null(df)) df <- 4
     if(progress) pb <- utils::txtProgressBar(max = nsim, style = 3)
     for(i in 1:nsim){
       O <- Omega.draw(fit)
-      b.sim <- b.mh(b.current, shift, Sigma, data.t$long, data.t$surv, O, beta.inds, b.inds, fit, b.density, df)
+      b.sim <- b.mh(b.current, shift, Sigma, data.t$long, data.t$surv, O, fit, df)
       b.current <- b.sim$b.current
       MH.accept <- MH.accept + b.sim$accept
       St <- S_(data.t$surv, rep(O$gamma, sapply(b.inds, length)), O$zeta, b.current)

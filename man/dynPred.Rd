@@ -11,7 +11,6 @@ dynPred(
   u = NULL,
   nsim = 200,
   progress = TRUE,
-  b.density = c("normal", "t"),
   scale = NULL,
   df = NULL
 )
@@ -35,25 +34,13 @@ surviving all failure times after the \code{id}'s final longitudinal \code{time}
 \item{progress}{a logical, if \code{progress=TRUE} (the default) then a progress bar displaying
 the current percentage of simulations have been completed.}
 
-\item{b.density}{character string imposing the density for the current and proposal for each
-draw of the random effects \eqn{\boldsymbol{b}^{(l)}, l=1,\dots,\code{nsim}}. Options are 
-\code{b.density="normal"} i.e. using the assumption that the conditional density of the random
-effects is 
+\item{scale}{numeric scales the variance-covariance parameter in the proposal distribution for 
+the Metropolis-Hastings algorithm. Defaults to \code{scale = NULL} which doesn't scale the
+variance term at all. Users are encouraged to experiment with values here; this parameter
+controls the acceptance rate of the MH scheme.}
 
-\deqn{\boldsymbol{b}_i^{(l)}|\boldsymbol{Y}_i(u);\boldsymbol{\Omega}^{(l)}\sim 
- N(\hat{\boldsymbol{b}}_i^{(l)},\hat{\boldsymbol{\Sigma}}_i^{(l)})}
-
-(i.e. in line with proposal by Bernhardt \emph{et al.} (2015)), or in keeping with other 
-literature surrounding dynamic predictions (e.g. Rizopoulos (2011)) in imposing the \code{
-b.density="t"} distribution.}
-
-\item{scale}{if \code{b.density = "t"} then this numeric scales the variance-covariance 
-parameter in the proposal distribution for the Metropolis-Hastings algorithm. Defaults to 
-\code{scale = NULL} which doesn't scale the variance term at all. Users are encouraged to
-experiment with values here.}
-
-\item{df}{if \code{b.density = "t"} then this numeric denotes the degrees of freedom of the 
-proposed \eqn{t} distribution on the random effects. \code{df=4} is suggested.}
+\item{df}{numeric denotes the degrees of freedom of the proposed \eqn{t} distribution on
+the random effects; \code{df=4} is suggested and is the default.}
 }
 \value{
 A list of class \code{dynPred} which consists of three items: \describe{
@@ -92,20 +79,23 @@ longitudinal measurements up to time \eqn{t}, and \eqn{S()} the survival functio
 
 \eqn{\boldsymbol{\Omega}} is drawn from the multivariate normal distribution with mean
 \eqn{\hat{\boldsymbol{\Omega}}} and its variance taken from a fitted \code{joint} object.
-\eqn{\hat{\boldsymbol{b}}} is drawn from either the (multivariate) Normal, or \eqn{t} 
-distribution by means of a Metropolis-Hastings algorithm with \code{nsim} iterations.
+\eqn{\hat{\boldsymbol{b}}} is drawn from the \eqn{t} distribution by means of a
+Metropolis-Hastings algorithm with \code{nsim} iterations.
 }
 \examples{
 \donttest{
 data(PBC)
 PBC$serBilir <- log(PBC$serBilir)
+# Focus in on id 81, who fails at around 7 years of follow-up. \code{dynPred} allows us to
+# infer how the model believes their survival probability would've progressed (ignoring the
+# true outcome at start time).
 # Univariate -----------------------------------------------------------
 long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 surv.formula <- Surv(survtime, status) ~ drug
 family <- list('gaussian')
 fit <- joint(long.formulas, surv.formula, PBC, family)
-preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
-                 scale = 0.18)
+preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200,
+                 scale = 2)
 preds
 plot(preds)
 # Bivariate ------------------------------------------------------------
@@ -115,10 +105,11 @@ long.formulas <- list(
   albumin ~ drug * time + (1 + time|id)
 )
 fit <- joint(long.formulas, surv.formula, data = PBC, family = list("gaussian", "gaussian"))
-bi.preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, b.density = 'normal',
-                    scale = 0.66)
+bi.preds <- dynPred(PBC, id = 81, fit = fit, u = NULL, nsim = 200, 
+                    scale = fit$coeffs$D/sqrt(fit$ModelInfo$n))
 bi.preds
-plot(bi.preds) # Appears to level-off quicker; perhaps indicative of this id's albumin levels.
+plot(bi.preds) # Appears to level-off dramatically; perhaps indicative of this id's albumin
+               # levels, or acceleration in serBilir trajectory around 8.5 years.
 }
 }
 \references{

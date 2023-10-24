@@ -44,7 +44,9 @@ A list of class \code{ROC.joint} consisting of: \describe{
   (precision); \code{NPV} negative predictive value; \code{F1s} F1 score and \code{J} Youden's
   J statistic.}
   \item{AUC}{the area under the curve.}
-  \item{BrierScore}{calculated Brier score (for each subject) along with attributed summary.}
+  \item{BrierScore}{The Brier score.}
+  \item{PE}{The predicted error (taking into account censoring), loss function: square.}
+  \item{MH.acceptance}{Raw acceptance percentages for each subject sampled.}
   \item{MH.acceptance.bar}{mean acceptance of M-H scheme across all subjects.}
   \item{simulation.info}{list containing information about call to \code{dynPred}.}
 }

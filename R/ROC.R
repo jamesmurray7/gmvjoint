@@ -35,6 +35,7 @@
 #'   \item{AUC}{the area under the curve.}
 #'   \item{BrierScore}{The Brier score.}
 #'   \item{PE}{The predicted error (taking into account censoring), loss function: square.}
+#'   \item{MH.acceptance}{Raw acceptance percentages for each subject sampled.}
 #'   \item{MH.acceptance.bar}{mean acceptance of M-H scheme across all subjects.}
 #'   \item{simulation.info}{list containing information about call to \code{dynPred}.}
 #' }
@@ -58,18 +59,8 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
   if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
   
   # Parse control arguments ----
-  if(!is.null(control$b.density)) b.density <- control$b.density else b.density <- 'normal'
-  b.density <- match.arg(b.density, c('normal', 't'))
-  if(!is.null(control$scale)) scale <- control$scale else scale <- NULL
-  if(b.density == 't' & is.null(scale)){
-    message('Scale not supplied for t distribution, defaulting to * 2')
-    scale <- 2
-  }
-  if(!is.null(control$df)) df <- control$df else df <- NULL
-  if(b.density == 't' & is.null(df)){
-    message('df not supplied for t distribution, defaulting to df = 4')
-    df <- 4
-  }
+  if(!is.null(control$scale)) scale <- control$scale else scale <- 2
+  if(!is.null(control$df)) df <- control$df else df <- 4
   if(!is.null(control$nsim)) nsim <- control$nsim else nsim <- 25 # Set fairly low.
   sim <- nsim > 0
   
@@ -110,7 +101,7 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
   if(progress) pb <- utils::txtProgressBar(max = length(alive.ids), style = 3)
   for(i in seq_along(alive.ids)){
     ds <- dynPred(newdata, alive.ids[i], fit, u = candidate.u, progress = F, 
-                   b.density = b.density, scale = scale, df = df, nsim = nsim)
+                  scale = scale, df = df, nsim = nsim)
     probs[[i]] <- ds$pi
     if(sim) acceptance[[i]] <- ds$MH.accept
     if(progress) utils::setTxtProgressBar(pb, i)
@@ -195,7 +186,6 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
   out <- out[!duplicated(out[, c('TPR', 'FPR')]),]
   
   simulation.info <- list(
-    b.density = b.density,
     nsim = nsim,
     scale = scale,
     df = df
@@ -207,6 +197,7 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
     window.failures = n.window.events,
     Tstart.alive = n.alive,
     metrics = out, AUC = a, BrierScore = BS, PE = PE,
+    MH.acceptance = if(sim) do.call(c, acceptance) else NULL,
     MH.acceptance.bar = if(sim) mean(do.call(c, acceptance)) else NULL,
     simulation.info = simulation.info
   )
@@ -229,6 +220,8 @@ AUC <- function(x){
 #' @export
 print.ROC.joint <- function(x, ...){
   if(!inherits(x, 'ROC.joint')) stop('x must be a "ROC.joint" object.')
+  q.acc <- quantile(x$MH.acceptance, c(.5,.25,.75))
+  cat(sprintf("Median [IQR] M-H acceptance rate: %.3f [%.3f, %.3f]\n", q.acc[1], q.acc[2], q.acc[3]))
   cat("Diagnostic table:\n")
   print(round(x$metrics, 3))
   cat(sprintf("\nArea under curve: %.2f\n", x$AUC))

@@ -45,6 +45,7 @@ Omega.draw <- function(x){
   )
 }
 
+# Not used 24/10/23 -->
 # Complete data log-likelihood w.r.t random effects b.
 #' @keywords internal
 logLik_b <- function(b, long, surv, O, beta.inds, b.inds, fit){
@@ -63,48 +64,33 @@ logLik_b <- function(b, long, surv, O, beta.inds, b.inds, fit){
 #' @keywords internal
 #' @importFrom MASS mvrnorm
 #' @importFrom mvtnorm rmvt
-b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, beta.inds, b.inds, fit, 
-                 b.density, df){
+b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, fit, df){
   # Metropolis-Hasting scheme to draw from distribution of f(\b|T_i^*>t;\Omega)
   # This distribution can be either normal (using approximation) or t on some user-supplied df.
   
-  # Unpack \Omega
-  beta <- O$beta; D <- O$D; gamma <- rep(O$gamma, sapply(b.inds, length)); zeta <- O$zeta; sigma <- O$sigma
-  b.density <- match.arg(b.density, c('normal', 't'), several.ok = F)
-  
-  if(b.density == 'normal'){
-    # Use optim to draw from f(\b,\Y,T,\Delta;\Omega^{\ell}). Only thing changing per simulation is \Omega
-    # Posterior mode and its variance at \Omega^{\ell}
-    b.hat.l <- optim(
-      b.current, joint_density, joint_density_ddb,
-      Y = long$Y, X = long$X, Z = long$Z, W = long$W, beta = beta, D = D, sigma = sigma,
-      family = fit$ModelInfo$family, Delta = surv$Delta, S = surv$S, Fi = surv$Fi, l0i = surv$l0i,
-      SS = surv$SS, Fu = surv$Fu, haz = surv$l0u, gamma_rep = gamma, zeta = zeta, beta_inds = beta.inds,
-      b_inds = b.inds, K = fit$ModelInfo$K, method = 'BFGS', hessian = T
-    )
-    Sigma.hat.l <- solve(b.hat.l$hessian)
-    b.hat.l <- b.hat.l$par
-    # Draw from N(b.hat.l, Sigma.hat.l)
-    b.prop.l <- MASS::mvrnorm(n = 1, mu = b.hat.l, Sigma = Sigma.hat.l)
-    # DMNVORM on b draws
-    current.dens <- as.double(dmvn_fast(b.current, b.hat.t, Sigma.t, T))
-    prop.dens <- as.double(dmvn_fast(b.prop.l, b.hat.t, Sigma.t, T))
-  }else{
-    #' Draw from shifted t distribution at \hat{b}, \hat{\Sigma} for subject|T_i>t
-    b.prop.l <- c(mvtnorm::rmvt(n = 1, sigma = Sigma.t, df = df, delta = b.hat.t))
-    current.dens <- as.double(dmvt_fast(b.current, b.hat.t, Sigma.t, df = df))
-    prop.dens <- as.double(dmvt_fast(b.prop.l, b.hat.t, Sigma.t, df = df))
-  }
-  diff.dens <- current.dens - prop.dens # Difference in current - proposal log-likelihood.
+  # Unpack \Omega^{ell}
+  beta <- O$beta; D <- O$D; gamma <- rep(O$gamma, sapply(fit$ModelInfo$inds$Cpp$b, length)); zeta <- O$zeta; sigma <- O$sigma
+  #' Draw from shifted t distribution at \hat{b}, \hat{\Sigma} for subject|T_i>t
+  b.prop.l <- c(mvtnorm::rmvt(n = 1, sigma = Sigma.t, df = df, delta = b.hat.t))
   
   # Joint data log likelihood on current and proposed values of b
-  current.joint.ll <- logLik_b(b.current, long, surv, O, beta.inds, b.inds, fit)
-  proposed.joint.ll <- logLik_b(c(b.prop.l), long, surv, O, beta.inds, b.inds, fit)
-  diff.joint.ll <-  proposed.joint.ll - current.joint.ll
+  logf.current <- -1 * joint_density(b.current, long$Y, long$X, long$Z, long$W, beta,
+                                     D, sigma, fit$ModelInfo$family, 0L, surv$S, surv$Fi,
+                                     0., surv$SS, surv$Fu, surv$l0u, gamma, zeta, 
+                                     fit$ModelInfo$inds$Cpp$beta, fit$ModelInfo$inds$Cpp$b, fit$ModelInfo$K)
+  logf.proposal <- -1 * joint_density(b.prop.l, long$Y, long$X, long$Z, long$W, beta,
+                                      D, sigma, fit$ModelInfo$family, 0L, surv$S, surv$Fi,
+                                      0., surv$SS, surv$Fu, surv$l0u, gamma, zeta, 
+                                      fit$ModelInfo$inds$Cpp$beta, fit$ModelInfo$inds$Cpp$b, fit$ModelInfo$K)
+  log.firstbit <- logf.proposal - logf.current
+  
+  log.dens.current <- as.double(dmvt_fast(b.current, b.hat.t, Sigma.t, df))
+  log.dens.proposal <- as.double(dmvt_fast(b.prop.l, b.hat.t, Sigma.t, df))
+  log.secondbit <- log.dens.current - log.dens.proposal
   
   # Accept/reject scheme
   accept <- 0
-  a <- exp(diff.joint.ll - diff.dens)
+  a <- min(exp(log.firstbit - log.secondbit), 1.)
   if(is.nan(a)){
     message("\n\nError in b.mh\nInformation on current values:")
     cat("\n--------\n")
@@ -119,7 +105,6 @@ b.mh <- function(b.current, b.hat.t, Sigma.t, long, surv, O, beta.inds, b.inds, 
     tt <- try(solve(O$D), silent = TRUE)
     if(inherits(tt, 'try-error')) cat("Generated covariance matrix D non-invertible --> likely issue.\n")
   }
-  a <- min(1, a)
   U <- runif(1)
   if(U <= a){
     accept <- 1
