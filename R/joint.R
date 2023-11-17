@@ -34,6 +34,12 @@
 #'   \item{\code{hess.eps}}{Numeric: Step size for numerical differentiation routines used to
 #'   calculate the hessian in updates to dispersion parameters. This defaults to the fourth root 
 #'   of machine tolerance. Behaves in same way as \code{grad.eps} for more information.}
+#'   \item{\code{inits}}{List: list of initial conditions, any/all of the following can be 
+#'   specified (largely for bootstrapping purposes). Accepts elements named: \code{D}, which
+#'   should be an appropriately-dimensioned variance-covariance matrix; \code{beta}, a vector
+#'   containing all fixed effects; \code{sigma} a list containing all dispersion parameters,
+#'   with non-applicable elements set to zero; \code{gamma} a vector containing all association
+#'   parameters; \code{zeta} a vector containing the time-invariant survival coefficients.}
 #'   \item{\code{maxit}}{Integer: Maximum number of EM iterations to carry out before
 #'   exiting the algorithm. Defaults to \code{maxit=200L}, which is usually sufficient.}
 #'   \item{\code{correlated}}{Logical: Should covariance parameters \strong{between} responses 
@@ -162,7 +168,7 @@
 #' Zamani H and Ismail N. Functional Form for the Generalized Poisson Regression Model, 
 #' \emph{Communications in Statistics - Theory and Methods} 2012; \strong{41(20)}; 3666-3675.
 #' 
-#' @seealso \code{\link{summary.joint}}, \code{\link{logLik.joint}}, 
+#' @seealso \code{\link{summary.joint}}, \code{\link{logLik.joint}}, \code{\link{boot.joint}},
 #' \code{\link{extractAIC.joint}}, \code{\link{fixef.joint}}, \code{\link{ranef.joint}},
 #' \code{\link{vcov.joint}}, \code{\link{joint.object}} and \code{\link{xtable.joint}}. For
 #' data simulation see \code{\link{simData}}.
@@ -244,7 +250,7 @@ joint <- function(long.formulas, surv.formula,
   
   con <- list(correlated = T, gh.nodes = 3, gh.sigma = 1, center.ph = T,
               tol.abs = 1e-3, tol.rel = 1e-2, tol.thr = 1e-1, tol.den = 1e-3,
-              grad.eps = .Machine$double.eps^(1/3), hess.eps = .Machine$double.eps^(1/4),
+              grad.eps = .Machine$double.eps^(1/3), hess.eps = .Machine$double.eps^(1/4), inits = NULL,
               maxit = 200, conv = 'sas', verbose = F, return.inits = F, return.dmats = T, post.process = T)
   conname <- names(con)
   if(any(!names(control)%in%conname)){
@@ -327,6 +333,7 @@ joint <- function(long.formulas, surv.formula,
   params <- c(setNames(vech(D), paste0('D[', apply(which(lower.tri(D, T), arr.ind = T), 1, paste, collapse = ','), ']')),
               beta, unlist(sigma)[inits.long$sigma.include], gamma, zeta)
   sigma.include <- inits.long$sigma.include
+  if(!is.null(con$inits)) params <- parseInits(con$inits, params, inds, inits.long)
   if(!con$return.inits) rm(inits.surv)
   
   # step-sizes for grad/hess in dispersion updates

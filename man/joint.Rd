@@ -53,6 +53,12 @@ to \code{disp.formulas = NULL}. See \strong{details} for more information.}
   \item{\code{hess.eps}}{Numeric: Step size for numerical differentiation routines used to
   calculate the hessian in updates to dispersion parameters. This defaults to the fourth root 
   of machine tolerance. Behaves in same way as \code{grad.eps} for more information.}
+  \item{\code{inits}}{List: list of initial conditions, any/all of the following can be 
+  specified (largely for bootstrapping purposes). Accepts elements named: \code{D}, which
+  should be an appropriately-dimensioned variance-covariance matrix; \code{beta}, a vector
+  containing all fixed effects; \code{sigma} a list containing all dispersion parameters,
+  with non-applicable elements set to zero; \code{gamma} a vector containing all association
+  parameters; \code{zeta} a vector containing the time-invariant survival coefficients.}
   \item{\code{maxit}}{Integer: Maximum number of EM iterations to carry out before
   exiting the algorithm. Defaults to \code{maxit=200L}, which is usually sufficient.}
   \item{\code{correlated}}{Logical: Should covariance parameters \strong{between} responses 
@@ -261,7 +267,7 @@ Zamani H and Ismail N. Functional Form for the Generalized Poisson Regression Mo
 \emph{Communications in Statistics - Theory and Methods} 2012; \strong{41(20)}; 3666-3675.
 }
 \seealso{
-\code{\link{summary.joint}}, \code{\link{logLik.joint}}, 
+\code{\link{summary.joint}}, \code{\link{logLik.joint}}, \code{\link{boot.joint}},
 \code{\link{extractAIC.joint}}, \code{\link{fixef.joint}}, \code{\link{ranef.joint}},
 \code{\link{vcov.joint}}, \code{\link{joint.object}} and \code{\link{xtable.joint}}. For
 data simulation see \code{\link{simData}}.
