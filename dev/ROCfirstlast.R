@@ -1,67 +1,54 @@
-#' Receiver Operator Characteristics (ROC) for a \code{joint} model.
-#' 
-#' @description Using longitudinal information available up to a time, establish diagnostic
-#' capabilities (ROC, AUC and Brier score) of a fitted joint model.
-#'
-#' @param fit a joint model fit by the  \code{joint} function.
-#' @param data the data to which the original \code{joint} model was fit.
-#' @param Tstart The start of the time window of interest, \code{Tstart} denotes the time
-#' point up to which longitudinal process(es) is used in calculation of survival probabilities.
-#' @param delta scalar denoting the length of time interval to check for failure times.
-#' @param control list of control arguments to be passed to \code{\link{dynPred}}, which
-#' acts as the main workhorse function for \code{ROC}. Takes default arguments of 
-#' \code{\link{dynPred}} if not supplied.
-#' @param progress should a progress bar be shown, showing the current progress of the ROC
-#' function (% showing the completed proportion of those alive at \code{Tstart}.). Defaults
-#' to \code{progress = TRUE}.
-#' @param boot logical. Not currently used, legacy argument.
-#'
-#' @return A list of class \code{ROC.joint} consisting of: \describe{
-#'   \item{\code{Tstart}}{numeric denoting the start of the time window of interest; all dynamic
-#'   predictions generated used longitudinal information up-to time \eqn{T_{\mathrm{start}}}.}
-#'   \item{\code{delta}}{scalar which denotes length of interval to check, such that the window
-#'   is defined by \eqn{[T_{\mathrm{start}}, T_{\mathrm{start}}, + \delta]}.}
-#'   \item{\code{candidate.u}}{candidate vector of failure times to calculate dynamic probability
-#'    of surviving for each subject alive in \code{data} at time \eqn{T_{\mathrm{start}}}.}
-#'   \item{\code{window.failures}}{numeric denoting the number of observed failures in
-#'   \eqn{[T_{\mathrm{start}}, T_{\mathrm{start}}, + \delta]}.}
-#'   \item{\code{Tstart.alive}}{numeric denoting the risk set at \code{Tstart}.}
-#'   \item{\code{metrics}}{a \code{data.frame} containing probabilistic \code{thresholds} with:
-#'   \code{TP} true positives; \code{FN} false negatives; \code{FP} false positives;
-#'   \code{TN} true negatives; \code{TPR} true positive rate (sensitivity); \code{FPR} false
-#'   positive rate (1-specificity); \code{Acc} accuracy; \code{PPV} positive predictive value
-#'   (precision); \code{NPV} negative predictive value; \code{F1s} F1 score and \code{J} Youden's
-#'   J statistic.}
-#'   \item{AUC}{the area under the curve.}
-#'   \item{BrierScore}{The Brier score.}
-#'   \item{PE}{The predicted error (taking into account censoring), loss function: square.}
-#'   \item{MH.acceptance}{Raw acceptance percentages for each subject sampled.}
-#'   \item{MH.acceptance.bar}{mean acceptance of M-H scheme across all subjects.}
-#'   \item{simulation.info}{list containing information about call to \code{dynPred}.}
-#' }
-#' @export
-#' @seealso \code{\link{dynPred}}, and \code{\link{plot.ROC.joint}}.
-#' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
-#'
-#' @examples
-#' \donttest{
+# #########################################################################
+# Correcting ROC (hopefully)                                             ##
+# By scheme outlined in Andrinopoulou (2021) // doi: 10.1093/ije/dyab047 ##
+# #########################################################################
+
+# Roxygen'd stuff to get into .globalenv.
 #' data(PBC)
 #' PBC$serBilir <- log(PBC$serBilir)
 #' long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
 #' surv.formula <- Surv(survtime, status) ~ drug
 #' family <- list('gaussian')
 #' fit <- joint(long.formulas, surv.formula, PBC, family)
-#' (roc <- ROC(fit, PBC, Tstart = 8, delta = 2, control = list(nsim = 25)))
-#' plot(roc)
-#' }
-ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
-                boot = FALSE){
-  if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
+#' data <- PBC
+#' Tstart <- 5; delta <- 2; control <- list()
+#' progress=T; boot=T
+
+# Create bootstrapped data
+resampledata <- function(data){
+  uids <- unique(data$id)
+  samps <- sample(x = uids, size = length(uids), replace = TRUE)
+  newData <- setNames(lapply(1:length(uids), function(i){
+    newData <- data[data$id == samps[i],]
+    newData$InternalKey <- i
+    newData$..old.id <- newData$id
+    newData$id <- i
+    newData
+  }),paste0('original id ', samps)) # overkill but we dont look at this anyway.
   
+  as.data.frame(do.call(rbind, newData), row.names = NULL)
+}
+
+
+
+
+
+#' data(PBC)
+#' PBC$serBilir <- log(PBC$serBilir)
+#' long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
+#' surv.formula <- Surv(survtime, status) ~ drug
+#' family <- list('gaussian')
+#' fit <- joint(long.formulas, surv.formula, PBC, family)
+#' data <- PBC
+#' Tstart <- 5; delta <- 2; control <- list()
+#' progress=T; boot=T
+corrected.ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
+                          nboot = 100L){
+  if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
   # Parse control arguments ----
   if(!is.null(control$scale)) scale <- control$scale else scale <- 2
   if(!is.null(control$df)) df <- control$df else df <- 4
-  if(!is.null(control$nsim)) nsim <- control$nsim else nsim <- 25 # Set fairly low.
+  if(!is.null(control$nsim)) nsim <- control$nsim else nsim <- 0 # 25 # Set fairly low. ## removed -> FO only atm
   sim <- nsim > 0
   
   # Ensure {survtime, status} exists via model call.
@@ -72,28 +59,37 @@ ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
   bad.ids <- as.numeric(names(which(with(newdata, tapply(time, id, function(x) length(unique(x)))) == 1)))
   newdata <- newdata[!newdata$id%in%bad.ids, ]
   
-  # Give each alive.id their own `key`.
-  if(boot){ # For bootstrapping where duplicate ids will probably exist, but need to be treated separately.
-    ikeys <- unique(newdata$InternalKey)
-    keys <- 1:length(ikeys)
-    newdata <- merge(newdata, data.frame(InternalKey = ikeys, keys = keys),
-                     'InternalKey')
-    alive.ids <- newdata$id[which(diff(c(-999, newdata$keys))!=0)]
-  }else{ # Otherwise assume each id is unique as normal.
-    alive.ids <- unique(newdata$id)
-    keys <- do.call(c,
-                    sapply(1:length(alive.ids), function(i) rep(i, length(which(data$id == alive.ids[i])))))
-    newdata$keys <- keys
-  }
-
-  # Number of individuals alive at Tstart
-  n.alive <- length(alive.ids)
-  
   # Set out candidate failure times (u)
   ft <- fit$hazard[, 1]; tmax <- max(ft)
   window <- c(Tstart + 1e-6, Tstart + 1e-6 + delta)
   if(window[2] > tmax) window[2] <- tmax
   candidate.u <- c(Tstart, ft[ft > window[1] & ft <= window[2]])
+  # We solely look at their tail survival time.
+  candidate.u <- candidate.u[c(1, length(candidate.u))]
+  
+  if(progress) pb <- utils::txtProgressBar(max = nboot, style = 3)
+  for(b in 1:nboot){
+    # D_(b)
+    data.b <- resampledata(newdata)
+    # Number of individuals alive at T_{start}
+    uids <- unique(data.b$id)
+    n.alive <- length(uids)
+    mapped.to <- data.b[!duplicated(data.b$id), c('id', '..old.id')]
+    
+    probs.b <- setNames(vector('list', n.alive),
+                        paste0("id ", uids)) # A bit confusing -> these _map onto_ `..old.id` in data.b
+    
+    pi.b <- sapply(seq_along(uids), function(i){
+      ds <- dynPred(newdata, mapped.to[i,2], fit, candidate.u, progress = F,
+                    scale = scale, df = df, nsim = nsim)
+      out <- ds$pi
+      c(orig.id = out[3], new.id = i, pi = out[2])
+    })
+    
+  }
+
+  
+ 
   
   # Loop over ids and failure times
   probs <- acceptance <- setNames(vector('list', length = length(alive.ids)),
