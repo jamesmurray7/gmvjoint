@@ -11,6 +11,7 @@ boot.joint(
   nboot = 100L,
   replace = TRUE,
   progress = TRUE,
+  use.MLEs = TRUE,
   control = list()
 )
 }
@@ -31,6 +32,11 @@ subjects in the \code{joint} object.}
 
 \item{progress}{logical, should a text progress bar showing overall progress be shown
 and updated after each successful bootstrapped model fit? Defaults to \code{progress=TRUE}.}
+
+\item{use.MLEs}{logical, should the MLEs of the \code{fit} be used as initial conditions in 
+each of the bootstrapped calls to \code{joint}? Defaults to \code{use.MLEs=TRUE} which
+should help reduce the computational burden in fitting these bootstrap replicate \code{joint}
+objects.}
 
 \item{control}{a list of control arguments, with same possible arguments as shown in 
 \code{\link{joint}}. Note that by default the \emph{same} \code{control} arguments used in the
@@ -69,7 +75,8 @@ surv.formula <- Surv(survtime, status) ~ drug
 
 fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian', 'poisson'))
 # Set 50 bootstraps, with lower absolute tolerance and convergence of 'either'.
-BOOT <- boot.joint(fit, PBC, nboot = 50L, control = list(tol.abs = 5e-3, conv = 'either'))
+BOOT <- boot.joint(fit, PBC, nboot = 50L, control = list(tol.abs = 5e-3, conv = 'either'),
+                   use.MLEs = TRUE)
 BOOT # Print to console via S3 method
 }
 }

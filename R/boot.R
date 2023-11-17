@@ -15,6 +15,10 @@
 #' \code{replace = TRUE}.
 #' @param progress logical, should a text progress bar showing overall progress be shown
 #' and updated after each successful bootstrapped model fit? Defaults to \code{progress=TRUE}.
+#' @param use.MLEs logical, should the MLEs of the \code{fit} be used as initial conditions in 
+#' each of the bootstrapped calls to \code{joint}? Defaults to \code{use.MLEs=TRUE} which
+#' should help reduce the computational burden in fitting these bootstrap replicate \code{joint}
+#' objects.
 #' @param control a list of control arguments, with same possible arguments as shown in 
 #' \code{\link{joint}}. Note that by default the \emph{same} \code{control} arguments used in the
 #' \code{joint} \code{fit} parameter are carried forwards, besides the items \code{return.dmats},
@@ -49,12 +53,13 @@
 #' 
 #' fit <- joint(long.formulas, surv.formula, PBC, family = list('gaussian', 'poisson'))
 #' # Set 50 bootstraps, with lower absolute tolerance and convergence of 'either'.
-#' BOOT <- boot.joint(fit, PBC, nboot = 50L, control = list(tol.abs = 5e-3, conv = 'either'))
+#' BOOT <- boot.joint(fit, PBC, nboot = 50L, control = list(tol.abs = 5e-3, conv = 'either'),
+#'                    use.MLEs = TRUE)
 #' BOOT # Print to console via S3 method
 #' }
 boot.joint <- function(fit, data,
                        boot.size = NULL, nboot = 100L, replace = TRUE, progress = TRUE,
-                       control = list()){
+                       use.MLEs = TRUE, control = list()){
   if(!inherits(fit, 'joint')) stop("Only usable with objects of class joint.")
   if(isFALSE(fit$ModelInfo$control$post.process)) stop("Please fit parent model with post.process = TRUE.\n")
   # Get control arguments and formulae used by original joint fit.
@@ -74,6 +79,9 @@ boot.joint <- function(fit, data,
   if(any(!names(control)%in%conname))
     warning("Double check supplied control, choice of: ",
             paste(sapply(names(fit$ModelInfo$control), sQuote), collapse = ', '), '.')
+  
+  # use MLEs if requested
+  if(use.MLEs) con$inits <- fit$coeffs
   
   # Function to resample data ----
   resampledata <- function(data, size, replace){
