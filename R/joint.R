@@ -349,8 +349,9 @@ joint <- function(long.formulas, surv.formula,
   # Begin EM ----
   diff <- 100; iter <- 0;
   # Convergence criteria setup
-  if(!con$conv%in%c('absolute', 'relative', 'either', 'sas')){
-    warning('Convergence criteria must be one of "absolute", "relative", "either" or "sas". Using "sas"')
+  if(!con$conv%in%c('abs', 'rel', 'either', 'sas')){
+    warning("Convergence criteria must be one of ", sQuote('abs'), ', ', sQuote('rel'), ', ',
+            sQuote('either'), ', or ', sQuote('sas'), '. Using ', sQuote('sas'), '.')
     con$conv <- "sas"
   }
     
