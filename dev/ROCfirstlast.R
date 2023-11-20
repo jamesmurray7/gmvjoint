@@ -12,9 +12,12 @@
 #' fit <- joint(long.formulas, surv.formula, PBC, family)
 #' data <- PBC
 #' Tstart <- 5; delta <- 2; control <- list()
-#' progress=T; boot=T
+#' progress=T; boot=T; nboot = 10L
+#' 
 
-# Create bootstrapped data
+
+# Setting out some helper functions ---------------------------------------
+# Creating bootstrapped data
 resampledata <- function(data){
   uids <- unique(data$id)
   samps <- sample(x = uids, size = length(uids), replace = TRUE)
@@ -29,28 +32,118 @@ resampledata <- function(data){
   as.data.frame(do.call(rbind, newData), row.names = NULL)
 }
 
-
-
-
-
-#' data(PBC)
-#' PBC$serBilir <- log(PBC$serBilir)
-#' long.formulas <- list(serBilir ~ drug * time + (1 + time|id))
-#' surv.formula <- Surv(survtime, status) ~ drug
-#' family <- list('gaussian')
-#' fit <- joint(long.formulas, surv.formula, PBC, family)
-#' data <- PBC
-#' Tstart <- 5; delta <- 2; control <- list()
-#' progress=T; boot=T
-corrected.ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
-                          nboot = 100L){
-  if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
-  # Parse control arguments ----
-  if(!is.null(control$scale)) scale <- control$scale else scale <- 2
-  if(!is.null(control$df)) df <- control$df else df <- 4
-  if(!is.null(control$nsim)) nsim <- control$nsim else nsim <- 0 # 25 # Set fairly low. ## removed -> FO only atm
-  sim <- nsim > 0
+# Refitting the model on the bootstrapped data
+refit.model <- function(fit, D.b){ # M: The original model (for info); D.b bootstrapped data
+  # Extract formulae and families
+  long <- fit$ModelInfo$long.formulas
+  surv <- fit$ModelInfo$surv.formula
+  fam <- fit$ModelInfo$family
+  disp <- fit$ModelInfo$disp.formulas
   
+  # Fit with tryCatch wrapper
+  tryCatch(
+    joint(long.formulas = long,
+          surv.formula = surv,
+          data = D.b,
+          family = fam, disp.formulas = disp, # For sake of comp. speed, increase tolerance and start close to MLEs
+          control = list(conv = 'either', tol.abs = 5e-3, tol.rel = 1e-2,
+                         inits = fit$coeffs)),
+    error = function(e) NULL
+  )
+}
+
+# dynPred -> additional arguments to account for M.b -> original data.
+dynPred2 <- function(data, orig.id, boot.id, fit, u = NULL, nsim = 200, progress = TRUE,
+                     scale = NULL, df = NULL){
+  if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
+  
+  if("factor"%in%class(data$id)) data$id <- as.numeric(as.character(data$id))
+  # Check survival times
+  ft <- fit$hazard[,1];tmax <- max(ft); K <- length(fit$ModelInfo$family)
+  if(!is.null(u) & any(u > tmax)) stop(sprintf("Can't extrapolate beyond last failure time %.4f.\n", tmax))
+  
+  # Subset the required subject
+  newdata <- data[data$id == orig.id, ] # subset required subject
+  newdata$id <- boot.id                 # They will appear in the `dmat`s by _this_ `id`
+  
+  # If u isn't supplied then arbitrarily find probability of surviving all following failure times.
+  if(is.null(u)){
+    last.long.time <- max(newdata$time)
+    u <- c(last.long.time, ft[ft > last.long.time])
+  }
+  
+  # Get indices for \b and \beta
+  b.inds <- fit$ModelInfo$inds$C$b
+  beta.inds <- fit$ModelInfo$inds$C$beta
+  
+  # Obtain 'denominator' dataset based on first value of vector u
+  newdata2 <- newdata[newdata$time <= u[1], ]
+  data.t <- prepareData(newdata2, fit, u = NULL)
+  
+  u <- u[-1] # Now can remove T_start
+  
+  if(nsim > 0){
+    pi <- structure(matrix(NA, nrow = nsim, ncol = length(u)),
+                    dimnames = list(as.character(1:nsim), paste0('u=',u)))
+    MH.accept <- 0
+    b.current <- shift <- data.t$bfit$par; Sigma <- solve(data.t$bfit$hessian)
+    if(!is.null(scale)) Sigma <- Sigma * scale
+    if(is.null(df)) df <- 4
+    if(progress) pb <- utils::txtProgressBar(max = nsim, style = 3)
+    for(i in 1:nsim){
+      O <- Omega.draw(fit)
+      b.sim <- b.mh(b.current, shift, Sigma, data.t$long, data.t$surv, O, fit, df)
+      b.current <- b.sim$b.current
+      MH.accept <- MH.accept + b.sim$accept
+      St <- S_(data.t$surv, rep(O$gamma, sapply(b.inds, length)), O$zeta, b.current)
+      for(uu in seq_along(u)){
+        data.u <- prepareData(newdata, fit = fit, u = u[uu])
+        pi[i, uu] <- S_(data.u$surv, rep(O$gamma, sapply(b.inds, length)), O$zeta, b.current)/(St)
+      }
+      if(progress) utils::setTxtProgressBar(pb, i)
+    }
+    if(progress) close(pb)
+    pi.df <- data.frame(
+      u = u,
+      mean = colMeans(pi),
+      median = apply(pi, 2, median),
+      lower  = apply(pi, 2, quantile, prob = 0.025),
+      upper  = apply(pi, 2, quantile, prob = 0.975),
+      id = orig.id
+    )
+    row.names(pi.df) <- NULL
+    out <- list(
+      pi = pi.df,
+      pi.raw = pi,
+      MH.accept = MH.accept/nsim
+    )
+    class(out) <- 'dynPred'
+    attr(out, 'type') <- 'simulated'
+  }else{
+    if(progress) cat("Proceeding with first-order estimate.\n")
+    b <- data.t$bfit$par
+    qs <- sapply(b.inds, length)
+    St <- S_(data.t$surv, rep(fit$coeffs$gamma, qs), fit$coeffs$zeta, b)
+    pi <- numeric(length(u))
+    for(uu in seq_along(u)){
+      data.u <- prepareData(newdata, fit = fit, u = u[uu])
+      pi[uu] <- S_(data.u$surv, rep(fit$coeffs$gamma, qs), fit$coeffs$zeta, b)/St
+    }
+    pi.df <- data.frame(u = u, prob = pi, orig.id = orig.id, boot.id = boot.id)
+    row.names(pi.df) <- NULL
+    out <- list(pi = pi.df)
+    class(out) <- 'dynPred'
+    attr(out, 'type') <- 'first order'
+  }
+  out
+}
+
+# Getting the prognostic performance measures; below is for my sanity because getting confused.
+# This could be coded/done a lot more efficiently: Just getting something that works for now...
+#' @param fit (either) the original model, or the model fit to bootstrapped sample.
+#' @param data (either) the original data, or the bootstrapped data.
+#' @param mapping data.frame with the ids as they appear in the bootstrapped data vs the original.
+get.measures <- function(fit, data, mapping = NULL, Tstart, delta, nsim){
   # Ensure {survtime, status} exists via model call.
   data$survtime <- data[,fit$ModelInfo$survtime]; data$status <- data[,fit$ModelInfo$status]
   # Set out new data and remove IDs where only one longitudinal measurement is available as this causes issues in calculation 
@@ -67,42 +160,113 @@ corrected.ROC <- function(fit, data, Tstart, delta, control = list(), progress =
   # We solely look at their tail survival time.
   candidate.u <- candidate.u[c(1, length(candidate.u))]
   
+  # Number of individuals alive at T_{start}
+  uids <- unique(newdata$id)
+  n.alive <- length(uids)
+  
+  # Getting pi and (1 - pi), dependent on whether mapping has occurred.
+  if(is.null(mapping)){ # If no mapping has occurred (i.e. orig -> orig or boot -> boot)
+    pi <- lapply(seq_along(uids), function(i){
+      ds <- dynPred(newdata, uids[i], fit, candidate.u, progress = F,
+                    scale = scale, df = df, nsim = nsim)
+      out <- unname(ds$pi)
+      data.frame(orig.id = out[3], new.id = i, pi = out[2])
+    })
+    pi.df <- do.call(rbind, pi)
+    pi <- pi.df$pi
+    ompi <- 1 - pi
+  }else{ # If mapping has occurred (i.e. we're working out boot -> orig)
+    # Was the original id in the original sample at T_{start}?
+    mapping2 <- mapping[which(mapping[, 2]%in%uids),]
+    boot.id <- mapping2[, 1]  # Their `id`s as they appear in `fit` dmats
+    orig.id <- mapping2[, 2]  # Their original `id`s
+    pi <- lapply(seq_along(orig.id), function(i){
+      ds <- dynPred2(newdata, orig.id[i], boot.id[i], fit, candidate.u, progress = F,
+                    scale = scale, df = df, nsim = nsim)
+      out <- unname(ds$pi)
+      data.frame(orig.id = orig.id[i], new.id = boot.id[i], pi = out[2])
+    })
+    pi.df <- do.call(rbind, pi)
+    pi <- pi.df$pi
+    ompi <- 1 - pi
+  }
+  # Working out whether individuals failed/censor/survived the window
+  checks <- sapply(pi.df$orig.id, function(i){
+    # This key's data
+    a <- newdata[newdata$id == i,][1,,drop=F]
+    survtime <- a$survtime
+    status <- a$status
+    # Failed or were censored otherwise
+    ct.in.window <- survtime >= window[1] & survtime < window[2]
+    # Did they fail?
+    fail.in.window <- ct.in.window & (status == 1L)
+    censor.in.window <- ct.in.window & (status == 0L)
+    # Return
+    c(ct.in.window = ct.in.window,
+      fail.in.window = fail.in.window,
+      censor.in.window = censor.in.window,
+      survived.window = survtime > window[2])
+  })
+  
+  event <- checks[2,] # Specifically failed in the window
+  
+  PE <- mean(as.numeric(!checks[1,]) * ompi^2 + as.numeric(checks[2,]) * (0-pi)^2 + 
+               as.numeric(checks[3,]) * (pi * ompi^2 + ompi * (0-pi)^2))
+  
+  t <- seq(0, 1, length = 101)
+  simfail <- structure(outer(pi, t, '<='),
+                       dimnames = list(names(pi) , paste0('t: ', t)))
+  
+  TP <- colSums(c(event) * simfail)        # True positives
+  FN <- sum(event) - TP                    # False negatives
+  FP <- colSums(c(!event) * simfail)       # False positives
+  TN <- sum(!event) - FP                   # True negatives
+  TPR <- TP/(TP + FN)                      # True positive rate (sensitivity)
+  FPR <- FP/(FP + TN)                      # False positive rate (1 - specificity)
+  
+  df <- data.frame(threshold = t, TPR = TPR, FPR = FPR)
+  # Flip table so if multiple thresholds have same TPR/FPR then we take the largest threshold
+  df <- df[order(df$threshold, decreasing = T), ]
+  # Remove duplicated TPR/FPR
+  df <- df[!duplicated(df[, c('TPR', 'FPR')]),]
+  
+  .auc1 <- 0.5 * (df$TPR[-1] + df$TPR[-length(df$TPR)])
+  .auc2 <- -diff(df$FPR)
+  # Return AUC and PE
+  return(list(auc = sum(.auc1*.auc2), PE = PE))
+}
+
+corrected.ROC <- function(fit, data, Tstart, delta, control = list(), progress = TRUE,
+                          nboot = 100L){
+  if(!inherits(fit, 'joint')) stop("Only usable with objects of class 'joint'.")
+  # Parse control arguments ----
+  if(!is.null(control$scale)) scale <- control$scale else scale <- 2
+  if(!is.null(control$df)) df <- control$df else df <- 4
+  if(!is.null(control$nsim)) nsim <- control$nsim else nsim <- 0 # 25 # Set fairly low. ## removed -> FO only atm
+  sim <- nsim > 0
+  
+  # Get apparent AUC and PE 
+  M.measures <- get.measures(fit, data, NULL, Tstart, delta)
+  
   if(progress) pb <- utils::txtProgressBar(max = nboot, style = 3)
   for(b in 1:nboot){
     # D_(b)
-    data.b <- resampledata(newdata)
-    # Number of individuals alive at T_{start}
-    uids <- unique(data.b$id)
-    n.alive <- length(uids)
-    mapped.to <- data.b[!duplicated(data.b$id), c('id', '..old.id')]
+    data.b <- resampledata(data)
+    mapping <- simplify2array(data.b[!duplicated(data.b$id), c('id', '..old.id')])
     
-    probs.b <- setNames(vector('list', n.alive),
-                        paste0("id ", uids)) # A bit confusing -> these _map onto_ `..old.id` in data.b
+    # Refit the model
+    M.b <- refit.model(fit, data.b)
     
-    pi.b <- sapply(seq_along(uids), function(i){
-      ds <- dynPred(newdata, mapped.to[i,2], fit, candidate.u, progress = F,
-                    scale = scale, df = df, nsim = nsim)
-      out <- ds$pi
-      c(orig.id = out[3], new.id = i, pi = out[2])
-    })
+    # Obtain bootstrapped performance measures
+    M.b.measures <- get.measures(M.b, data.b, NULL, Tstart, delta)
+    
+    # Obtain bootstrapped performance measures on original data
+    M.bstar.measures <- get.measures(M.b, data, mapping, Tstart, delta)
+    
+    # Calculate the optimism
+    O.b <- 
     
   }
-
-  
- 
-  
-  # Loop over ids and failure times
-  probs <- acceptance <- setNames(vector('list', length = length(alive.ids)),
-                                  paste0('id ', as.character(unique(keys))))
-  if(progress) pb <- utils::txtProgressBar(max = length(alive.ids), style = 3)
-  for(i in seq_along(alive.ids)){
-    ds <- dynPred(newdata, alive.ids[i], fit, u = candidate.u, progress = F, 
-                  scale = scale, df = df, nsim = nsim)
-    probs[[i]] <- ds$pi
-    if(sim) acceptance[[i]] <- ds$MH.accept
-    if(progress) utils::setTxtProgressBar(pb, i)
-  }
-  if(progress) close(pb)
   
   # Obtaining conditional probabilities for those alive subjects at Tstart.
   infodf <- lapply(unique(keys), function(x){
@@ -133,9 +297,6 @@ corrected.ROC <- function(fit, data, Tstart, delta, control = list(), progress =
       censor.in.window = censor.in.window,
       survived.window = survtime > window[2])
   })
-  # survtimes <- with(newdata, tapply(survtime, keys, unique))
-  # events <- survtimes >= window[1] & survtimes <= window[2]
-  # event <- status & events      # Check if they FAILED in window
   event <- checks[2,] # Specifically failed in the window
   
   # Calibration metrics
@@ -180,25 +341,6 @@ corrected.ROC <- function(fit, data, Tstart, delta, control = list(), progress =
   out <- out[order(out$threshold, decreasing = T), ]
   # Remove duplicated TPR/FPR
   out <- out[!duplicated(out[, c('TPR', 'FPR')]),]
-  
-  simulation.info <- list(
-    nsim = nsim,
-    scale = scale,
-    df = df
-  )
-  
-  a <- AUC(out)
-  out <- list(
-    Tstart = Tstart, delta = delta, candidate.u = candidate.u,
-    window.failures = n.window.events,
-    Tstart.alive = n.alive,
-    metrics = out, AUC = a, BrierScore = BS, PE = PE,
-    MH.acceptance = if(sim) do.call(c, acceptance) else NULL,
-    MH.acceptance.bar = if(sim) mean(do.call(c, acceptance)) else NULL,
-    simulation.info = simulation.info
-  )
-  class(out) <- 'ROC.joint'
-  out
 }
 
 # Calculate AUC from ROC table using formula for area of trapezoid.
@@ -209,76 +351,5 @@ AUC <- function(x){
   height <- 0.5 * (sens[-1] + sens[-length(sens)])
   width <- -diff(omspec)
   sum(height*width)
-}
-
-#' @method print ROC.joint
-#' @keywords internal
-#' @export
-print.ROC.joint <- function(x, ...){
-  if(!inherits(x, 'ROC.joint')) stop('x must be a "ROC.joint" object.')
-  q.acc <- quantile(x$MH.acceptance, c(.5,.25,.75))
-  cat(sprintf("Median [IQR] M-H acceptance rate: %.3f [%.3f, %.3f]\n", q.acc[1], q.acc[2], q.acc[3]))
-  cat("Diagnostic table:\n")
-  print(round(x$metrics, 3))
-  cat(sprintf("\nArea under curve: %.2f\n", x$AUC))
-  cat(sprintf("Brier Score: %.3f\n", x$BrierScore))
-  cat(sprintf("Predictive Error: %.3f\n", x$PE))
-  invisible(x)
-}
-
-
-#' Plot receiver operator characteristics.
-#' 
-#' @description Produces a simple plot showing the true positive rate (sensitivity) against
-#' the false positive rate (1-specificy) for a dynamic prediction routine on a \code{joint} model
-#' along a specified time interval.
-#' 
-#' @param x an object with class \code{ROC.joint}.
-#' @param legend should a legend displaying the number in risk set; number of failures in interval;
-#' area under the ROC curve and median Brier score be added to the bottom-right corner of the ROC 
-#' plot? Default is \code{legend = TRUE}.
-#' @param show.Youden should a line be drawn showing optimal cut-point using Youden's J statistic?
-#' Defaults to \code{show.Youden = TRUE}.
-#' @param show.F1 should a line be drawn showing optimal cut-point using the F-score?
-#' Defaults to \code{show.F1 = FALSE}. Note that this measure comes under heavy criticism and is
-#' included for completeness' sake.
-#' @param ... additional arguments (none used).
-#' 
-#' @author James Murray (\email{j.murray7@@ncl.ac.uk}).
-#' 
-#' @importFrom graphics plot abline legend arrows
-#' @method plot ROC.joint
-#' @seealso \code{\link{dynPred}} and \code{\link{ROC}}
-#' @keywords internal
-#' @export
-plot.ROC.joint <- function(x, legend = TRUE, show.Youden = TRUE, show.F1 = FALSE, ...){
-  if(!inherits(x, 'ROC.joint')) stop('x must be a "ROC.joint" object.')
-  TPR <- x$metrics$TPR; FPR <- x$metrics$FPR
-  plot(FPR, TPR,
-       xlab = '1 - Specificity', ylab = 'Sensitivity',
-       main = paste0('ROC curve for time interval (', x$Tstart, ', ', x$Tstart + x$delta, ']'),
-       type = 'l')
-  abline(0, 1, lty = 3)
-  if(show.Youden){
-    Ms <- x$metrics
-    maxJ <- max(Ms$J); ind <- which.max(Ms$J)
-    arrows(x0 = Ms[ind, 'FPR'], x1 = Ms[ind, 'FPR'],
-           y0 = Ms[ind, 'FPR'], y1 = Ms[ind, 'TPR'],
-           length = 0, lty = 5)
-  }
-  if(show.F1){
-    Ms <- x$metrics
-    maxF1 <- max(Ms$F1); ind <- which.max(Ms$F1)
-    arrows(x0 = Ms[ind, 'FPR'], x1 = Ms[ind, 'FPR'],
-           y0 = Ms[ind, 'FPR'], y1 = Ms[ind, 'TPR'],
-           length = 0, lty = 3)
-  }
-  if(legend){
-    legend('bottomright', 
-           paste0(x$Tstart.alive, ' at risk; ', x$window.failures, ' failures in interval.\n',
-                  'AUC: ', round(x$AUC, 3)),
-           bty = 'n', cex = .75)
-  }
-  invisible(x)
 }
 
