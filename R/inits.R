@@ -174,7 +174,7 @@ TimeVarCox <- function(data, b, surv, formulas, b.inds, inits.long){
 
 
 #' @keywords internal
-parseInits <- function(X, params, inds, inits.long){
+parseInits <- function(X, params, inds, inits.long, Omega){
   if(!inherits(X, "list"))
     stop(sQuote("inits"), " must be of class ", sQuote("list"), ".")
   
@@ -189,12 +189,14 @@ parseInits <- function(X, params, inds, inits.long){
   # obtained via glmmTMB/TimeVarCox. Leave those who aren't specified
   # in the control argument untouched.
   params.new <- params
+  Omega.new <- Omega
   if(!is.null(X$D)){
     vD <- vech(X$D)
     wD <- grepl("^D\\[", names(params))
     if(length(vD)!=sum(wD)) # Check dim(D)
       stop("inits$D is improperly dimensioned.")
     params.new[wD] <- vD
+    Omega.new$D <- X$D
   }
   if(!is.null(X$beta)){
     lb <- length(unlist(inds$R$beta))
@@ -202,6 +204,7 @@ parseInits <- function(X, params, inds, inits.long){
       stop("inits$beta is improperly dimensioned.")
     beta.start <- max(grep("^D\\[", names(params))) + 1
     params.new[beta.start:(beta.start + lb - 1)] <- X$beta
+    Omega.new$beta <- X$beta
   }
   if(!is.null(X$sigma)){
     if(!inherits(X$sigma, "list"))
@@ -221,6 +224,7 @@ parseInits <- function(X, params, inds, inits.long){
     
     # Assume they're in the correct order!
     params.new[match(to.replace, names(params))] <- new.sigma
+    Omega.new$sigma <- X$sigma
   }
   if(!is.null(X$gamma)){
     lg <- length(X$gamma)
@@ -228,6 +232,7 @@ parseInits <- function(X, params, inds, inits.long){
       stop("inits$gamma must be a vector of length K.")
     
     params.new[grepl("^gamma\\_", names(params))] <- X$gamma
+    Omega.new$gamma <- X$gamma
   }
   if(!is.null(X$zeta)){
     lz <- length(X$zeta)
@@ -236,9 +241,10 @@ parseInits <- function(X, params, inds, inits.long){
       stop("inits$zeta improperly dimensioned vetor.")
     
     params.new[wz] <- X$zeta
+    Omega.new$zeta <- X$zeta
   }
   
-  params.new
+  list(params = params.new, Omega = Omega.new)
 }
 
 

@@ -333,7 +333,11 @@ joint <- function(long.formulas, surv.formula,
   params <- c(setNames(vech(D), paste0('D[', apply(which(lower.tri(D, T), arr.ind = T), 1, paste, collapse = ','), ']')),
               beta, unlist(sigma)[inits.long$sigma.include], gamma, zeta)
   sigma.include <- inits.long$sigma.include
-  if(!is.null(con$inits)) params <- parseInits(con$inits, params, inds, inits.long)
+  if(!is.null(con$inits)){
+    parsed.inits <- parseInits(con$inits, params, inds, inits.long, Omega)
+    params <- parsed.inits$params
+    Omega <- parsed.inits$Omega
+  }
   if(!con$return.inits) rm(inits.surv)
   
   # step-sizes for grad/hess in dispersion updates
