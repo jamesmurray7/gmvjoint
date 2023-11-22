@@ -215,12 +215,12 @@ parseInits <- function(X, params, inds, inits.long){
     if(length(unlist(X$sigma))!=lS)
       stop("x$sigma improperly dimensioned.")
     
-    to.replace <- names(il.s[il.s!=0])
+    to.replace <- names(il.s[il.s != 0])
     new.sigma <- unlist(X$sigma)
     new.sigma <- new.sigma[new.sigma != 0]
     
     # Assume they're in the correct order!
-    params.new[which(names(params) == to.replace)] <- new.sigma
+    params.new[match(to.replace, names(params))] <- new.sigma
   }
   if(!is.null(X$gamma)){
     lg <- length(X$gamma)
