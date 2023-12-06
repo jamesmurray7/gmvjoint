@@ -245,15 +245,24 @@ double appxE_NegBinsigma(const arma::vec& sigma, const arma::vec& eta, const arm
 double appxE_GenPoissigma(const arma::vec& sigma, const arma::vec& eta, const arma::vec& Y, 
                           const arma::vec& tau, const arma::mat& W,
                           const arma::vec& w, const arma::vec& v){
+  // uword gh = w.size(), m = eta.size();
+  // vec phi = W * sigma, Exp(m);
+  // vec lfac = lgamma(Y + 1.), 
+  //     frac = (trunc_exp(eta) + phi % Y) / (1. + phi);
+  // for(uword l = 0; l < gh; l++){
+  //   vec this_eta = eta + tau * v[l];
+  //   Exp += w[l] * log(trunc_exp(this_eta) + phi % Y);
+  // }
+  // return sum(eta + (Y - 1.) % Exp - Y % log(1. + phi) - lfac - frac);
   uword gh = w.size(), m = eta.size();
-  vec phi = W * sigma, Exp(m);
-  vec lfac = lgamma(Y + 1.), 
-      frac = (trunc_exp(eta) + phi % Y) / (1. + phi);
+  vec phi = W * sigma, Exp(m), denom = 1. + phi;
   for(uword l = 0; l < gh; l++){
     vec this_eta = eta + tau * v[l];
     Exp += w[l] * log(trunc_exp(this_eta) + phi % Y);
   }
-  return sum(eta + (Y - 1.) % Exp - Y % log(1. + phi) - lfac - frac);
+  return sum(
+    (Y - 1.) % Exp- Y % log(1. + phi) - (trunc_exp(eta) + phi % Y)/denom
+  );
 }
 
 // Update Gaussian by finding contribution from each individual i.d.
