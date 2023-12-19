@@ -2,10 +2,9 @@
 * Fairly minor updates
 * `surv.formula` now properly accepts factor variables. This shortcoming was brought to my attention by J. Piekos (Oxford); so thanks!
 * `residuals.joint` functions have been amended to actually work for Cox-Snell (there was an issue with e.g. spline time specifications).
-* `plot.residuals.joint` now produces a series of plots with telligible legends.
+* `plot.residuals.joint` now produces a series of plots with meaningful legends.
 * `ROC` and `dynPreds` have been updated to correctly work with splines, and have been altered slightly.
-* `joint` now accepts the control argument `inits` which allows the user to overwrite initial conditions. The function `boot.joint` has been
-amended in line with this along with necessary documentation.
+* `joint` now accepts the control argument `inits` which allows the user to overwrite initial conditions. The function `boot.joint` has been amended in line with this along with necessary documentation.
 
 # gmvjoint version 0.3.0
 * Fairly extensive re-writes to workhorse functions `joint` (and underlying `EMUpdate`); some computational efficiency has been gained here 'within' the EM algorithm.

@@ -18,8 +18,9 @@ be returned? See \strong{details}.}
 Returns an object of class \code{logLik}, a number which is the log-likelihood
 of the fitted model \code{object}. This has multiple attributes: \code{df} which is the 
 degrees of freedom, \code{df.residual}; the number of residual degrees of freedom;
-\code{AIC} and {BIC} which are the Akaike or Bayes information criterion evaluated at either
-the conditional or observed log-likelihood (as requested by argument \code{conditional}).
+\code{AIC} and \code{BIC} which are the Akaike or Bayes information criterion evaluated at 
+either the conditional or observed log-likelihood (as requested by argument 
+\code{conditional}).
 }
 \description{
 Calculate joint log-likelihood, degrees of freedom, AIC and BIC of 

@@ -78,8 +78,9 @@ joint.log.lik <- function(coeffs, dmats, surv, sv, family, b, l0i, l0u, inds, Si
 #' @returns Returns an object of class \code{logLik}, a number which is the log-likelihood
 #' of the fitted model \code{object}. This has multiple attributes: \code{df} which is the 
 #' degrees of freedom, \code{df.residual}; the number of residual degrees of freedom;
-#' \code{AIC} and {BIC} which are the Akaike or Bayes information criterion evaluated at either
-#' the conditional or observed log-likelihood (as requested by argument \code{conditional}).
+#' \code{AIC} and \code{BIC} which are the Akaike or Bayes information criterion evaluated at 
+#' either the conditional or observed log-likelihood (as requested by argument 
+#' \code{conditional}).
 #' 
 #' @examples 
 #' # Bivariate simulated data (2x Gaussian)

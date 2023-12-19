@@ -8,28 +8,28 @@
 */
 
 /* .Call calls */
-extern SEXP _gmvjoint_appxE_Gammasigma(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_appxE_GenPoissigma(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_appxE_NegBinsigma(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_dmvn_fast(SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_dmvt_fast(SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_Egammazeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_GP1_pmf_scalar(SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_Hbeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_Hgammazeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_joint_density(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_joint_density_ddb(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_lambda_hat(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_lambda_update(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_logfti(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_make_eta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_make_tau(SEXP, SEXP);
-extern SEXP _gmvjoint_metropolis(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_S_(SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_Sbeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_Sgammazeta(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_sigma2_Gaussian_update(SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP _gmvjoint_vech2mat(SEXP, SEXP);
+extern SEXP _gmvjoint_appxE_Gammasigma(void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_appxE_GenPoissigma(void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_appxE_NegBinsigma(void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_dmvn_fast(void *, void *, void *, void *);
+extern SEXP _gmvjoint_dmvt_fast(void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_Egammazeta(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_GP1_pmf_scalar(void *, void *, void *);
+extern SEXP _gmvjoint_Hbeta(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_Hgammazeta(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_joint_density(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_joint_density_ddb(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_lambda_hat(void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_lambda_update(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_logfti(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_make_eta(void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_make_tau(void *, void *);
+extern SEXP _gmvjoint_metropolis(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_S_(void *, void *, void *, void *);
+extern SEXP _gmvjoint_Sbeta(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_Sgammazeta(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_sigma2_Gaussian_update(void *, void *, void *, void *, void *);
+extern SEXP _gmvjoint_vech2mat(void *, void *);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_gmvjoint_appxE_Gammasigma",       (DL_FUNC) &_gmvjoint_appxE_Gammasigma,        7},
