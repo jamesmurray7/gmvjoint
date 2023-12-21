@@ -2,7 +2,7 @@ citHeader("To cite gmvjoint in publications use:")
 
 citEntry(entry = "Article",
          title = "Fast estimation for generalised multivariate joint models using an approximate EM algorithm",
-         author = personList(person("James", "Murray"), person("Pete", "Philipson")),
+         author = "James Murray and Pete Philipson",
          journal = "Computational Statistics & Data Analysis",
          year = "2023",
          volume = "187",
