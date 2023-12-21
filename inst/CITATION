@@ -1,14 +1,13 @@
-citHeader("To cite gmvjoint in publications use:")
-
-citEntry(entry = "Article",
+bibentry(bibtype = "Article",
          title = "Fast estimation for generalised multivariate joint models using an approximate EM algorithm",
-         author = "James Murray and Pete Philipson",
-         journal = "Computational Statistics & Data Analysis",
+         author = c(person("James", "Murray"), person("Pete", "Philipson")),
+         journal = "Computational Statistics \\& Data Analysis",
          year = "2023",
          volume = "187",
          pages = "107819",
          doi = "10.1016/j.csda.2023.107819",
          url = "https://doi.org/10.1016/j.csda.2023.107819",
+         header = "To cite gmvjoint in publications use:",
          textVersion = paste0("Murray, J. and Philipson P., 2023. ",
                               "Fast estimation for generalised multivariate joint models using an approximate EM algorithm. ",
                               "Computational Statistics & Data Analysis 187, 107819. ",
