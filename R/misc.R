@@ -30,9 +30,9 @@ neat.family.name <- function(f){
 
 # Parsing input formula
 #' @keywords internal
-#' @importFrom glmmTMB splitForm
+#' @importFrom reformulas splitForm
 parseFormula <- function(formula){ 
-  split <- glmmTMB::splitForm(formula, allowFixedOnly = F)
+  split <- reformulas::splitForm(formula, allowFixedOnly = FALSE)
   fixed <- split$fixedFormula
   random <- el(split$reTrmFormulas)
   
